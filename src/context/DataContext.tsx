@@ -1,10 +1,11 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { 
   Cliente, Produto, Fornecedor, Compra, Transacao, 
   Feedback, Promocao, FilterOptions, DashboardStats 
 } from "../types";
+import { useSubscription } from "./SubscriptionContext";
+import { toast } from "sonner";
 
 interface DataContextType {
   // Data arrays
@@ -17,31 +18,31 @@ interface DataContextType {
   promocoes: Promocao[];
   
   // CRUD operations
-  addCliente: (cliente: Omit<Cliente, "id" | "dataCadastro">) => void;
+  addCliente: (cliente: Omit<Cliente, "id" | "dataCadastro">) => boolean;
   updateCliente: (id: string, cliente: Partial<Cliente>) => void;
   deleteCliente: (id: string) => void;
   
-  addProduto: (produto: Omit<Produto, "id" | "dataCadastro">) => void;
+  addProduto: (produto: Omit<Produto, "id" | "dataCadastro">) => boolean;
   updateProduto: (id: string, produto: Partial<Produto>) => void;
   deleteProduto: (id: string) => void;
   
-  addFornecedor: (fornecedor: Omit<Fornecedor, "id" | "dataCadastro">) => void;
+  addFornecedor: (fornecedor: Omit<Fornecedor, "id" | "dataCadastro">) => boolean;
   updateFornecedor: (id: string, fornecedor: Partial<Fornecedor>) => void;
   deleteFornecedor: (id: string) => void;
   
-  addCompra: (compra: Omit<Compra, "id">) => void;
+  addCompra: (compra: Omit<Compra, "id">) => boolean;
   updateCompra: (id: string, compra: Partial<Compra>) => void;
   deleteCompra: (id: string) => void;
   
-  addTransacao: (transacao: Omit<Transacao, "id">) => void;
+  addTransacao: (transacao: Omit<Transacao, "id">) => boolean;
   updateTransacao: (id: string, transacao: Partial<Transacao>) => void;
   deleteTransacao: (id: string) => void;
   
-  addFeedback: (feedback: Omit<Feedback, "id">) => void;
+  addFeedback: (feedback: Omit<Feedback, "id">) => boolean;
   updateFeedback: (id: string, feedback: Partial<Feedback>) => void;
   deleteFeedback: (id: string) => void;
   
-  addPromocao: (promocao: Omit<Promocao, "id">) => void;
+  addPromocao: (promocao: Omit<Promocao, "id">) => boolean;
   updatePromocao: (id: string, promocao: Partial<Promocao>) => void;
   deletePromocao: (id: string) => void;
   
@@ -77,6 +78,8 @@ interface DataProviderProps {
 }
 
 export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
+  const { isSubscribed } = useSubscription();
+  
   // Estado inicial
   const [clientes, setClientes] = useState<Cliente[]>(() => {
     const saved = localStorage.getItem("gestorpro_clientes");
@@ -124,6 +127,15 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     vendasPorPeriodo: [],
     estoqueStatus: { baixo: 0, normal: 0, alto: 0 }
   });
+  
+  // Função para verificar limites de plano gratuito
+  const checkFreeLimit = (collection: any[], entity: string): boolean => {
+    if (!isSubscribed && collection.length >= 10) {
+      toast.error(`Limite atingido! Você pode cadastrar apenas 10 ${entity} no plano gratuito. Faça upgrade para adicionar mais.`);
+      return false;
+    }
+    return true;
+  };
   
   // Persistência no localStorage
   useEffect(() => {
@@ -240,12 +252,15 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   
   // Clientes
   const addCliente = (cliente: Omit<Cliente, "id" | "dataCadastro">) => {
+    if (!checkFreeLimit(clientes, "clientes")) return false;
+    
     const newCliente: Cliente = {
       ...cliente,
       id: uuidv4(),
       dataCadastro: new Date().toISOString()
     };
     setClientes([...clientes, newCliente]);
+    return true;
   };
   
   const updateCliente = (id: string, clienteUpdate: Partial<Cliente>) => {
@@ -266,12 +281,15 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   
   // Produtos
   const addProduto = (produto: Omit<Produto, "id" | "dataCadastro">) => {
+    if (!checkFreeLimit(produtos, "produtos")) return false;
+    
     const newProduto: Produto = {
       ...produto,
       id: uuidv4(),
       dataCadastro: new Date().toISOString()
     };
     setProdutos([...produtos, newProduto]);
+    return true;
   };
   
   const updateProduto = (id: string, produtoUpdate: Partial<Produto>) => {
@@ -300,12 +318,15 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   
   // Fornecedores
   const addFornecedor = (fornecedor: Omit<Fornecedor, "id" | "dataCadastro">) => {
+    if (!checkFreeLimit(fornecedores, "fornecedores")) return false;
+    
     const newFornecedor: Fornecedor = {
       ...fornecedor,
       id: uuidv4(),
       dataCadastro: new Date().toISOString()
     };
     setFornecedores([...fornecedores, newFornecedor]);
+    return true;
   };
   
   const updateFornecedor = (id: string, fornecedorUpdate: Partial<Fornecedor>) => {
@@ -332,6 +353,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   
   // Compras
   const addCompra = (compra: Omit<Compra, "id">) => {
+    if (!checkFreeLimit(compras, "compras")) return false;
+    
     const newCompra: Compra = {
       ...compra,
       id: uuidv4()
@@ -359,6 +382,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       compraId: newCompra.id,
       clienteId: newCompra.clienteId
     });
+    
+    return true;
   };
   
   const updateCompra = (id: string, compraUpdate: Partial<Compra>) => {
@@ -387,11 +412,14 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   
   // Transações
   const addTransacao = (transacao: Omit<Transacao, "id">) => {
+    if (!checkFreeLimit(transacoes, "transações")) return false;
+    
     const newTransacao: Transacao = {
       ...transacao,
       id: uuidv4()
     };
     setTransacoes([...transacoes, newTransacao]);
+    return true;
   };
   
   const updateTransacao = (id: string, transacaoUpdate: Partial<Transacao>) => {
@@ -408,11 +436,14 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   
   // Feedbacks
   const addFeedback = (feedback: Omit<Feedback, "id">) => {
+    if (!checkFreeLimit(feedbacks, "avaliações")) return false;
+    
     const newFeedback: Feedback = {
       ...feedback,
       id: uuidv4()
     };
     setFeedbacks([...feedbacks, newFeedback]);
+    return true;
   };
   
   const updateFeedback = (id: string, feedbackUpdate: Partial<Feedback>) => {
@@ -429,11 +460,14 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   
   // Promoções
   const addPromocao = (promocao: Omit<Promocao, "id">) => {
+    if (!checkFreeLimit(promocoes, "promoções")) return false;
+    
     const newPromocao: Promocao = {
       ...promocao,
       id: uuidv4()
     };
     setPromocoes([...promocoes, newPromocao]);
+    return true;
   };
   
   const updatePromocao = (id: string, promocaoUpdate: Partial<Promocao>) => {

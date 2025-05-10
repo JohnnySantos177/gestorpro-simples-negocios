@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { CATEGORIAS_FINANCEIRAS } from "@/data/constants";
 import { DollarSign, Edit, Trash2 } from "lucide-react";
 import { CrudDialog } from "@/components/CrudDialog";
+import { useSubscription } from "@/context/SubscriptionContext";
+import { toast } from "sonner";
 import {
   Form,
   FormControl,
@@ -41,7 +43,9 @@ const transacaoSchema = z.object({
 type TransacaoFormData = z.infer<typeof transacaoSchema>;
 
 const FinanceiroPage = () => {
-  const { filterTransacoes, addTransacao, updateTransacao, deleteTransacao } = useData();
+  const { filterTransacoes, addTransacao, updateTransacao, deleteTransacao, transacoes } = useData();
+  const { isSubscribed } = useSubscription();
+  
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     search: "",
     sortBy: "data",
@@ -69,9 +73,15 @@ const FinanceiroPage = () => {
     },
   });
 
-  const transacoes = filterTransacoes(filterOptions);
+  const filteredTransacoes = filterTransacoes(filterOptions);
 
   const openAddDialog = (tipo: 'entrada' | 'saida') => {
+    // Verificar limite de registros para usuários gratuitos
+    if (!isSubscribed && transacoes.length >= 10) {
+      toast.error("Limite atingido! Você pode cadastrar apenas 10 transações no plano gratuito. Faça upgrade para adicionar mais.");
+      return;
+    }
+    
     setTransacaoTipo(tipo);
     form.reset({
       tipo: tipo,
@@ -107,7 +117,7 @@ const FinanceiroPage = () => {
 
   const handleAddEditSubmit = (data: TransacaoFormData) => {
     if (dialogType === "add") {
-      addTransacao({
+      const success = addTransacao({
         tipo: data.tipo,
         categoria: data.categoria,
         descricao: data.descricao,
@@ -115,6 +125,10 @@ const FinanceiroPage = () => {
         formaPagamento: data.formaPagamento,
         data: data.data
       });
+      
+      if (!success) {
+        return; // Don't close the dialog if adding failed
+      }
     } else if (dialogType === "edit" && selectedTransacao) {
       updateTransacao(selectedTransacao.id, {
         tipo: data.tipo,
@@ -230,11 +244,11 @@ const FinanceiroPage = () => {
         </div>
         
         <DataTable
-          data={transacoes}
+          data={filteredTransacoes}
           columns={columns}
           filterOptions={filterOptions}
           onFilterChange={setFilterOptions}
-          totalItems={0}
+          totalItems={transacoes.length}
           page={filterOptions.page}
           itemsPerPage={filterOptions.itemsPerPage}
         />

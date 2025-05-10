@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Layout } from "@/components/Layout";
 import { PageHeader } from "@/components/PageHeader";
@@ -6,9 +7,38 @@ import { useData } from "@/context/DataContext";
 import { FilterOptions, Feedback } from "@/types";
 import { Button } from "@/components/ui/button";
 import { MessageSquare } from "lucide-react";
+import { useSubscription } from "@/context/SubscriptionContext";
+import { toast } from "sonner";
+import { CrudDialog } from "@/components/CrudDialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
+const feedbackSchema = z.object({
+  clienteId: z.string().min(1, "Cliente é obrigatório"),
+  clienteNome: z.string().min(1, "Nome do cliente é obrigatório"),
+  avaliacao: z.number().min(1).max(5),
+  comentario: z.string().min(1, "Comentário é obrigatório"),
+  data: z.string().min(1, "Data é obrigatória"),
+  respondido: z.boolean().default(false),
+  resposta: z.string().optional(),
+});
+
+type FeedbackFormData = z.infer<typeof feedbackSchema>;
 
 const AvaliacoesPage = () => {
-  const { feedbacks } = useData();
+  const { feedbacks, addFeedback, updateFeedback, deleteFeedback, clientes } = useData();
+  const { isSubscribed } = useSubscription();
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     search: "",
     sortBy: "data",
@@ -16,6 +46,23 @@ const AvaliacoesPage = () => {
     page: 1,
     itemsPerPage: 10,
     respondido: ""
+  });
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogType, setDialogType] = useState<"add" | "edit" | "delete" | "respond">("add");
+  const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null);
+
+  const form = useForm<FeedbackFormData>({
+    resolver: zodResolver(feedbackSchema),
+    defaultValues: {
+      clienteId: "",
+      clienteNome: "",
+      avaliacao: 5,
+      comentario: "",
+      data: new Date().toISOString().substring(0, 10),
+      respondido: false,
+      resposta: "",
+    },
   });
 
   // Filtragem básica para avaliações
@@ -63,6 +110,95 @@ const AvaliacoesPage = () => {
     return result.slice(startIndex, startIndex + filterOptions.itemsPerPage);
   };
 
+  const openAddDialog = () => {
+    // Verificar limite de registros para usuários gratuitos
+    if (!isSubscribed && feedbacks.length >= 10) {
+      toast.error("Limite atingido! Você pode cadastrar apenas 10 avaliações no plano gratuito. Faça upgrade para adicionar mais.");
+      return;
+    }
+
+    form.reset({
+      clienteId: "",
+      clienteNome: "",
+      avaliacao: 5,
+      comentario: "",
+      data: new Date().toISOString().substring(0, 10),
+      respondido: false,
+      resposta: "",
+    });
+    setDialogType("add");
+    setDialogOpen(true);
+  };
+
+  const openEditDialog = (feedback: Feedback) => {
+    setSelectedFeedback(feedback);
+    form.reset({
+      clienteId: feedback.clienteId,
+      clienteNome: feedback.clienteNome,
+      avaliacao: feedback.avaliacao,
+      comentario: feedback.comentario,
+      data: new Date(feedback.data).toISOString().substring(0, 10),
+      respondido: feedback.respondido,
+      resposta: feedback.resposta || "",
+    });
+    setDialogType("edit");
+    setDialogOpen(true);
+  };
+
+  const openDeleteDialog = (feedback: Feedback) => {
+    setSelectedFeedback(feedback);
+    setDialogType("delete");
+    setDialogOpen(true);
+  };
+
+  const openRespondDialog = (feedback: Feedback) => {
+    setSelectedFeedback(feedback);
+    form.reset({
+      clienteId: feedback.clienteId,
+      clienteNome: feedback.clienteNome,
+      avaliacao: feedback.avaliacao,
+      comentario: feedback.comentario,
+      data: new Date(feedback.data).toISOString().substring(0, 10),
+      respondido: true,
+      resposta: feedback.resposta || "",
+    });
+    setDialogType("respond");
+    setDialogOpen(true);
+  };
+
+  const handleAddEditSubmit = (data: FeedbackFormData) => {
+    if (dialogType === "add") {
+      addFeedback({
+        clienteId: data.clienteId,
+        clienteNome: data.clienteNome,
+        avaliacao: data.avaliacao,
+        comentario: data.comentario,
+        data: data.data,
+        respondido: data.respondido,
+        resposta: data.resposta,
+      });
+    } else if ((dialogType === "edit" || dialogType === "respond") && selectedFeedback) {
+      updateFeedback(selectedFeedback.id, {
+        clienteId: data.clienteId,
+        clienteNome: data.clienteNome,
+        avaliacao: data.avaliacao,
+        comentario: data.comentario,
+        data: data.data,
+        respondido: data.respondido,
+        resposta: data.resposta,
+      });
+    }
+    
+    setDialogOpen(false);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (selectedFeedback) {
+      deleteFeedback(selectedFeedback.id);
+    }
+    setDialogOpen(false);
+  };
+
   const columns = [
     { key: "data", header: "Data", cell: (value: string) => new Date(value).toLocaleDateString() },
     { key: "clienteNome", header: "Cliente" },
@@ -84,6 +220,23 @@ const AvaliacoesPage = () => {
       key: "respondido", 
       header: "Respondido", 
       cell: (value: boolean) => value ? "Sim" : "Não" 
+    },
+    {
+      key: "actions",
+      header: "Ações",
+      cell: (_: any, row: Feedback) => (
+        <div className="flex space-x-2">
+          <Button variant="outline" size="sm" onClick={() => openRespondDialog(row)}>
+            {row.respondido ? "Ver Resposta" : "Responder"}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => openEditDialog(row)}>
+            Editar
+          </Button>
+          <Button variant="ghost" size="sm" className="text-red-500" onClick={() => openDeleteDialog(row)}>
+            Excluir
+          </Button>
+        </div>
+      )
     }
   ];
 
@@ -93,7 +246,7 @@ const AvaliacoesPage = () => {
         title="Avaliações" 
         description="Gerencie as avaliações dos clientes"
         icon={<MessageSquare className="h-6 w-6" />}
-        actions={<Button>Nova Avaliação</Button>}
+        actions={<Button onClick={openAddDialog}>Nova Avaliação</Button>}
       />
 
       <div className="mt-6">
@@ -126,11 +279,142 @@ const AvaliacoesPage = () => {
           columns={columns}
           filterOptions={filterOptions}
           onFilterChange={setFilterOptions}
-          totalItems={0}
+          totalItems={feedbacks.length}
           page={filterOptions.page}
           itemsPerPage={filterOptions.itemsPerPage}
         />
       </div>
+
+      {/* Add/Edit Dialog */}
+      {dialogType !== "delete" ? (
+        <CrudDialog
+          title={
+            dialogType === "add" 
+              ? "Nova Avaliação" 
+              : dialogType === "respond"
+                ? "Responder Avaliação"
+                : "Editar Avaliação"
+          }
+          description={
+            dialogType === "add"
+              ? "Adicione uma nova avaliação de cliente"
+              : dialogType === "respond"
+                ? "Responda ao feedback do cliente"
+                : "Edite os detalhes da avaliação"
+          }
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          onConfirm={form.handleSubmit(handleAddEditSubmit)}
+          type={dialogType}
+        >
+          <Form {...form}>
+            <form className="space-y-4" onSubmit={form.handleSubmit(handleAddEditSubmit)}>
+              {dialogType !== "respond" && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="clienteNome"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nome do Cliente</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="avaliacao"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Avaliação (1-5)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            min="1" 
+                            max="5"
+                            {...field} 
+                            onChange={(e) => field.onChange(parseInt(e.target.value))} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="data"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Data</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="comentario"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Comentário</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
+              
+              <FormField
+                control={form.control}
+                name="resposta"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{dialogType === "respond" ? "Sua Resposta" : "Resposta (opcional)"}</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {dialogType === "respond" && (
+                <FormField
+                  control={form.control}
+                  name="respondido"
+                  render={({ field }) => (
+                    <input type="hidden" {...field} />
+                  )}
+                />
+              )}
+            </form>
+          </Form>
+        </CrudDialog>
+      ) : (
+        <CrudDialog
+          title="Excluir Avaliação"
+          description="Tem certeza que deseja excluir esta avaliação? Esta ação não pode ser desfeita."
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          onConfirm={handleDeleteConfirm}
+          type="delete"
+        >
+          <div className="py-4">
+            <p>Esta avaliação será removida permanentemente do sistema.</p>
+          </div>
+        </CrudDialog>
+      )}
     </Layout>
   );
 };

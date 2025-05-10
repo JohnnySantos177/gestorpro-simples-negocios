@@ -8,6 +8,7 @@ import { FilterOptions, Fornecedor } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Truck, Edit, Trash2 } from "lucide-react";
 import { CrudDialog } from "@/components/CrudDialog";
+import { useSubscription } from "@/context/SubscriptionContext";
 import {
   Form,
   FormControl,
@@ -21,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { toast } from "sonner";
 
 const fornecedorSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
@@ -39,7 +41,9 @@ const fornecedorSchema = z.object({
 type FornecedorFormData = z.infer<typeof fornecedorSchema>;
 
 const FornecedoresPage = () => {
-  const { filterFornecedores, addFornecedor, updateFornecedor, deleteFornecedor } = useData();
+  const { filterFornecedores, addFornecedor, updateFornecedor, deleteFornecedor, fornecedores } = useData();
+  const { isSubscribed } = useSubscription();
+  
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     search: "",
     sortBy: "nome",
@@ -69,9 +73,15 @@ const FornecedoresPage = () => {
     },
   });
 
-  const fornecedores = filterFornecedores(filterOptions);
+  const filteredFornecedores = filterFornecedores(filterOptions);
 
   const openAddDialog = () => {
+    // Verificar limite de registros para usuários gratuitos
+    if (!isSubscribed && fornecedores.length >= 10) {
+      toast.error("Limite atingido! Você pode cadastrar apenas 10 fornecedores no plano gratuito. Faça upgrade para adicionar mais.");
+      return;
+    }
+    
     form.reset({
       nome: "",
       contato: "",
@@ -116,7 +126,7 @@ const FornecedoresPage = () => {
 
   const handleAddEditSubmit = (data: FornecedorFormData) => {
     if (dialogType === "add") {
-      addFornecedor({
+      const success = addFornecedor({
         nome: data.nome,
         contato: data.contato,
         telefone: data.telefone,
@@ -129,6 +139,10 @@ const FornecedoresPage = () => {
         prazoEntrega: data.prazoEntrega,
         observacoes: data.observacoes || "",
       });
+      
+      if (!success) {
+        return; // Don't close the dialog if adding failed
+      }
     } else if (dialogType === "edit" && selectedFornecedor) {
       updateFornecedor(selectedFornecedor.id, {
         nome: data.nome,
@@ -192,11 +206,11 @@ const FornecedoresPage = () => {
 
       <div className="mt-6">
         <DataTable
-          data={fornecedores}
+          data={filteredFornecedores}
           columns={columns}
           filterOptions={filterOptions}
           onFilterChange={setFilterOptions}
-          totalItems={0}
+          totalItems={fornecedores.length}
           page={filterOptions.page}
           itemsPerPage={filterOptions.itemsPerPage}
         />
