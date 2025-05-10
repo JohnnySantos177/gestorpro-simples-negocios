@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   Table,
@@ -15,7 +14,7 @@ import { FilterOptions } from "@/types";
 interface Column {
   key: string;
   header: string;
-  cell?: (value: any) => React.ReactNode;
+  cell?: (value: any, row?: any) => React.ReactNode;
 }
 
 interface DataTableProps<T> {
@@ -134,7 +133,7 @@ export function DataTable<T>({
                   {columns.map((column) => (
                     <TableCell key={column.key}>
                       {column.cell
-                        ? column.cell((row as any)[column.key])
+                        ? column.cell((row as any)[column.key], row)
                         : (row as any)[column.key]}
                     </TableCell>
                   ))}
