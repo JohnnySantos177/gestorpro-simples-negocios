@@ -27,16 +27,21 @@ interface SubscriptionProviderProps {
 
 export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ children }) => {
   const [isSubscribed, setIsSubscribed] = useState<boolean>(() => {
-    // Check if the user has a valid subscription in localStorage
-    const saved = localStorage.getItem("gestorpro_subscription");
-    if (saved) {
-      const subscription = JSON.parse(saved);
-      // Check if subscription is still valid
-      if (new Date(subscription.expiresAt) > new Date()) {
-        return true;
+    try {
+      // Check if the user has a valid subscription in localStorage
+      const saved = localStorage.getItem("gestorpro_subscription");
+      if (saved) {
+        const subscription = JSON.parse(saved);
+        // Check if subscription is still valid
+        if (new Date(subscription.expiresAt) > new Date()) {
+          return true;
+        }
       }
+      return false;
+    } catch (error) {
+      console.error("Error loading subscription state:", error);
+      return false;
     }
-    return false;
   });
   
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>("inactive");
@@ -75,17 +80,22 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
   };
   
   const handleSuccessfulSubscription = () => {
-    // Store subscription info in localStorage
-    const subscription = {
-      status: "active",
-      startedAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
-    };
-    localStorage.setItem("gestorpro_subscription", JSON.stringify(subscription));
-    
-    setIsSubscribed(true);
-    setSubscriptionStatus("active");
-    toast.success("Assinatura ativada com sucesso!");
+    try {
+      // Store subscription info in localStorage
+      const subscription = {
+        status: "active",
+        startedAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
+      };
+      localStorage.setItem("gestorpro_subscription", JSON.stringify(subscription));
+      
+      setIsSubscribed(true);
+      setSubscriptionStatus("active");
+      toast.success("Assinatura ativada com sucesso!");
+    } catch (error) {
+      console.error("Error saving subscription:", error);
+      toast.error("Erro ao salvar informações da assinatura");
+    }
   };
   
   const value = {
