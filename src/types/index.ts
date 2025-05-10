@@ -91,6 +91,7 @@ export interface Feedback {
   avaliacao: number;
   comentario: string;
   respondido: boolean;
+  resposta?: string;
 }
 
 // Promocao types

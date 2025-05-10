@@ -394,7 +394,12 @@ const AvaliacoesPage = () => {
                   control={form.control}
                   name="respondido"
                   render={({ field }) => (
-                    <input type="hidden" {...field} />
+                    <input 
+                      type="hidden" 
+                      name={field.name}
+                      value={field.value ? "true" : "false"}
+                      ref={field.ref}
+                    />
                   )}
                 />
               )}

@@ -20,7 +20,7 @@ interface CrudDialogProps {
   onConfirm: () => void;
   isLoading?: boolean;
   children: React.ReactNode;
-  type: "add" | "edit" | "delete";
+  type: "add" | "edit" | "delete" | "respond";
 }
 
 export function CrudDialog({
@@ -45,6 +45,8 @@ export function CrudDialog({
       message = "Item atualizado com sucesso!";
     } else if (type === "delete") {
       message = "Item excluído com sucesso!";
+    } else if (type === "respond") {
+      message = "Resposta enviada com sucesso!";
     }
     
     toast({
@@ -80,7 +82,11 @@ export function CrudDialog({
             disabled={isLoading}
             variant={type === "delete" ? "destructive" : "default"}
           >
-            {isLoading ? "Processando..." : type === "add" ? "Adicionar" : type === "edit" ? "Salvar" : "Excluir"}
+            {isLoading ? "Processando..." : 
+              type === "add" ? "Adicionar" : 
+              type === "edit" ? "Salvar" : 
+              type === "respond" ? "Responder" :
+              "Excluir"}
           </Button>
         </DialogFooter>
       </DialogContent>
