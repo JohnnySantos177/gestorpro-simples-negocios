@@ -8,7 +8,7 @@ import {
   DollarSign, 
   Truck, 
   MessageSquare,
-  Chart, 
+  ChartBarIcon, 
   BadgePercent 
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -27,7 +27,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { isSubscribed } = useSubscription();
 
   const menuItems = [
-    { path: "/", label: "Dashboard", icon: <Chart className="h-5 w-5" /> },
+    { path: "/", label: "Dashboard", icon: <ChartBarIcon className="h-5 w-5" /> },
     { path: "/clientes", label: "Clientes", icon: <Users className="h-5 w-5" /> },
     { path: "/produtos", label: "Produtos", icon: <Package className="h-5 w-5" /> },
     { path: "/vendas", label: "Vendas", icon: <ShoppingCart className="h-5 w-5" /> },
@@ -55,7 +55,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="flex h-16 items-center border-b px-6">
           <Link to="/" className="flex items-center gap-2">
             <div className="rounded-lg bg-gestorpro-500 p-1">
-              <Chart className="h-6 w-6 text-white" />
+              <ChartBarIcon className="h-6 w-6 text-white" />
             </div>
             <span className="font-semibold text-xl">Gestor Pro</span>
           </Link>

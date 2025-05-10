@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { 
   Edit, 
@@ -115,28 +114,32 @@ const ClientesPage = () => {
     {
       key: "nome",
       header: "Nome",
+      cell: (value: any) => value
     },
     {
       key: "email",
       header: "Email",
+      cell: (value: any) => value
     },
     {
       key: "telefone",
       header: "Telefone",
+      cell: (value: any) => value
     },
     {
       key: "grupo",
       header: "Grupo",
+      cell: (value: any) => value
     },
     {
       key: "dataCadastro",
       header: "Data de Cadastro",
-      cell: (value: string) => formatDate(value),
+      cell: (value: any) => formatDate(value)
     },
     {
       key: "actions",
       header: "Ações",
-      cell: (_: any, row: Cliente) => (
+      cell: (value: any, row: Cliente) => (
         <div className="flex gap-2">
           <Button
             variant="ghost"
