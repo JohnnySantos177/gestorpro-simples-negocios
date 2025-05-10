@@ -8,6 +8,7 @@ interface PageHeaderProps {
   icon?: React.ReactNode;
   className?: string;
   actions?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 export const PageHeader: React.FC<PageHeaderProps> = ({
@@ -16,6 +17,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   icon,
   className,
   actions,
+  children,
 }) => {
   return (
     <div className={cn("mb-8 flex flex-col sm:flex-row justify-between items-start", className)}>
@@ -29,6 +31,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         </div>
       </div>
       {actions && <div className="mt-4 sm:mt-0 flex-shrink-0">{actions}</div>}
+      {children}
     </div>
   );
 };

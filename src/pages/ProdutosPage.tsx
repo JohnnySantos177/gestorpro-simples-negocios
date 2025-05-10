@@ -111,12 +111,24 @@ const ProdutosPage = () => {
     
     if (dialogType === "add") {
       addProduto({
-        ...data,
+        nome: data.nome,
+        descricao: data.descricao,
+        categoria: data.categoria,
+        precoCompra: data.precoCompra,
+        precoVenda: data.precoVenda,
+        quantidade: data.quantidade,
+        fornecedorId: data.fornecedorId,
         fornecedorNome: fornecedor?.nome || "",
       });
     } else if (dialogType === "edit" && selectedProduto) {
       updateProduto(selectedProduto.id, {
-        ...data,
+        nome: data.nome,
+        descricao: data.descricao,
+        categoria: data.categoria,
+        precoCompra: data.precoCompra,
+        precoVenda: data.precoVenda,
+        quantidade: data.quantidade,
+        fornecedorId: data.fornecedorId,
         fornecedorNome: fornecedor?.nome || "",
       });
     }

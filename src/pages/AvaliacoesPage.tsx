@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Layout } from "@/components/Layout";
 import { PageHeader } from "@/components/PageHeader";
@@ -94,9 +93,8 @@ const AvaliacoesPage = () => {
         title="Avaliações" 
         description="Gerencie as avaliações dos clientes"
         icon={<MessageSquare className="h-6 w-6" />}
-      >
-        <Button>Nova Avaliação</Button>
-      </PageHeader>
+        actions={<Button>Nova Avaliação</Button>}
+      />
 
       <div className="mt-6">
         <div className="flex flex-wrap gap-2 mb-4">

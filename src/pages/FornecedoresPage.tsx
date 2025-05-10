@@ -116,9 +116,33 @@ const FornecedoresPage = () => {
 
   const handleAddEditSubmit = (data: FornecedorFormData) => {
     if (dialogType === "add") {
-      addFornecedor(data);
+      addFornecedor({
+        nome: data.nome,
+        contato: data.contato,
+        telefone: data.telefone,
+        email: data.email,
+        endereco: data.endereco,
+        cidade: data.cidade,
+        estado: data.estado,
+        cep: data.cep,
+        cnpj: data.cnpj,
+        prazoEntrega: data.prazoEntrega,
+        observacoes: data.observacoes || "",
+      });
     } else if (dialogType === "edit" && selectedFornecedor) {
-      updateFornecedor(selectedFornecedor.id, data);
+      updateFornecedor(selectedFornecedor.id, {
+        nome: data.nome,
+        contato: data.contato,
+        telefone: data.telefone,
+        email: data.email,
+        endereco: data.endereco,
+        cidade: data.cidade,
+        estado: data.estado,
+        cep: data.cep,
+        cnpj: data.cnpj,
+        prazoEntrega: data.prazoEntrega,
+        observacoes: data.observacoes || "",
+      });
     }
     
     setDialogOpen(false);

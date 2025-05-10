@@ -108,12 +108,20 @@ const FinanceiroPage = () => {
   const handleAddEditSubmit = (data: TransacaoFormData) => {
     if (dialogType === "add") {
       addTransacao({
-        ...data,
+        tipo: data.tipo,
+        categoria: data.categoria,
+        descricao: data.descricao,
+        valor: data.valor,
+        formaPagamento: data.formaPagamento,
         data: data.data
       });
     } else if (dialogType === "edit" && selectedTransacao) {
       updateTransacao(selectedTransacao.id, {
-        ...data,
+        tipo: data.tipo,
+        categoria: data.categoria,
+        descricao: data.descricao,
+        valor: data.valor,
+        formaPagamento: data.formaPagamento,
         data: data.data
       });
     }
