@@ -1,0 +1,486 @@
+
+import React, { useState } from "react";
+import { 
+  Edit, 
+  Trash, 
+  Plus,
+  Users,
+  Filter
+} from "lucide-react";
+import { Layout } from "@/components/Layout";
+import { PageHeader } from "@/components/PageHeader";
+import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/ui/data-table";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger,
+  DialogFooter,
+  DialogClose
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { useData } from "@/context/DataContext";
+import { Cliente, FilterOptions } from "@/types";
+import { GRUPOS_CLIENTES, ESTADOS_BRASILEIROS } from "@/data/constants";
+import { formatDate } from "@/utils/format";
+import { toast } from "sonner";
+
+const ClientesPage = () => {
+  const { clientes, addCliente, updateCliente, deleteCliente, filterClientes } = useData();
+  
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
+    search: "",
+    sortBy: "nome",
+    sortOrder: "asc",
+    page: 1,
+    itemsPerPage: 10,
+    grupo: "Todos",
+  });
+  
+  const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
+  const [newCliente, setNewCliente] = useState<Partial<Cliente>>({
+    nome: "",
+    email: "",
+    telefone: "",
+    endereco: "",
+    cidade: "",
+    estado: "",
+    cep: "",
+    grupo: "Novos",
+    observacoes: "",
+  });
+  
+  const filteredClientes = filterClientes(filterOptions);
+  
+  const handleFilterChange = (options: FilterOptions) => {
+    setFilterOptions({ ...filterOptions, ...options });
+  };
+  
+  const handleOpenEditDialog = (cliente: Cliente) => {
+    setEditingCliente(cliente);
+  };
+  
+  const handleSaveCliente = () => {
+    if (!newCliente.nome || !newCliente.email || !newCliente.telefone) {
+      toast.error("Por favor, preencha os campos obrigatórios: nome, email e telefone.");
+      return;
+    }
+    
+    addCliente(newCliente as Omit<Cliente, "id" | "dataCadastro">);
+    toast.success("Cliente adicionado com sucesso!");
+    setNewCliente({
+      nome: "",
+      email: "",
+      telefone: "",
+      endereco: "",
+      cidade: "",
+      estado: "",
+      cep: "",
+      grupo: "Novos",
+      observacoes: "",
+    });
+  };
+  
+  const handleUpdateCliente = () => {
+    if (editingCliente) {
+      if (!editingCliente.nome || !editingCliente.email || !editingCliente.telefone) {
+        toast.error("Por favor, preencha os campos obrigatórios: nome, email e telefone.");
+        return;
+      }
+      
+      updateCliente(editingCliente.id, editingCliente);
+      toast.success("Cliente atualizado com sucesso!");
+      setEditingCliente(null);
+    }
+  };
+  
+  const handleDeleteCliente = (id: string) => {
+    if (window.confirm("Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita.")) {
+      deleteCliente(id);
+      toast.success("Cliente excluído com sucesso!");
+    }
+  };
+  
+  const columns = [
+    {
+      key: "nome",
+      header: "Nome",
+    },
+    {
+      key: "email",
+      header: "Email",
+    },
+    {
+      key: "telefone",
+      header: "Telefone",
+    },
+    {
+      key: "grupo",
+      header: "Grupo",
+    },
+    {
+      key: "dataCadastro",
+      header: "Data de Cadastro",
+      cell: (value: string) => formatDate(value),
+    },
+    {
+      key: "actions",
+      header: "Ações",
+      cell: (_: any, row: Cliente) => (
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleOpenEditDialog(row)}
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleDeleteCliente(row.id)}
+          >
+            <Trash className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+  
+  return (
+    <Layout>
+      <PageHeader
+        title="Clientes"
+        description="Gerencie os clientes do seu negócio."
+        actions={
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Adicionar Cliente
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[600px]">
+              <DialogHeader>
+                <DialogTitle>Adicionar Novo Cliente</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="nome">Nome *</Label>
+                    <Input
+                      id="nome"
+                      value={newCliente.nome}
+                      onChange={(e) =>
+                        setNewCliente({ ...newCliente, nome: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={newCliente.email}
+                      onChange={(e) =>
+                        setNewCliente({ ...newCliente, email: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="telefone">Telefone *</Label>
+                    <Input
+                      id="telefone"
+                      value={newCliente.telefone}
+                      onChange={(e) =>
+                        setNewCliente({ ...newCliente, telefone: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="grupo">Grupo</Label>
+                    <Select
+                      value={newCliente.grupo}
+                      onValueChange={(value) =>
+                        setNewCliente({ ...newCliente, grupo: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um grupo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {GRUPOS_CLIENTES.filter(g => g !== "Todos").map((grupo) => (
+                          <SelectItem key={grupo} value={grupo}>
+                            {grupo}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="endereco">Endereço</Label>
+                  <Input
+                    id="endereco"
+                    value={newCliente.endereco}
+                    onChange={(e) =>
+                      setNewCliente({ ...newCliente, endereco: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="cidade">Cidade</Label>
+                    <Input
+                      id="cidade"
+                      value={newCliente.cidade}
+                      onChange={(e) =>
+                        setNewCliente({ ...newCliente, cidade: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="estado">Estado</Label>
+                    <Select
+                      value={newCliente.estado}
+                      onValueChange={(value) =>
+                        setNewCliente({ ...newCliente, estado: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="UF" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ESTADOS_BRASILEIROS.map((estado) => (
+                          <SelectItem key={estado} value={estado}>
+                            {estado}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cep">CEP</Label>
+                    <Input
+                      id="cep"
+                      value={newCliente.cep}
+                      onChange={(e) =>
+                        setNewCliente({ ...newCliente, cep: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="observacoes">Observações</Label>
+                  <Input
+                    id="observacoes"
+                    value={newCliente.observacoes}
+                    onChange={(e) =>
+                      setNewCliente({ ...newCliente, observacoes: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancelar</Button>
+                </DialogClose>
+                <DialogClose asChild>
+                  <Button onClick={handleSaveCliente}>Salvar</Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        }
+      />
+      
+      <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start">
+        <div className="flex items-center gap-2">
+          <Filter className="h-5 w-5 text-muted-foreground" />
+          <h3 className="font-semibold">Filtros:</h3>
+        </div>
+        <div className="flex flex-wrap gap-4">
+          <Select
+            value={filterOptions.grupo}
+            onValueChange={(value) =>
+              handleFilterChange({ ...filterOptions, grupo: value, page: 1 })
+            }
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Selecione um grupo" />
+            </SelectTrigger>
+            <SelectContent>
+              {GRUPOS_CLIENTES.map((grupo) => (
+                <SelectItem key={grupo} value={grupo}>
+                  {grupo}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
+      <DataTable
+        data={filteredClientes}
+        columns={columns}
+        filterOptions={filterOptions}
+        onFilterChange={handleFilterChange}
+        totalItems={clientes.length}
+        page={filterOptions.page}
+        itemsPerPage={filterOptions.itemsPerPage}
+      />
+      
+      {/* Edit Dialog */}
+      {editingCliente && (
+        <Dialog open={!!editingCliente} onOpenChange={(open) => !open && setEditingCliente(null)}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Editar Cliente</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-nome">Nome *</Label>
+                  <Input
+                    id="edit-nome"
+                    value={editingCliente.nome}
+                    onChange={(e) =>
+                      setEditingCliente({ ...editingCliente, nome: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-email">Email *</Label>
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    value={editingCliente.email}
+                    onChange={(e) =>
+                      setEditingCliente({ ...editingCliente, email: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-telefone">Telefone *</Label>
+                  <Input
+                    id="edit-telefone"
+                    value={editingCliente.telefone}
+                    onChange={(e) =>
+                      setEditingCliente({ ...editingCliente, telefone: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-grupo">Grupo</Label>
+                  <Select
+                    value={editingCliente.grupo}
+                    onValueChange={(value) =>
+                      setEditingCliente({ ...editingCliente, grupo: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um grupo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {GRUPOS_CLIENTES.filter(g => g !== "Todos").map((grupo) => (
+                        <SelectItem key={grupo} value={grupo}>
+                          {grupo}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-endereco">Endereço</Label>
+                <Input
+                  id="edit-endereco"
+                  value={editingCliente.endereco}
+                  onChange={(e) =>
+                    setEditingCliente({ ...editingCliente, endereco: e.target.value })
+                  }
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-cidade">Cidade</Label>
+                  <Input
+                    id="edit-cidade"
+                    value={editingCliente.cidade}
+                    onChange={(e) =>
+                      setEditingCliente({ ...editingCliente, cidade: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-estado">Estado</Label>
+                  <Select
+                    value={editingCliente.estado}
+                    onValueChange={(value) =>
+                      setEditingCliente({ ...editingCliente, estado: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="UF" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ESTADOS_BRASILEIROS.map((estado) => (
+                        <SelectItem key={estado} value={estado}>
+                          {estado}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-cep">CEP</Label>
+                  <Input
+                    id="edit-cep"
+                    value={editingCliente.cep}
+                    onChange={(e) =>
+                      setEditingCliente({ ...editingCliente, cep: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-observacoes">Observações</Label>
+                <Input
+                  id="edit-observacoes"
+                  value={editingCliente.observacoes}
+                  onChange={(e) =>
+                    setEditingCliente({ ...editingCliente, observacoes: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">Cancelar</Button>
+              </DialogClose>
+              <DialogClose asChild>
+                <Button onClick={handleUpdateCliente}>Salvar Alterações</Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </Layout>
+  );
+};
+
+export default ClientesPage;
