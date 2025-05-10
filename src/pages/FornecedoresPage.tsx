@@ -4,12 +4,42 @@ import { Layout } from "@/components/Layout";
 import { PageHeader } from "@/components/PageHeader";
 import { DataTable } from "@/components/ui/data-table";
 import { useData } from "@/context/DataContext";
-import { FilterOptions } from "@/types";
+import { FilterOptions, Fornecedor } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Truck } from "lucide-react";
+import { Truck, Edit, Trash2 } from "lucide-react";
+import { CrudDialog } from "@/components/CrudDialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
+const fornecedorSchema = z.object({
+  nome: z.string().min(1, "Nome é obrigatório"),
+  contato: z.string().min(1, "Nome do contato é obrigatório"),
+  telefone: z.string().min(1, "Telefone é obrigatório"),
+  email: z.string().email("Email inválido"),
+  endereco: z.string().min(1, "Endereço é obrigatório"),
+  cidade: z.string().min(1, "Cidade é obrigatória"),
+  estado: z.string().min(1, "Estado é obrigatório"),
+  cep: z.string().min(1, "CEP é obrigatório"),
+  cnpj: z.string().min(1, "CNPJ é obrigatório"),
+  prazoEntrega: z.coerce.number().min(1, "Prazo de entrega deve ser maior que 0"),
+  observacoes: z.string().optional(),
+});
+
+type FornecedorFormData = z.infer<typeof fornecedorSchema>;
 
 const FornecedoresPage = () => {
-  const { filterFornecedores } = useData();
+  const { filterFornecedores, addFornecedor, updateFornecedor, deleteFornecedor } = useData();
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     search: "",
     sortBy: "nome",
@@ -17,8 +47,89 @@ const FornecedoresPage = () => {
     page: 1,
     itemsPerPage: 10
   });
+  
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogType, setDialogType] = useState<"add" | "edit" | "delete">("add");
+  const [selectedFornecedor, setSelectedFornecedor] = useState<Fornecedor | null>(null);
+
+  const form = useForm<FornecedorFormData>({
+    resolver: zodResolver(fornecedorSchema),
+    defaultValues: {
+      nome: "",
+      contato: "",
+      telefone: "",
+      email: "",
+      endereco: "",
+      cidade: "",
+      estado: "",
+      cep: "",
+      cnpj: "",
+      prazoEntrega: 1,
+      observacoes: "",
+    },
+  });
 
   const fornecedores = filterFornecedores(filterOptions);
+
+  const openAddDialog = () => {
+    form.reset({
+      nome: "",
+      contato: "",
+      telefone: "",
+      email: "",
+      endereco: "",
+      cidade: "",
+      estado: "",
+      cep: "",
+      cnpj: "",
+      prazoEntrega: 1,
+      observacoes: "",
+    });
+    setDialogType("add");
+    setDialogOpen(true);
+  };
+
+  const openEditDialog = (fornecedor: Fornecedor) => {
+    setSelectedFornecedor(fornecedor);
+    form.reset({
+      nome: fornecedor.nome,
+      contato: fornecedor.contato,
+      telefone: fornecedor.telefone,
+      email: fornecedor.email,
+      endereco: fornecedor.endereco,
+      cidade: fornecedor.cidade,
+      estado: fornecedor.estado,
+      cep: fornecedor.cep,
+      cnpj: fornecedor.cnpj,
+      prazoEntrega: fornecedor.prazoEntrega,
+      observacoes: fornecedor.observacoes,
+    });
+    setDialogType("edit");
+    setDialogOpen(true);
+  };
+
+  const openDeleteDialog = (fornecedor: Fornecedor) => {
+    setSelectedFornecedor(fornecedor);
+    setDialogType("delete");
+    setDialogOpen(true);
+  };
+
+  const handleAddEditSubmit = (data: FornecedorFormData) => {
+    if (dialogType === "add") {
+      addFornecedor(data);
+    } else if (dialogType === "edit" && selectedFornecedor) {
+      updateFornecedor(selectedFornecedor.id, data);
+    }
+    
+    setDialogOpen(false);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (selectedFornecedor) {
+      deleteFornecedor(selectedFornecedor.id);
+    }
+    setDialogOpen(false);
+  };
 
   const columns = [
     { key: "nome", header: "Nome" },
@@ -27,7 +138,21 @@ const FornecedoresPage = () => {
     { key: "email", header: "Email" },
     { key: "cidade", header: "Cidade" },
     { key: "estado", header: "Estado" },
-    { key: "prazoEntrega", header: "Prazo de Entrega (dias)" }
+    { key: "prazoEntrega", header: "Prazo de Entrega (dias)" },
+    { 
+      key: "actions", 
+      header: "Ações", 
+      cell: (_: any, row: Fornecedor) => (
+        <div className="flex space-x-2">
+          <Button variant="ghost" size="icon" onClick={() => openEditDialog(row)}>
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => openDeleteDialog(row)}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      )
+    }
   ];
 
   return (
@@ -36,9 +161,10 @@ const FornecedoresPage = () => {
         title="Fornecedores" 
         description="Gerencie seus fornecedores"
         icon={<Truck className="h-6 w-6" />}
-      >
-        <Button>Novo Fornecedor</Button>
-      </PageHeader>
+        actions={
+          <Button onClick={openAddDialog}>Novo Fornecedor</Button>
+        }
+      />
 
       <div className="mt-6">
         <DataTable
@@ -51,6 +177,202 @@ const FornecedoresPage = () => {
           itemsPerPage={filterOptions.itemsPerPage}
         />
       </div>
+
+      {/* Add/Edit Dialog */}
+      {dialogType !== "delete" ? (
+        <CrudDialog
+          title={dialogType === "add" ? "Adicionar Fornecedor" : "Editar Fornecedor"}
+          description={dialogType === "add" ? "Adicione um novo fornecedor ao sistema" : "Edite os detalhes do fornecedor"}
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          onConfirm={form.handleSubmit(handleAddEditSubmit)}
+          type={dialogType}
+        >
+          <Form {...form}>
+            <form className="space-y-4" onSubmit={form.handleSubmit(handleAddEditSubmit)}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="nome"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome da Empresa</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nome da empresa" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="contato"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome do Contato</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nome do contato" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="telefone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Telefone</FormLabel>
+                      <FormControl>
+                        <Input placeholder="(00) 00000-0000" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="email@exemplo.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <FormField
+                control={form.control}
+                name="endereco"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Endereço</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Rua, número, bairro" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="cidade"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cidade</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Cidade" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="estado"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Estado</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Estado" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="cep"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>CEP</FormLabel>
+                      <FormControl>
+                        <Input placeholder="00000-000" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="cnpj"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>CNPJ</FormLabel>
+                      <FormControl>
+                        <Input placeholder="00.000.000/0000-00" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="prazoEntrega"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Prazo de Entrega (dias)</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="1" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <FormField
+                control={form.control}
+                name="observacoes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Observações</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Observações adicionais sobre o fornecedor" 
+                        className="min-h-[100px]" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </form>
+          </Form>
+        </CrudDialog>
+      ) : (
+        <CrudDialog
+          title="Excluir Fornecedor"
+          description={`Tem certeza que deseja excluir o fornecedor ${selectedFornecedor?.nome}? Esta ação não pode ser desfeita.`}
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          onConfirm={handleDeleteConfirm}
+          type="delete"
+        >
+          <div className="text-center py-4">
+            <p className="mb-2">Todos os dados relacionados a este fornecedor serão perdidos.</p>
+            <p className="font-medium text-destructive">Atenção: Os produtos associados a este fornecedor ficarão sem fornecedor.</p>
+          </div>
+        </CrudDialog>
+      )}
     </Layout>
   );
 };
