@@ -8,13 +8,15 @@ import {
   DollarSign, 
   Truck, 
   MessageSquare,
-  ChartBarIcon, 
   BadgePercent 
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useSubscription } from "@/context/SubscriptionContext";
 import { Button } from "@/components/ui/button";
+
+// Importar o ícone ChartBar corretamente
+import { BarChart as ChartBarIcon } from "lucide-react";
 
 interface LayoutProps {
   children: React.ReactNode;
