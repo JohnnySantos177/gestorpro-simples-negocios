@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { 
@@ -130,8 +131,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   
   // Função para verificar limites de plano gratuito
   const checkFreeLimit = (collection: any[], entity: string): boolean => {
-    if (!isSubscribed && collection.length >= 10) {
-      toast.error(`Limite atingido! Você pode cadastrar apenas 10 ${entity} no plano gratuito. Faça upgrade para adicionar mais.`);
+    if (!isSubscribed && collection.length >= 5) {
+      toast.error(`Limite atingido! Você pode cadastrar apenas 5 ${entity} no plano gratuito. Faça upgrade para adicionar mais.`);
       return false;
     }
     return true;
