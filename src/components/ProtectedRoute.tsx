@@ -1,9 +1,13 @@
 
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 
 export const ProtectedRoute = () => {
   const { user, loading } = useAuth();
+  const location = useLocation();
+  
+  // Check if this is a callback URL from email confirmation
+  const isAuthCallback = location.hash.includes("access_token");
 
   // Show loading or redirect if not authenticated
   if (loading) {
@@ -15,6 +19,11 @@ export const ProtectedRoute = () => {
         </div>
       </div>
     );
+  }
+
+  // If this is an auth callback handling, we don't want to redirect yet
+  if (isAuthCallback) {
+    return <Outlet />;
   }
 
   if (!user) {

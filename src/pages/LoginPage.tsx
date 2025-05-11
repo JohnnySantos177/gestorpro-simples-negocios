@@ -1,6 +1,6 @@
 
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 
 const loginSchema = z.object({
   email: z.string().email("E-mail inválido").min(1, "E-mail é obrigatório"),
@@ -19,8 +20,22 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { signIn, loading, user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+
+  // Check for confirmation success in URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("confirmed") === "true") {
+      toast.success("E-mail confirmado com sucesso! Agora você pode fazer login.");
+    }
+    
+    // Check for hash parameters that might indicate a redirect from email confirmation
+    if (location.hash && location.hash.includes("access_token")) {
+      toast.success("Autenticação realizada. Por favor faça login.");
+    }
+  }, [location]);
 
   // Redirect if already logged in
   React.useEffect(() => {
@@ -42,8 +57,11 @@ const LoginPage = () => {
     try {
       await signIn(data.email, data.password);
       navigate("/");
-    } catch (error) {
+    } catch (error: any) {
       // Error is handled in AuthContext
+      if (error.message === "Email not confirmed") {
+        toast.error("Por favor, confirme seu e-mail antes de fazer login.");
+      }
     } finally {
       setIsLoading(false);
     }

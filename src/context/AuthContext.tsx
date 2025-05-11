@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useNavigate, useLocation } from "react-router-dom";
 
 type AuthContextType = {
   session: Session | null;
@@ -33,8 +34,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
 
   useEffect(() => {
+    // Handle email confirmation
+    const handleEmailConfirmation = async () => {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token");
+      const type = hashParams.get("type");
+      
+      if (accessToken && type === "recovery") {
+        // For password reset flow
+        await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken || "",
+        });
+        toast.success("Você pode redefinir sua senha agora.");
+      } else if (accessToken && type === "signup") {
+        // For email confirmation flow
+        await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken || "",
+        });
+        toast.success("E-mail confirmado com sucesso!");
+      }
+    };
+
+    // Check for confirmation parameters in URL
+    if (location.hash) {
+      handleEmailConfirmation();
+    }
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -52,7 +83,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     );
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [location]);
 
   // Sign in with email and password
   const signIn = async (email: string, password: string) => {
@@ -66,7 +97,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       toast.success("Login realizado com sucesso!");
     } catch (error: any) {
-      toast.error(`Erro ao fazer login: ${error.message}`);
+      if (error.message === "Email not confirmed") {
+        toast.error("Por favor, confirme seu e-mail antes de fazer login.");
+      } else {
+        toast.error(`Erro ao fazer login: ${error.message}`);
+      }
       throw error;
     } finally {
       setLoading(false);
