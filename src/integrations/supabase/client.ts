@@ -20,9 +20,9 @@ export async function getFromTable<T>(table: string) {
     throw new Error("Not authenticated");
   }
   
-  // Completely bypass TypeScript's type checking for the entire query
-  const query = supabase.from(table) as any;
-  const { data, error } = await query
+  // Cast the entire supabase instance to any to bypass strict typing
+  const { data, error } = await (supabase as any)
+    .from(table)
     .select('*')
     .eq('user_id', userId);
   
@@ -43,9 +43,9 @@ export async function insertIntoTable<T>(table: string, data: any) {
     throw new Error("Not authenticated");
   }
   
-  // Completely bypass TypeScript's type checking for the entire query
-  const query = supabase.from(table) as any;
-  const { data: insertedData, error } = await query
+  // Cast the entire supabase instance to any to bypass strict typing
+  const { data: insertedData, error } = await (supabase as any)
+    .from(table)
     .insert({ ...data, user_id: userId })
     .select()
     .single();
@@ -68,9 +68,9 @@ export async function updateInTable<T>(table: string, id: string, data: any) {
   }
   
   // First check if the record belongs to the user
-  // Completely bypass TypeScript's type checking for the entire query
-  const checkQuery = supabase.from(table) as any;
-  const { data: existing, error: fetchError } = await checkQuery
+  // Cast the entire supabase instance to any to bypass strict typing
+  const { data: existing, error: fetchError } = await (supabase as any)
+    .from(table)
     .select('id')
     .eq('id', id)
     .eq('user_id', userId)
@@ -80,9 +80,9 @@ export async function updateInTable<T>(table: string, id: string, data: any) {
     throw new Error("Record not found or you don't have permission to update it");
   }
   
-  // Completely bypass TypeScript's type checking for the entire query
-  const updateQuery = supabase.from(table) as any;
-  const { data: updatedData, error } = await updateQuery
+  // Cast the entire supabase instance to any to bypass strict typing
+  const { data: updatedData, error } = await (supabase as any)
+    .from(table)
     .update(data)
     .eq('id', id)
     .eq('user_id', userId)
@@ -107,9 +107,9 @@ export async function deleteFromTable(table: string, id: string) {
   }
   
   // First check if the record belongs to the user
-  // Completely bypass TypeScript's type checking for the entire query
-  const checkQuery = supabase.from(table) as any;
-  const { data: existing, error: fetchError } = await checkQuery
+  // Cast the entire supabase instance to any to bypass strict typing
+  const { data: existing, error: fetchError } = await (supabase as any)
+    .from(table)
     .select('id')
     .eq('id', id)
     .eq('user_id', userId)
@@ -119,9 +119,9 @@ export async function deleteFromTable(table: string, id: string) {
     throw new Error("Record not found or you don't have permission to delete it");
   }
   
-  // Completely bypass TypeScript's type checking for the entire query
-  const deleteQuery = supabase.from(table) as any;
-  const { error } = await deleteQuery
+  // Cast the entire supabase instance to any to bypass strict typing
+  const { error } = await (supabase as any)
+    .from(table)
     .delete()
     .eq('id', id)
     .eq('user_id', userId);
