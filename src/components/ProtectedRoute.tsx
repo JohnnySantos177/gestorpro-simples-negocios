@@ -7,7 +7,7 @@ export const ProtectedRoute = () => {
   const location = useLocation();
   
   // Check if this is a callback URL from email confirmation
-  const isAuthCallback = location.hash.includes("access_token");
+  const isAuthCallback = window.location.hash.includes("access_token");
 
   // Show loading or redirect if not authenticated
   if (loading) {

@@ -38,12 +38,12 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AuthProvider>
-          <SubscriptionProvider>
-            <DataProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
+        <BrowserRouter>
+          <AuthProvider>
+            <SubscriptionProvider>
+              <DataProvider>
+                <Toaster />
+                <Sonner />
                 <Routes>
                   {/* Public routes */}
                   <Route path="/login" element={<LoginPage />} />
@@ -66,10 +66,10 @@ const App = () => {
                   {/* Fallback route */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
-              </BrowserRouter>
-            </DataProvider>
-          </SubscriptionProvider>
-        </AuthProvider>
+              </DataProvider>
+            </SubscriptionProvider>
+          </AuthProvider>
+        </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
   );

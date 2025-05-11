@@ -20,8 +20,9 @@ export async function getFromTable<T>(table: string) {
     throw new Error("Not authenticated");
   }
   
+  // Use any for now until proper DB types are configured
   const { data, error } = await supabase
-    .from(table)
+    .from(table as any)
     .select('*')
     .eq('user_id', userId);
   
@@ -42,8 +43,9 @@ export async function insertIntoTable<T>(table: string, data: any) {
     throw new Error("Not authenticated");
   }
   
+  // Use any for now until proper DB types are configured
   const { data: insertedData, error } = await supabase
-    .from(table)
+    .from(table as any)
     .insert({ ...data, user_id: userId })
     .select()
     .single();
@@ -66,8 +68,9 @@ export async function updateInTable<T>(table: string, id: string, data: any) {
   }
   
   // First check if the record belongs to the user
+  // Use any for now until proper DB types are configured
   const { data: existing, error: fetchError } = await supabase
-    .from(table)
+    .from(table as any)
     .select('id')
     .eq('id', id)
     .eq('user_id', userId)
@@ -77,8 +80,9 @@ export async function updateInTable<T>(table: string, id: string, data: any) {
     throw new Error("Record not found or you don't have permission to update it");
   }
   
+  // Use any for now until proper DB types are configured
   const { data: updatedData, error } = await supabase
-    .from(table)
+    .from(table as any)
     .update(data)
     .eq('id', id)
     .eq('user_id', userId)
@@ -103,8 +107,9 @@ export async function deleteFromTable(table: string, id: string) {
   }
   
   // First check if the record belongs to the user
+  // Use any for now until proper DB types are configured
   const { data: existing, error: fetchError } = await supabase
-    .from(table)
+    .from(table as any)
     .select('id')
     .eq('id', id)
     .eq('user_id', userId)
@@ -114,8 +119,9 @@ export async function deleteFromTable(table: string, id: string) {
     throw new Error("Record not found or you don't have permission to delete it");
   }
   
+  // Use any for now until proper DB types are configured
   const { error } = await supabase
-    .from(table)
+    .from(table as any)
     .delete()
     .eq('id', id)
     .eq('user_id', userId);
