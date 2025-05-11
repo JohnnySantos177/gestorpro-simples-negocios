@@ -91,6 +91,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       
       toast.success("Login realizado com sucesso!");
+      
+      // Redirect after login if there's a stored redirect path
+      if (typeof window !== 'undefined') {
+        const redirectPath = sessionStorage.getItem("redirectAfterLogin");
+        if (redirectPath) {
+          sessionStorage.removeItem("redirectAfterLogin");
+          window.location.href = redirectPath;
+        }
+      }
     } catch (error: any) {
       if (error.message === "Email not confirmed") {
         toast.error("Por favor, confirme seu e-mail antes de fazer login.");
