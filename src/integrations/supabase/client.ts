@@ -11,6 +11,10 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
+// Helper functions have been commented out as they're causing type issues
+// We'll use direct supabase calls in components until the Database type is properly set up
+
+/*
 // Helper function to get data with proper typing
 export async function getFromTable<T>(table: string, userId: string) {
   const { data, error } = await supabase
@@ -73,3 +77,4 @@ export async function deleteFromTable(table: string, id: string) {
   
   return true;
 }
+*/

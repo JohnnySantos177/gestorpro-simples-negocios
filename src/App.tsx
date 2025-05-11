@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import { DataProvider } from "./context/DataContext";
 import { SubscriptionProvider } from "./context/SubscriptionContext";
-import { AuthProvider } from "./context/AuthContext"; // Add Auth Provider
+import { AuthProvider } from "./context/AuthContext"; 
 
 import Index from "./pages/Index";
 import ClientesPage from "./pages/ClientesPage";
@@ -24,45 +24,55 @@ import RegisterPage from "./pages/RegisterPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
-const queryClient = new QueryClient();
+// Create a new QueryClient instance outside the component
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <SubscriptionProvider>
-          <DataProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                {/* Public routes */}
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/reset-password" element={<ResetPasswordPage />} />
-                
-                {/* Protected routes */}
-                <Route element={<ProtectedRoute />}>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/clientes" element={<ClientesPage />} />
-                  <Route path="/produtos" element={<ProdutosPage />} />
-                  <Route path="/vendas" element={<VendasPage />} />
-                  <Route path="/financeiro" element={<FinanceiroPage />} />
-                  <Route path="/fornecedores" element={<FornecedoresPage />} />
-                  <Route path="/avaliacoes" element={<AvaliacoesPage />} />
-                  <Route path="/promocoes" element={<PromocoesPage />} />
-                  <Route path="/assinatura" element={<AssinaturaPage />} />
-                </Route>
-                
-                {/* Fallback route */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </DataProvider>
-        </SubscriptionProvider>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <SubscriptionProvider>
+            <DataProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
+                  {/* Public routes */}
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/register" element={<RegisterPage />} />
+                  <Route path="/reset-password" element={<ResetPasswordPage />} />
+                  
+                  {/* Protected routes */}
+                  <Route element={<ProtectedRoute />}>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/clientes" element={<ClientesPage />} />
+                    <Route path="/produtos" element={<ProdutosPage />} />
+                    <Route path="/vendas" element={<VendasPage />} />
+                    <Route path="/financeiro" element={<FinanceiroPage />} />
+                    <Route path="/fornecedores" element={<FornecedoresPage />} />
+                    <Route path="/avaliacoes" element={<AvaliacoesPage />} />
+                    <Route path="/promocoes" element={<PromocoesPage />} />
+                    <Route path="/assinatura" element={<AssinaturaPage />} />
+                  </Route>
+                  
+                  {/* Fallback route */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </DataProvider>
+          </SubscriptionProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
