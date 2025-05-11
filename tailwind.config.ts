@@ -74,7 +74,8 @@ export default {
 					700: '#6E59A5',
 					800: '#5e4c8a',
 					900: '#4c3f72'
-				}
+				},
+				insidebar: '#9668CD', // Nova cor adicionada para o sidebar
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
