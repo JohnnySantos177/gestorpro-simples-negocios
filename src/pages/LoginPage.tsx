@@ -40,7 +40,14 @@ const LoginPage = () => {
   // Redirect if already logged in
   React.useEffect(() => {
     if (user) {
-      navigate("/");
+      // Check if there's a stored redirect path from before login
+      const redirectPath = sessionStorage.getItem("redirectAfterLogin");
+      if (redirectPath) {
+        sessionStorage.removeItem("redirectAfterLogin");
+        navigate(redirectPath);
+      } else {
+        navigate("/");
+      }
     }
   }, [user, navigate]);
 
@@ -56,7 +63,7 @@ const LoginPage = () => {
     setIsLoading(true);
     try {
       await signIn(data.email, data.password);
-      navigate("/");
+      // Navigation handled in the useEffect above
     } catch (error: any) {
       // Error is handled in AuthContext
       if (error.message === "Email not confirmed") {

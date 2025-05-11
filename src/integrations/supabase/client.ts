@@ -11,12 +11,15 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-// Helper functions have been commented out as they're causing type issues
-// We'll use direct supabase calls in components until the Database type is properly set up
-
-/*
-// Helper function to get data with proper typing
-export async function getFromTable<T>(table: string, userId: string) {
+// Helper function to get data with proper user isolation
+export async function getFromTable<T>(table: string) {
+  const { data: session } = await supabase.auth.getSession();
+  const userId = session.session?.user.id;
+  
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+  
   const { data, error } = await supabase
     .from(table)
     .select('*')
@@ -30,11 +33,18 @@ export async function getFromTable<T>(table: string, userId: string) {
   return data as T[];
 }
 
-// Helper function to insert data with proper typing
-export async function insertIntoTable<T>(table: string, data: Omit<T, 'id'>) {
+// Helper function to insert data with proper user isolation
+export async function insertIntoTable<T>(table: string, data: any) {
+  const { data: session } = await supabase.auth.getSession();
+  const userId = session.session?.user.id;
+  
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+  
   const { data: insertedData, error } = await supabase
     .from(table)
-    .insert(data)
+    .insert({ ...data, user_id: userId })
     .select()
     .single();
   
@@ -46,12 +56,32 @@ export async function insertIntoTable<T>(table: string, data: Omit<T, 'id'>) {
   return insertedData as T;
 }
 
-// Helper function to update data with proper typing
-export async function updateInTable<T>(table: string, id: string, data: Partial<T>) {
+// Helper function to update data with proper user isolation
+export async function updateInTable<T>(table: string, id: string, data: any) {
+  const { data: session } = await supabase.auth.getSession();
+  const userId = session.session?.user.id;
+  
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+  
+  // First check if the record belongs to the user
+  const { data: existing, error: fetchError } = await supabase
+    .from(table)
+    .select('id')
+    .eq('id', id)
+    .eq('user_id', userId)
+    .single();
+  
+  if (fetchError || !existing) {
+    throw new Error("Record not found or you don't have permission to update it");
+  }
+  
   const { data: updatedData, error } = await supabase
     .from(table)
     .update(data)
     .eq('id', id)
+    .eq('user_id', userId)
     .select()
     .single();
   
@@ -63,12 +93,32 @@ export async function updateInTable<T>(table: string, id: string, data: Partial<
   return updatedData as T;
 }
 
-// Helper function to delete data
+// Helper function to delete data with proper user isolation
 export async function deleteFromTable(table: string, id: string) {
+  const { data: session } = await supabase.auth.getSession();
+  const userId = session.session?.user.id;
+  
+  if (!userId) {
+    throw new Error("Not authenticated");
+  }
+  
+  // First check if the record belongs to the user
+  const { data: existing, error: fetchError } = await supabase
+    .from(table)
+    .select('id')
+    .eq('id', id)
+    .eq('user_id', userId)
+    .single();
+  
+  if (fetchError || !existing) {
+    throw new Error("Record not found or you don't have permission to delete it");
+  }
+  
   const { error } = await supabase
     .from(table)
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', userId);
   
   if (error) {
     console.error(`Error deleting from ${table}:`, error);
@@ -77,4 +127,3 @@ export async function deleteFromTable(table: string, id: string) {
   
   return true;
 }
-*/

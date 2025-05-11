@@ -27,7 +27,12 @@ export const ProtectedRoute = () => {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    // Store the intended destination to redirect back after login
+    const from = location.pathname;
+    if (from !== "/login" && from !== "/register" && from !== "/reset-password") {
+      sessionStorage.setItem("redirectAfterLogin", from);
+    }
+    return <Navigate to="/login" state={{ from }} replace />;
   }
 
   return <Outlet />;
