@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import { DataProvider } from "./context/DataContext";
 import { SubscriptionProvider } from "./context/SubscriptionContext";
+import { AuthProvider } from "./context/AuthContext"; // Add Auth Provider
 
 import Index from "./pages/Index";
 import ClientesPage from "./pages/ClientesPage";
@@ -18,33 +19,48 @@ import AvaliacoesPage from "./pages/AvaliacoesPage";
 import PromocoesPage from "./pages/PromocoesPage";
 import AssinaturaPage from "./pages/AssinaturaPage";
 import NotFound from "./pages/NotFound";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <SubscriptionProvider>
-        <DataProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/clientes" element={<ClientesPage />} />
-              <Route path="/produtos" element={<ProdutosPage />} />
-              <Route path="/vendas" element={<VendasPage />} />
-              <Route path="/financeiro" element={<FinanceiroPage />} />
-              <Route path="/fornecedores" element={<FornecedoresPage />} />
-              <Route path="/avaliacoes" element={<AvaliacoesPage />} />
-              <Route path="/promocoes" element={<PromocoesPage />} />
-              <Route path="/assinatura" element={<AssinaturaPage />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </DataProvider>
-      </SubscriptionProvider>
+      <AuthProvider>
+        <SubscriptionProvider>
+          <DataProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                {/* Public routes */}
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                
+                {/* Protected routes */}
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/clientes" element={<ClientesPage />} />
+                  <Route path="/produtos" element={<ProdutosPage />} />
+                  <Route path="/vendas" element={<VendasPage />} />
+                  <Route path="/financeiro" element={<FinanceiroPage />} />
+                  <Route path="/fornecedores" element={<FornecedoresPage />} />
+                  <Route path="/avaliacoes" element={<AvaliacoesPage />} />
+                  <Route path="/promocoes" element={<PromocoesPage />} />
+                  <Route path="/assinatura" element={<AssinaturaPage />} />
+                </Route>
+                
+                {/* Fallback route */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </DataProvider>
+        </SubscriptionProvider>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
