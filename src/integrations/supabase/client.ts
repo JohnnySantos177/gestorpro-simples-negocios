@@ -20,11 +20,11 @@ export async function getFromTable<T>(table: string) {
     throw new Error("Not authenticated");
   }
   
-  // Use type assertion to avoid TypeScript errors with dynamic table names
-  const { data, error } = await supabase
-    .from(table)
+  // Use type assertion with 'as any' to bypass TypeScript's type checking for dynamic table names
+  const { data, error } = await (supabase
+    .from(table as any)
     .select('*')
-    .eq('user_id', userId) as { data: T[] | null; error: any };
+    .eq('user_id', userId) as any);
   
   if (error) {
     console.error(`Error fetching from ${table}:`, error);
@@ -43,12 +43,12 @@ export async function insertIntoTable<T>(table: string, data: any) {
     throw new Error("Not authenticated");
   }
   
-  // Use type assertion to avoid TypeScript errors with dynamic table names
-  const { data: insertedData, error } = await supabase
-    .from(table)
+  // Use type assertion with 'as any' to bypass TypeScript's type checking for dynamic table names
+  const { data: insertedData, error } = await (supabase
+    .from(table as any)
     .insert({ ...data, user_id: userId })
     .select()
-    .single() as { data: T | null; error: any };
+    .single() as any);
   
   if (error) {
     console.error(`Error inserting into ${table}:`, error);
@@ -68,26 +68,26 @@ export async function updateInTable<T>(table: string, id: string, data: any) {
   }
   
   // First check if the record belongs to the user
-  // Use type assertion to avoid TypeScript errors with dynamic table names
-  const { data: existing, error: fetchError } = await supabase
-    .from(table)
+  // Use type assertion with 'as any' to bypass TypeScript's type checking for dynamic table names
+  const { data: existing, error: fetchError } = await (supabase
+    .from(table as any)
     .select('id')
     .eq('id', id)
     .eq('user_id', userId)
-    .single() as { data: { id: string } | null; error: any };
+    .single() as any);
   
   if (fetchError || !existing) {
     throw new Error("Record not found or you don't have permission to update it");
   }
   
-  // Use type assertion to avoid TypeScript errors with dynamic table names
-  const { data: updatedData, error } = await supabase
-    .from(table)
+  // Use type assertion with 'as any' to bypass TypeScript's type checking for dynamic table names
+  const { data: updatedData, error } = await (supabase
+    .from(table as any)
     .update(data)
     .eq('id', id)
     .eq('user_id', userId)
     .select()
-    .single() as { data: T | null; error: any };
+    .single() as any);
   
   if (error) {
     console.error(`Error updating in ${table}:`, error);
@@ -107,24 +107,24 @@ export async function deleteFromTable(table: string, id: string) {
   }
   
   // First check if the record belongs to the user
-  // Use type assertion to avoid TypeScript errors with dynamic table names
-  const { data: existing, error: fetchError } = await supabase
-    .from(table)
+  // Use type assertion with 'as any' to bypass TypeScript's type checking for dynamic table names
+  const { data: existing, error: fetchError } = await (supabase
+    .from(table as any)
     .select('id')
     .eq('id', id)
     .eq('user_id', userId)
-    .single() as { data: { id: string } | null; error: any };
+    .single() as any);
   
   if (fetchError || !existing) {
     throw new Error("Record not found or you don't have permission to delete it");
   }
   
-  // Use type assertion to avoid TypeScript errors with dynamic table names
-  const { error } = await supabase
-    .from(table)
+  // Use type assertion with 'as any' to bypass TypeScript's type checking for dynamic table names
+  const { error } = await (supabase
+    .from(table as any)
     .delete()
     .eq('id', id)
-    .eq('user_id', userId) as { error: any };
+    .eq('user_id', userId) as any);
   
   if (error) {
     console.error(`Error deleting from ${table}:`, error);
