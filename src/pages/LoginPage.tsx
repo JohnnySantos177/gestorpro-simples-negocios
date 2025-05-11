@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -20,22 +20,8 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { signIn, loading, user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-
-  // Check for confirmation success in URL
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (params.get("confirmed") === "true") {
-      toast.success("E-mail confirmado com sucesso! Agora você pode fazer login.");
-    }
-    
-    // Check for hash parameters that might indicate a redirect from email confirmation
-    if (location.hash && location.hash.includes("access_token")) {
-      toast.success("Autenticação realizada. Por favor faça login.");
-    }
-  }, [location]);
 
   // Redirect if already logged in
   React.useEffect(() => {

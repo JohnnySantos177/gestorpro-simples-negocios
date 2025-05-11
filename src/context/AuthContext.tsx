@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useNavigate, useLocation } from "react-router-dom";
 
 type AuthContextType = {
   session: Session | null;
@@ -33,6 +34,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Handle email confirmation or password reset from URL hash
@@ -52,7 +55,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           if (type === "recovery") {
             toast.success("Você pode redefinir sua senha agora.");
           } else if (type === "signup") {
-            toast.success("E-mail confirmado com sucesso!");
+            // Redirect to confirmation success page instead of showing just a toast
+            navigate("/confirmation-success");
+            return;
           }
         }
       }
@@ -60,6 +65,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Check for hash parameters in URL
     handleAuthFromHash();
+
+    // Check for confirmation success in URL params
+    const params = new URLSearchParams(location.search);
+    if (params.get("confirmed") === "true") {
+      navigate("/confirmation-success");
+    }
 
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -78,7 +89,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     );
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate, location]);
 
   // Sign in with email and password
   const signIn = async (email: string, password: string) => {
@@ -120,7 +131,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         email, 
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/login`,
+          emailRedirectTo: `${window.location.origin}/confirmation-success`,
         }
       });
       

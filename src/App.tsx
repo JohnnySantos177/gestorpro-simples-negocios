@@ -22,6 +22,7 @@ import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import ConfirmationSuccessPage from "./pages/ConfirmationSuccessPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
 // Create a new QueryClient instance outside the component
@@ -49,6 +50,7 @@ const App = () => {
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/register" element={<RegisterPage />} />
                   <Route path="/reset-password" element={<ResetPasswordPage />} />
+                  <Route path="/confirmation-success" element={<ConfirmationSuccessPage />} />
                   
                   {/* Protected routes */}
                   <Route element={<ProtectedRoute />}>
