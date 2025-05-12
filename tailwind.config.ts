@@ -63,19 +63,19 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				gestorpro: {
-					50: '#f5f3ff',
-					100: '#ede9fe',
-					200: '#ddd6fe',
-					300: '#c4b5fd',
-					400: '#a78bfa',
-					500: '#9b87f5',
-					600: '#7E69AB',
-					700: '#6E59A5',
-					800: '#5e4c8a',
-					900: '#4c3f72'
+				totalgestor: {
+					50: '#FFFDF0',
+					100: '#FFF9D1',
+					200: '#FFF4A3',
+					300: '#FFEB76',
+					400: '#FFE249',
+					500: '#EFD11C', /* Main gold color from logo */
+					600: '#CBA800',
+					700: '#A78A00',
+					800: '#826C00',
+					900: '#5C4D00'
 				},
-				insidebar: '#9668CD', // Nova cor adicionada para o sidebar
+				insidebar: '#121212', // Dark sidebar color
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

@@ -66,7 +66,7 @@ const AdminUserView = () => {
   return (
     <Layout>
       <div className="mb-4">
-        <Button variant="ghost" onClick={handleBackToAdmin}>
+        <Button variant="ghost" onClick={handleBackToAdmin} className="text-totalgestor-500 hover:text-totalgestor-600 hover:bg-totalgestor-100">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Voltar para Painel Admin
         </Button>
@@ -79,7 +79,7 @@ const AdminUserView = () => {
 
       {loading ? (
         <div className="flex justify-center items-center p-8">
-          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+          <div className="animate-spin h-8 w-8 border-4 border-totalgestor-500 border-t-transparent rounded-full"></div>
         </div>
       ) : (
         <div className="grid gap-6">
@@ -131,7 +131,7 @@ const AdminUserView = () => {
               </div>
 
               <div className="mt-6">
-                <Button>
+                <Button className="bg-totalgestor-500 hover:bg-totalgestor-600 text-black">
                   Baixar Relatório Completo
                 </Button>
               </div>

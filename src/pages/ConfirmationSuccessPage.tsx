@@ -26,10 +26,14 @@ const ConfirmationSuccessPage = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 text-center">
-            {/* Logo do Gestor Pro */}
+            {/* Logo do TotalGestor */}
             <div className="flex items-center justify-center mb-2">
-              <span className="font-bold text-2xl text-gestorpro-600">Gestor</span>
-              <span className="font-bold text-2xl text-primary">Pro</span>
+              <img 
+                src="/lovable-uploads/06397695-3081-4591-9816-edb718b6ee10.png" 
+                alt="TotalGestor Logo" 
+                className="h-10 w-10 mr-2" 
+              />
+              <span className="font-bold text-2xl text-totalgestor-500">TotalGestor</span>
             </div>
           </div>
           <div className="flex justify-center mb-4">
@@ -42,7 +46,7 @@ const ConfirmationSuccessPage = () => {
         </CardContent>
         <CardFooter className="flex justify-center">
           <Link to="/login">
-            <Button className="bg-gestorpro-500 hover:bg-gestorpro-600">Ir para Login</Button>
+            <Button className="bg-totalgestor-500 hover:bg-totalgestor-600 text-black">Ir para Login</Button>
           </Link>
         </CardFooter>
       </Card>

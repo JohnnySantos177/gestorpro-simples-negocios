@@ -99,10 +99,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       >
         <div className="flex h-16 items-center border-b px-6">
           <Link to="/" className="flex items-center gap-2">
-            <div className="rounded-lg bg-gestorpro-500 p-1">
-              <ChartBarIcon className="h-6 w-6 text-white" />
-            </div>
-            <span className="font-semibold text-xl">Gestor Pro</span>
+            <img 
+              src="/lovable-uploads/06397695-3081-4591-9816-edb718b6ee10.png" 
+              alt="TotalGestor Logo" 
+              className="h-8 w-8"
+            />
+            <span className="font-semibold text-xl text-totalgestor-500">TotalGestor</span>
             {isAdmin && <ShieldAlert className="h-4 w-4 text-red-500 ml-2" />}
           </Link>
         </div>
@@ -116,8 +118,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   className={cn(
                     "flex items-center gap-3 rounded-md px-3 py-2 transition-colors",
                     location.pathname === item.path
-                      ? "bg-gestorpro-100 text-gestorpro-700 font-medium"
-                      : "text-sidebar-foreground hover:bg-gestorpro-50"
+                      ? "bg-totalgestor-500/20 text-totalgestor-500 font-medium"
+                      : "text-sidebar-foreground hover:bg-totalgestor-500/10"
                   )}
                 >
                   {item.icon}
@@ -134,15 +136,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </nav>
         
         <div className="border-t p-4">
-          <div className="rounded-md bg-gestorpro-50 p-4">
-            <p className="text-sm text-gray-600 mb-4">
+          <div className="rounded-md bg-totalgestor-500/10 p-4">
+            <p className="text-sm text-totalgestor-500 mb-4">
               <span className="font-medium">{isSubscribed ? "Assinatura Ativa" : "Versão Gratuita"}</span>
             </p>
             {!isSubscribed && (
               <Button 
                 size="sm"
                 variant="default" 
-                className="w-full bg-gestorpro-500 hover:bg-gestorpro-600"
+                className="w-full bg-totalgestor-500 hover:bg-totalgestor-600 text-black"
                 asChild
               >
                 <Link to="/assinatura">
@@ -194,9 +196,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             
             {!isSubscribed && (
               <div className="hidden md:block">
-                <Button asChild variant="default" size="sm" className="bg-gestorpro-500 hover:bg-gestorpro-600">
+                <Button asChild variant="default" size="sm" className="bg-totalgestor-500 hover:bg-totalgestor-600 text-black">
                   <Link to="/assinatura">
-                    <span className="mr-1">⭐</span> Assinar Gestor Pro por R$59,99
+                    <span className="mr-1">⭐</span> Assinar TotalGestor por R$59,99
                   </Link>
                 </Button>
               </div>

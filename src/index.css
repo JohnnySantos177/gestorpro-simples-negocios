@@ -14,74 +14,74 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 255 70% 75%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 45 100% 70%; /* Gold color from logo */
+    --primary-foreground: 0 0% 12%; /* Dark for contrast */
 
-    --secondary: 260 36% 54%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 0 0% 12%; /* Dark color for secondary elements */
+    --secondary-foreground: 45 100% 70%; /* Gold for contrast */
 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 260 100% 94%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 45 80% 92%; /* Soft gold accent */
+    --accent-foreground: 0 0% 12%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 255 70% 75%;
+    --ring: 45 100% 70%; /* Gold ring */
 
     --radius: 0.5rem;
 
-    --sidebar-background: 271 52% 63%; /* Cor alterada para #9668CD */
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 255 70% 75%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 260 100% 94%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 255 70% 75%;
+    --sidebar-background: 0 0% 12%; /* Dark sidebar */
+    --sidebar-foreground: 45 100% 70%; /* Gold text in sidebar */
+    --sidebar-primary: 45 100% 70%;
+    --sidebar-primary-foreground: 0 0% 12%;
+    --sidebar-accent: 45 80% 92%;
+    --sidebar-accent-foreground: 0 0% 12%;
+    --sidebar-border: 45 30% 50%;
+    --sidebar-ring: 45 100% 70%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 0 0% 10%; /* Dark background */
+    --foreground: 45 100% 70%; /* Gold text */
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 12%;
+    --card-foreground: 45 100% 70%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 12%;
+    --popover-foreground: 45 100% 70%;
 
-    --primary: 255 70% 75%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 45 100% 70%; /* Gold primary */
+    --primary-foreground: 0 0% 12%;
 
-    --secondary: 260 36% 54%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 0 0% 20%;
+    --secondary-foreground: 45 100% 70%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 0 0% 20%;
+    --muted-foreground: 45 30% 70%;
 
-    --accent: 260 100% 94%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 45 30% 50%;
+    --accent-foreground: 45 100% 70%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 255 70% 75%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 45 100% 70%;
     
-    --sidebar-background: 271 52% 63%; /* Cor alterada para #9668CD */
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 255 70% 75%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 260 100% 94%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 255 70% 75%;
+    --sidebar-background: 0 0% 12%;
+    --sidebar-foreground: 45 100% 70%;
+    --sidebar-primary: 45 100% 70%;
+    --sidebar-primary-foreground: 0 0% 12%;
+    --sidebar-accent: 45 80% 92%;
+    --sidebar-accent-foreground: 45 100% 70%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 45 100% 70%;
   }
 }
 
@@ -95,7 +95,7 @@
   }
 }
 
-/* Custom styles for Gestor Pro */
+/* Custom styles for TotalGestor */
 .gestor-card {
   @apply border border-border rounded-lg p-6 hover:shadow-md transition-shadow duration-200;
 }
@@ -105,7 +105,7 @@
 }
 
 .gestor-input {
-  @apply w-full rounded-md border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gestorpro-500;
+  @apply w-full rounded-md border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-totalgestor-500;
 }
 
 .gestor-table {
