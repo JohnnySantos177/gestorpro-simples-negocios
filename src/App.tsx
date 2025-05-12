@@ -23,6 +23,8 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ConfirmationSuccessPage from "./pages/ConfirmationSuccessPage";
+import AdminPanel from "./pages/AdminPanel";
+import AdminUserView from "./pages/AdminUserView";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
 // Create a new QueryClient instance outside the component
@@ -63,6 +65,10 @@ const App = () => {
                     <Route path="/avaliacoes" element={<AvaliacoesPage />} />
                     <Route path="/promocoes" element={<PromocoesPage />} />
                     <Route path="/assinatura" element={<AssinaturaPage />} />
+                    
+                    {/* Admin routes */}
+                    <Route path="/admin" element={<AdminPanel />} />
+                    <Route path="/admin/view/:userId" element={<AdminUserView />} />
                   </Route>
                   
                   {/* Fallback route */}

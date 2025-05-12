@@ -10,7 +10,8 @@ import {
   MessageSquare,
   BadgePercent,
   Camera,
-  LogOut
+  LogOut,
+  ShieldAlert
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -42,7 +43,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const { isSubscribed } = useSubscription();
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAdmin } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -58,7 +59,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     toast.info("Funcionalidade de registro de foto será implementada em breve");
   };
 
-  const menuItems = [
+  // Menu items basic para todos os usuários
+  const baseMenuItems = [
     { path: "/", label: "Dashboard", icon: <ChartBarIcon className="h-5 w-5" /> },
     { path: "/clientes", label: "Clientes", icon: <Users className="h-5 w-5" /> },
     { path: "/produtos", label: "Produtos", icon: <Package className="h-5 w-5" /> },
@@ -69,6 +71,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { path: "/promocoes", label: "Promoções", icon: <BadgePercent className="h-5 w-5" /> },
     { path: "/assinatura", label: "Assinatura", icon: <DollarSign className="h-5 w-5" /> }
   ];
+  
+  // Adicionar item de admin se o usuário for administrador
+  const menuItems = isAdmin 
+    ? [...baseMenuItems, { path: "/admin", label: "Admin", icon: <ShieldAlert className="h-5 w-5 text-red-500" /> }]
+    : baseMenuItems;
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -96,6 +103,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               <ChartBarIcon className="h-6 w-6 text-white" />
             </div>
             <span className="font-semibold text-xl">Gestor Pro</span>
+            {isAdmin && <ShieldAlert className="h-4 w-4 text-red-500 ml-2" />}
           </Link>
         </div>
 
@@ -176,6 +184,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </button>
           
           <div className="ml-auto flex items-center gap-4">
+            {isAdmin && (
+              <div className="hidden md:flex items-center">
+                <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full mr-2">
+                  Admin
+                </span>
+              </div>
+            )}
+            
             {!isSubscribed && (
               <div className="hidden md:block">
                 <Button asChild variant="default" size="sm" className="bg-gestorpro-500 hover:bg-gestorpro-600">
@@ -198,11 +214,24 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <DropdownMenuContent align="end" className="w-56">
                   <div className="px-2 py-1.5 text-sm font-medium text-muted-foreground">
                     {user?.email}
+                    {isAdmin && (
+                      <span className="ml-2 bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                        Admin
+                      </span>
+                    )}
                   </div>
                   <DropdownMenuItem className="cursor-pointer" onClick={handlePhotoRegistration}>
                     <Camera className="mr-2 h-4 w-4" />
                     <span>Registrar Foto</span>
                   </DropdownMenuItem>
+                  {isAdmin && (
+                    <DropdownMenuItem className="cursor-pointer" asChild>
+                      <Link to="/admin">
+                        <ShieldAlert className="mr-2 h-4 w-4 text-red-500" />
+                        <span>Painel Admin</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Sair</span>

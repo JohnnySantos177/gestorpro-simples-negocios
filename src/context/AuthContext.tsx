@@ -9,6 +9,7 @@ type AuthContextType = {
   session: Session | null;
   user: User | null;
   loading: boolean;
+  isAdmin: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -30,12 +31,22 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// Lista de emails de administradores do sistema
+const ADMIN_EMAILS = ['admin@gestorpro.com', 'teste@gmail.com'];
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Verificar se o usuário é um administrador
+  const checkIfUserIsAdmin = (userEmail: string | undefined) => {
+    if (!userEmail) return false;
+    return ADMIN_EMAILS.includes(userEmail.toLowerCase());
+  };
 
   useEffect(() => {
     // Handle email confirmation or password reset from URL hash
@@ -76,6 +87,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
+      // Define admin status
+      if (session?.user) {
+        setIsAdmin(checkIfUserIsAdmin(session.user.email));
+      }
+      
       setLoading(false);
     });
 
@@ -84,6 +101,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        
+        // Update admin status on auth changes
+        if (session?.user) {
+          setIsAdmin(checkIfUserIsAdmin(session.user.email));
+        } else {
+          setIsAdmin(false);
+        }
+        
         setLoading(false);
       }
     );
@@ -205,6 +230,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     session,
     user,
     loading,
+    isAdmin,
     signIn,
     signUp,
     signOut,
