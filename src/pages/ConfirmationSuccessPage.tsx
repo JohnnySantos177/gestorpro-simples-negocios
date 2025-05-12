@@ -1,15 +1,25 @@
 
 import React, { useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2 } from "lucide-react";
+import { useSubscription } from "@/context/SubscriptionContext";
 
 const ConfirmationSuccessPage = () => {
+  const { checkSubscriptionStatus } = useSubscription();
+  const [searchParams] = useSearchParams();
+  const sessionId = searchParams.get("session_id");
+
   useEffect(() => {
+    // If this is a confirmation from Stripe checkout, check subscription status
+    if (sessionId) {
+      checkSubscriptionStatus();
+    }
+    
     // Log confirmation success for debugging
-    console.log("Confirmation success page loaded");
-  }, []);
+    console.log("Confirmation success page loaded", { fromStripe: !!sessionId });
+  }, [sessionId, checkSubscriptionStatus]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">

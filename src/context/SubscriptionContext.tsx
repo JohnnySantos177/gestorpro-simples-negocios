@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export type SubscriptionStatus = "inactive" | "active" | "past_due" | "canceled";
 
@@ -9,6 +10,7 @@ interface SubscriptionContextType {
   subscriptionStatus: SubscriptionStatus;
   checkoutLoading: boolean;
   initiateCheckout: () => Promise<void>;
+  checkSubscriptionStatus: () => Promise<void>;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
@@ -26,75 +28,94 @@ interface SubscriptionProviderProps {
 }
 
 export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ children }) => {
-  const [isSubscribed, setIsSubscribed] = useState<boolean>(() => {
-    try {
-      // Check if the user has a valid subscription in localStorage
-      const saved = localStorage.getItem("gestorpro_subscription");
-      if (saved) {
-        const subscription = JSON.parse(saved);
-        // Check if subscription is still valid
-        if (new Date(subscription.expiresAt) > new Date()) {
-          return true;
-        }
-      }
-      return false;
-    } catch (error) {
-      console.error("Error loading subscription state:", error);
-      return false;
-    }
-  });
-  
+  const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>("inactive");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   
+  // Check subscription status on mount and when auth state changes
   useEffect(() => {
-    // Update the subscription status when isSubscribed changes
-    setSubscriptionStatus(isSubscribed ? "active" : "inactive");
-  }, [isSubscribed]);
+    const checkStatus = async () => {
+      try {
+        await checkSubscriptionStatus();
+      } catch (error) {
+        console.error("Error checking initial subscription status:", error);
+      }
+    };
+    
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        checkStatus();
+      } else if (event === 'SIGNED_OUT') {
+        setIsSubscribed(false);
+        setSubscriptionStatus("inactive");
+      }
+    });
+
+    checkStatus();
+    
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
+  }, []);
+  
+  const checkSubscriptionStatus = async () => {
+    try {
+      const session = await supabase.auth.getSession();
+      if (!session.data.session) {
+        setIsSubscribed(false);
+        setSubscriptionStatus("inactive");
+        return;
+      }
+      
+      const { data, error } = await supabase.functions.invoke('check-subscription');
+      
+      if (error) {
+        console.error("Error checking subscription status:", error);
+        toast.error("Erro ao verificar status da assinatura");
+        return;
+      }
+      
+      setIsSubscribed(data.subscribed);
+      setSubscriptionStatus(data.subscribed ? "active" : "inactive");
+      
+      // If subscribed, store the info in localStorage as well for offline access
+      if (data.subscribed) {
+        const subscription = {
+          status: "active",
+          startedAt: new Date().toISOString(),
+          expiresAt: data.subscription_end,
+        };
+        localStorage.setItem("gestorpro_subscription", JSON.stringify(subscription));
+      } else {
+        localStorage.removeItem("gestorpro_subscription");
+      }
+    } catch (error) {
+      console.error("Error in checkSubscriptionStatus:", error);
+    }
+  };
   
   const initiateCheckout = async () => {
     setCheckoutLoading(true);
     try {
-      // Simulated checkout with a direct price
-      const price = 5999; // R$59,99
+      const { data, error } = await supabase.functions.invoke('create-checkout');
       
-      // In a real app, this would make a call to your backend or Stripe
-      const sessionUrl = `#subscription-modal`;
+      if (error) {
+        console.error("Error initiating checkout:", error);
+        toast.error("Erro ao iniciar o checkout");
+        return;
+      }
       
-      // For now we'll just simulate the checkout
-      // window.open(sessionUrl, "_blank");
-      
-      // Simulated transaction for the demo
-      toast.success("Redirecionando para pagamento...");
-      
-      setTimeout(() => {
-        handleSuccessfulSubscription();
-        setCheckoutLoading(false);
-      }, 1000);
-      
+      if (data.url) {
+        // Open the checkout URL in the current window
+        window.location.href = data.url;
+      } else {
+        toast.error("Erro ao gerar link de pagamento");
+      }
     } catch (error) {
-      console.error("Erro ao iniciar checkout:", error);
+      console.error("Error in initiateCheckout:", error);
       toast.error("Erro ao processar pagamento. Tente novamente.");
+    } finally {
       setCheckoutLoading(false);
-    }
-  };
-  
-  const handleSuccessfulSubscription = () => {
-    try {
-      // Store subscription info in localStorage
-      const subscription = {
-        status: "active",
-        startedAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
-      };
-      localStorage.setItem("gestorpro_subscription", JSON.stringify(subscription));
-      
-      setIsSubscribed(true);
-      setSubscriptionStatus("active");
-      toast.success("Assinatura ativada com sucesso!");
-    } catch (error) {
-      console.error("Error saving subscription:", error);
-      toast.error("Erro ao salvar informações da assinatura");
     }
   };
   
@@ -102,7 +123,8 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
     isSubscribed,
     subscriptionStatus,
     checkoutLoading,
-    initiateCheckout
+    initiateCheckout,
+    checkSubscriptionStatus
   };
   
   return (

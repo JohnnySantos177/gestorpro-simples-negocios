@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useEffect } from "react";
 import { CheckCircle2, X } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { PageHeader } from "@/components/PageHeader";
@@ -8,38 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useSubscription } from "@/context/SubscriptionContext";
 import { formatCurrency } from "@/utils/format";
 import { Separator } from "@/components/ui/separator";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter 
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 const AssinaturaPage = () => {
-  const { isSubscribed, checkoutLoading, initiateCheckout } = useSubscription();
-  const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false);
-  const [paymentInfo, setPaymentInfo] = useState({
-    cardNumber: "",
-    cardName: "",
-    expiry: "",
-    cvv: ""
-  });
+  const { isSubscribed, checkoutLoading, initiateCheckout, checkSubscriptionStatus } = useSubscription();
+  
+  // Check subscription status when the page loads
+  useEffect(() => {
+    checkSubscriptionStatus();
+  }, []);
   
   const handleSubscribe = async () => {
-    setSubscriptionModalOpen(true);
-  };
-  
-  const handleSubmitPayment = async () => {
-    // Validate form
-    if (!paymentInfo.cardNumber || !paymentInfo.cardName || !paymentInfo.expiry || !paymentInfo.cvv) {
-      alert("Por favor preencha todos os campos de pagamento");
-      return;
-    }
-    
-    setSubscriptionModalOpen(false);
     await initiateCheckout();
   };
   
@@ -182,92 +159,6 @@ const AssinaturaPage = () => {
           </Card>
         </div>
       </div>
-      
-      {/* Modal de Pagamento */}
-      <Dialog open={subscriptionModalOpen} onOpenChange={setSubscriptionModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Informações de Pagamento</DialogTitle>
-            <button 
-              onClick={() => setSubscriptionModalOpen(false)}
-              className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="cardNumber">Número do Cartão</Label>
-              <Input
-                id="cardNumber"
-                placeholder="0000 0000 0000 0000"
-                value={paymentInfo.cardNumber}
-                onChange={(e) => setPaymentInfo({ ...paymentInfo, cardNumber: e.target.value })}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="cardName">Nome no Cartão</Label>
-              <Input
-                id="cardName"
-                placeholder="NOME COMPLETO"
-                value={paymentInfo.cardName}
-                onChange={(e) => setPaymentInfo({ ...paymentInfo, cardName: e.target.value })}
-              />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="expiry">Data de Validade</Label>
-                <Input
-                  id="expiry"
-                  placeholder="MM/AA"
-                  value={paymentInfo.expiry}
-                  onChange={(e) => setPaymentInfo({ ...paymentInfo, expiry: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cvv">CVV</Label>
-                <Input
-                  id="cvv"
-                  placeholder="123"
-                  value={paymentInfo.cvv}
-                  onChange={(e) => setPaymentInfo({ ...paymentInfo, cvv: e.target.value })}
-                />
-              </div>
-            </div>
-            
-            <div className="mt-4 rounded-lg bg-muted p-4">
-              <div className="flex justify-between mb-2">
-                <span>Plano Premium</span>
-                <span>{formatCurrency(59.99)}</span>
-              </div>
-              <div className="flex justify-between font-semibold">
-                <span>Total</span>
-                <span>{formatCurrency(59.99)}</span>
-              </div>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setSubscriptionModalOpen(false)}
-              disabled={checkoutLoading}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSubmitPayment}
-              disabled={checkoutLoading}
-              className="bg-gestorpro-500 hover:bg-gestorpro-600"
-            >
-              {checkoutLoading ? "Processando..." : "Pagar e Assinar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Layout>
   );
 };
