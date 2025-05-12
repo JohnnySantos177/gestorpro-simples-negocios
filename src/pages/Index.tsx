@@ -32,6 +32,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 const Dashboard = () => {
   const { dashboardStats, updateDashboardStats } = useData();
@@ -46,8 +47,14 @@ const Dashboard = () => {
       ? "Boa tarde"
       : "Boa noite";
 
-  // Cores para os gráficos
-  const COLORS = ["#9b87f5", "#7E69AB", "#6E59A5", "#D6BCFA", "#E5DEFF"];
+  // Cores para os gráficos baseadas na paleta do TotalGestor
+  const COLORS = [
+    "#FFE249", // totalgestor-400 (primary yellow)
+    "#EFD11C", // totalgestor-500 (main gold)
+    "#CBA800", // totalgestor-600 (darker gold)
+    "#A78A00", // totalgestor-700 (even darker gold)
+    "#826C00"  // totalgestor-800 (deep gold)
+  ];
 
   // Dados para o gráfico de status do estoque
   const estoqueData = [
@@ -56,11 +63,20 @@ const Dashboard = () => {
     { name: "Estoque Alto", value: dashboardStats.estoqueStatus.alto },
   ];
 
+  // Configuração de cores dos gráficos
+  const chartConfig = {
+    vendas: { color: "#EFD11C" }, // totalgestor-500
+    produtos: { color: "#FFE249" }, // totalgestor-400
+    estoqueBaixo: { color: "#F97316" }, // Cor de alerta (laranja)
+    estoqueNormal: { color: "#EFD11C" }, // totalgestor-500
+    estoqueAlto: { color: "#A78A00" }, // totalgestor-700
+  };
+
   return (
     <Layout>
       <PageHeader 
         title={`${greeting}!`}
-        description="Bem-vindo ao seu painel do Gestor Pro. Veja os principais indicadores do seu negócio."
+        description="Bem-vindo ao seu painel do TotalGestor. Veja os principais indicadores do seu negócio."
       />
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -95,7 +111,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
+              <ChartContainer config={chartConfig}>
                 <LineChart
                   data={dashboardStats.vendasPorPeriodo}
                   margin={{
@@ -107,20 +123,25 @@ const Dashboard = () => {
                 >
                   <XAxis dataKey="periodo" />
                   <YAxis />
-                  <Tooltip
-                    formatter={(value: number) => [formatCurrency(value), "Vendas"]}
-                    labelFormatter={(label) => `Período: ${label}`}
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent 
+                        formatter={(value: number) => [formatCurrency(value), "Vendas"]}
+                        labelFormatter={(label) => `Período: ${label}`}
+                      />
+                    }
                   />
                   <Line
                     type="monotone"
                     dataKey="valor"
-                    stroke="#9b87f5"
+                    stroke="#EFD11C"
                     strokeWidth={2}
-                    dot={{ r: 4 }}
-                    activeDot={{ r: 6 }}
+                    dot={{ r: 4, fill: "#EFD11C" }}
+                    activeDot={{ r: 6, fill: "#EFD11C" }}
+                    name="vendas"
                   />
                 </LineChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             </div>
           </CardContent>
         </Card>
@@ -138,7 +159,6 @@ const Dashboard = () => {
                     cx="50%"
                     cy="50%"
                     outerRadius={80}
-                    fill="#8884d8"
                     dataKey="value"
                     label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
                   >
@@ -162,7 +182,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
+              <ChartContainer config={chartConfig}>
                 <BarChart
                   data={dashboardStats.produtosMaisVendidos}
                   layout="vertical"
@@ -180,12 +200,21 @@ const Dashboard = () => {
                     width={70}
                     tick={{ fontSize: 12 }}
                   />
-                  <Tooltip
-                    formatter={(value: number) => [`${value} unidades`]}
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent 
+                        formatter={(value: number) => [`${value} unidades`]}
+                      />
+                    }
                   />
-                  <Bar dataKey="quantidade" fill="#9b87f5" barSize={20} />
+                  <Bar 
+                    dataKey="quantidade" 
+                    name="produtos"
+                    fill="#FFE249" 
+                    barSize={20} 
+                  />
                 </BarChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             </div>
           </CardContent>
         </Card>
