@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   Users, 
   Package, 
@@ -8,12 +8,26 @@ import {
   DollarSign, 
   Truck, 
   MessageSquare,
-  BadgePercent 
+  BadgePercent,
+  Camera,
+  LogOut
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useSubscription } from "@/context/SubscriptionContext";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/AuthContext";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { 
+  Avatar, 
+  AvatarFallback 
+} from "@/components/ui/avatar";
+import { toast } from "sonner";
 
 // Importar o ícone ChartBar corretamente
 import { BarChart as ChartBarIcon } from "lucide-react";
@@ -24,9 +38,25 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const { isSubscribed } = useSubscription();
+  const { user, signOut } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+    }
+  };
+
+  const handlePhotoRegistration = () => {
+    // For now just show a toast as we don't have file upload implemented yet
+    toast.info("Funcionalidade de registro de foto será implementada em breve");
+  };
 
   const menuItems = [
     { path: "/", label: "Dashboard", icon: <ChartBarIcon className="h-5 w-5" /> },
@@ -42,6 +72,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
+  };
+
+  // Get user initials for the avatar
+  const getUserInitials = () => {
+    if (!user || !user.email) return "U";
+    return user.email.charAt(0).toUpperCase();
   };
 
   return (
@@ -151,12 +187,28 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             )}
             
             <div className="relative">
-              <button
-                className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border bg-muted/50"
-                aria-label="Perfil"
-              >
-                <Users className="h-5 w-5" />
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border bg-muted/50 hover:bg-muted/80 transition-colors">
+                    <Avatar>
+                      <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                    </Avatar>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="px-2 py-1.5 text-sm font-medium text-muted-foreground">
+                    {user?.email}
+                  </div>
+                  <DropdownMenuItem className="cursor-pointer" onClick={handlePhotoRegistration}>
+                    <Camera className="mr-2 h-4 w-4" />
+                    <span>Registrar Foto</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Sair</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </header>
