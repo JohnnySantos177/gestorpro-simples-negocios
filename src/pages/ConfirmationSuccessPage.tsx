@@ -9,16 +9,16 @@ import { useSubscription } from "@/context/SubscriptionContext";
 const ConfirmationSuccessPage = () => {
   const { checkSubscriptionStatus } = useSubscription();
   const [searchParams] = useSearchParams();
-  const sessionId = searchParams.get("session_id");
+  const sessionId = searchParams.get("session_id") || searchParams.get("kwify_session");
 
   useEffect(() => {
-    // If this is a confirmation from Stripe checkout, check subscription status
+    // If this is a confirmation from Kwify checkout, check subscription status
     if (sessionId) {
       checkSubscriptionStatus();
     }
     
     // Log confirmation success for debugging
-    console.log("Confirmation success page loaded", { fromStripe: !!sessionId });
+    console.log("Confirmation success page loaded", { fromKwify: !!sessionId });
   }, [sessionId, checkSubscriptionStatus]);
 
   return (
@@ -42,11 +42,11 @@ const ConfirmationSuccessPage = () => {
           <CardTitle className="text-2xl font-bold">Sua confirmação foi feita com sucesso!</CardTitle>
         </CardHeader>
         <CardContent className="text-center">
-          <p className="text-muted-foreground">Por favor, vá para a tela de login</p>
+          <p className="text-muted-foreground">Seu pagamento via Kwify foi processado. Por favor, vá para a tela de login</p>
         </CardContent>
         <CardFooter className="flex justify-center">
           <Link to="/login">
-            <Button className="bg-totalgestor-500 hover:bg-totalgestor-600 text-black">Ir para Login</Button>
+            <Button className="bg-totalgestor-500 hover:bg-totalgestor-600 text-white">Ir para Login</Button>
           </Link>
         </CardFooter>
       </Card>

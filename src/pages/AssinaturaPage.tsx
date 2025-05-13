@@ -1,5 +1,6 @@
+
 import React, { useEffect } from "react";
-import { CheckCircle2, X } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -57,7 +58,7 @@ const AssinaturaPage = () => {
             <div className="space-y-4">
               {beneficios.map((beneficio, index) => (
                 <div key={index} className="flex items-start">
-                  <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
+                  <CheckCircle2 className="h-5 w-5 text-totalgestor-500 mt-0.5 mr-2 flex-shrink-0" />
                   <span>{beneficio}</span>
                 </div>
               ))}
@@ -65,8 +66,8 @@ const AssinaturaPage = () => {
             
             <div className="mt-8">
               {isSubscribed ? (
-                <div className="bg-gestorpro-50 p-4 rounded-lg border border-gestorpro-100 text-center">
-                  <p className="font-semibold text-gestorpro-700 mb-2">
+                <div className="bg-totalgestor-50 p-4 rounded-lg border border-totalgestor-100 text-center">
+                  <p className="font-semibold text-totalgestor-700 mb-2">
                     Você já possui uma assinatura ativa!
                   </p>
                   <p className="text-sm text-muted-foreground">
@@ -77,9 +78,9 @@ const AssinaturaPage = () => {
                 <Button 
                   onClick={handleSubscribe}
                   disabled={checkoutLoading}
-                  className="w-full bg-gestorpro-500 hover:bg-gestorpro-600"
+                  className="w-full bg-totalgestor-500 hover:bg-totalgestor-600"
                 >
-                  {checkoutLoading ? "Processando..." : "Assinar Agora"}
+                  {checkoutLoading ? "Processando..." : "Assinar com Kwify"}
                 </Button>
               )}
             </div>
@@ -98,9 +99,9 @@ const AssinaturaPage = () => {
               
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-semibold mb-1">Pagamento Seguro</h3>
+                  <h3 className="font-semibold mb-1">Pagamento Seguro com Kwify</h3>
                   <p className="text-sm text-muted-foreground">
-                    Seus dados de pagamento são protegidos com criptografia de ponta a ponta.
+                    Seus dados de pagamento são protegidos com criptografia de ponta a ponta pela plataforma Kwify.
                   </p>
                 </div>
                 
@@ -130,7 +131,7 @@ const AssinaturaPage = () => {
                 <div>
                   <h3 className="font-semibold mb-1">Como funciona a cobrança?</h3>
                   <p className="text-sm text-muted-foreground">
-                    A assinatura é cobrada mensalmente e renovada automaticamente até que você cancele.
+                    A assinatura é cobrada mensalmente através da Kwify e renovada automaticamente até que você cancele.
                   </p>
                 </div>
                 

@@ -106,8 +106,9 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
       }
       
       if (data.url) {
-        // Open the checkout URL in the current window
-        window.location.href = data.url;
+        // Open the Kwify checkout URL in a new window
+        window.open(data.url, '_blank');
+        toast.info("Redirecionando para página de pagamento Kwify");
       } else {
         toast.error("Erro ao gerar link de pagamento");
       }

@@ -1,6 +1,5 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -27,30 +26,33 @@ serve(async (req) => {
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { apiVersion: "2023-10-16" });
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    
-    if (customers.data.length === 0) {
+    // Simulate Kwify subscription check with the API
+    // In a real implementation, you'd make a request to the Kwify API
+    const kwifyApiKey = Deno.env.get("KWIFY_API_KEY") || "";
+    if (!kwifyApiKey) {
+      console.error("Missing Kwify API key");
       return new Response(JSON.stringify({ subscribed: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
+    
+    // Fetch subscription from your database or from Kwify API
+    // For this example, we'll check a subscriptions table in Supabase
+    const { data: subscriptions, error } = await supabaseClient
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .limit(1);
 
-    const customerId = customers.data[0].id;
+    if (error) throw error;
     
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      status: "active",
-      limit: 1,
-    });
-    
-    const hasActiveSub = subscriptions.data.length > 0;
+    const hasActiveSub = subscriptions && subscriptions.length > 0;
     let subscriptionEnd = null;
 
     if (hasActiveSub) {
-      const subscription = subscriptions.data[0];
-      subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+      subscriptionEnd = subscriptions[0].end_date;
     }
 
     return new Response(JSON.stringify({
