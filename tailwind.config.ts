@@ -63,18 +63,6 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				totalgestor: {
-					50: '#FFFDF0',
-					100: '#FFF9D1',
-					200: '#FFF4A3',
-					300: '#FFEB76',
-					400: '#FFE249',
-					500: '#EFD11C', /* Main gold color from logo */
-					600: '#CBA800',
-					700: '#A78A00',
-					800: '#826C00',
-					900: '#5C4D00'
-				},
 				insidebar: '#121212', // Dark sidebar color
 			},
 			borderRadius: {

@@ -104,7 +104,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               alt="TotalGestor Logo" 
               className="h-8 w-8"
             />
-            <span className="font-semibold text-xl text-totalgestor-500">TotalGestor</span>
+            <span className="font-semibold text-xl text-black">TotalGestor</span>
             {isAdmin && <ShieldAlert className="h-4 w-4 text-red-500 ml-2" />}
           </Link>
         </div>
@@ -118,8 +118,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   className={cn(
                     "flex items-center gap-3 rounded-md px-3 py-2 transition-colors",
                     location.pathname === item.path
-                      ? "bg-totalgestor-500/20 text-totalgestor-500 font-medium"
-                      : "text-sidebar-foreground hover:bg-totalgestor-500/10"
+                      ? "bg-primary/20 text-primary font-medium"
+                      : "text-sidebar-foreground hover:bg-primary/10"
                   )}
                 >
                   {item.icon}
@@ -136,15 +136,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </nav>
         
         <div className="border-t p-4">
-          <div className="rounded-md bg-totalgestor-500/10 p-4">
-            <p className="text-sm text-totalgestor-500 mb-4">
+          <div className="rounded-md bg-primary/10 p-4">
+            <p className="text-sm text-primary mb-4">
               <span className="font-medium">{isSubscribed ? "Assinatura Ativa" : "Versão Gratuita"}</span>
             </p>
             {!isSubscribed && (
               <Button 
                 size="sm"
                 variant="default" 
-                className="w-full bg-totalgestor-500 hover:bg-totalgestor-600 text-black"
+                className="w-full"
                 asChild
               >
                 <Link to="/assinatura">
@@ -196,7 +196,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             
             {!isSubscribed && (
               <div className="hidden md:block">
-                <Button asChild variant="default" size="sm" className="bg-totalgestor-500 hover:bg-totalgestor-600 text-black">
+                <Button asChild variant="default" size="sm">
                   <Link to="/assinatura">
                     <span className="mr-1">⭐</span> Assinar TotalGestor por R$59,99
                   </Link>

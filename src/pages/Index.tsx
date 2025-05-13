@@ -47,14 +47,8 @@ const Dashboard = () => {
       ? "Boa tarde"
       : "Boa noite";
 
-  // Cores para os gráficos baseadas na paleta do TotalGestor
-  const COLORS = [
-    "#FFE249", // totalgestor-400 (primary yellow)
-    "#EFD11C", // totalgestor-500 (main gold)
-    "#CBA800", // totalgestor-600 (darker gold)
-    "#A78A00", // totalgestor-700 (even darker gold)
-    "#826C00"  // totalgestor-800 (deep gold)
-  ];
+  // Cores padrão para os gráficos
+  const COLORS = ["#9b87f5", "#7E69AB", "#6E59A5", "#D6BCFA", "#E5DEFF"];
 
   // Dados para o gráfico de status do estoque
   const estoqueData = [
@@ -65,11 +59,11 @@ const Dashboard = () => {
 
   // Configuração de cores dos gráficos
   const chartConfig = {
-    vendas: { color: "#EFD11C" }, // totalgestor-500
-    produtos: { color: "#FFE249" }, // totalgestor-400
+    vendas: { color: "#9b87f5" },
+    produtos: { color: "#9b87f5" },
     estoqueBaixo: { color: "#F97316" }, // Cor de alerta (laranja)
-    estoqueNormal: { color: "#EFD11C" }, // totalgestor-500
-    estoqueAlto: { color: "#A78A00" }, // totalgestor-700
+    estoqueNormal: { color: "#9b87f5" },
+    estoqueAlto: { color: "#7E69AB" },
   };
 
   return (
@@ -134,10 +128,10 @@ const Dashboard = () => {
                   <Line
                     type="monotone"
                     dataKey="valor"
-                    stroke="#EFD11C"
+                    stroke="#9b87f5"
                     strokeWidth={2}
-                    dot={{ r: 4, fill: "#EFD11C" }}
-                    activeDot={{ r: 6, fill: "#EFD11C" }}
+                    dot={{ r: 4, fill: "#9b87f5" }}
+                    activeDot={{ r: 6, fill: "#9b87f5" }}
                     name="vendas"
                   />
                 </LineChart>
@@ -210,7 +204,7 @@ const Dashboard = () => {
                   <Bar 
                     dataKey="quantidade" 
                     name="produtos"
-                    fill="#FFE249" 
+                    fill="#9b87f5" 
                     barSize={20} 
                   />
                 </BarChart>
