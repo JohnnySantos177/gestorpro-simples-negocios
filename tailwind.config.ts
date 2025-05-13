@@ -64,6 +64,19 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				insidebar: '#121212', // Reverted to original dark sidebar color
+				// Add the TotalGestor color palette
+				totalgestor: {
+					50: '#f5f3ff',
+					100: '#ede9fe',
+					200: '#ddd6fe',
+					300: '#c4b5fd',
+					400: '#a78bfa',
+					500: '#9b87f5', // Primary Purple
+					600: '#7E69AB', // Secondary/Darker Purple
+					700: '#6d28d9',
+					800: '#5b21b6',
+					900: '#4c1d95',
+				}
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
