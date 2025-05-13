@@ -26,16 +26,8 @@ serve(async (req) => {
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
-    // Simulate Kwify subscription check with the API
-    // In a real implementation, you'd make a request to the Kwify API
-    const kwifyApiKey = Deno.env.get("KWIFY_API_KEY") || "";
-    if (!kwifyApiKey) {
-      console.error("Missing Kwify API key");
-      return new Response(JSON.stringify({ subscribed: false }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
-    }
+    // Use the provided Kwify API key
+    const kwifyApiKey = "dd29c1d0a4091cef185a2938fa0c27d8773c888aa8a825759247648c9b73e723";
     
     // Fetch subscription from your database or from Kwify API
     // For this example, we'll check a subscriptions table in Supabase

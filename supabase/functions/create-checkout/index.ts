@@ -25,15 +25,11 @@ serve(async (req) => {
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
-    const kwifyApiKey = Deno.env.get("KWIFY_API_KEY") || "";
-    if (!kwifyApiKey) {
-      throw new Error("Missing Kwify API key");
-    }
+    // Use the provided Kwify API key
+    const kwifyApiKey = "dd29c1d0a4091cef185a2938fa0c27d8773c888aa8a825759247648c9b73e723";
 
-    // In a real implementation, you would make a request to the Kwify API to create a checkout session
-    // For this example, we'll create a simulated checkout URL
-    
-    // Sample request to Kwify API (pseudocode)
+    // In a real implementation, you would make a request to the Kwify API using the API key
+    // For example:
     // const kwifyResponse = await fetch("https://api.kwify.com/v1/checkout-sessions", {
     //   method: "POST",
     //   headers: {
@@ -54,7 +50,7 @@ serve(async (req) => {
     // Generate a simulated Kwify checkout URL
     // In a production environment, this would come from the Kwify API
     const mockCheckoutId = `mock_${Date.now()}`;
-    const checkoutUrl = `https://checkout.kwify.com/payment/${mockCheckoutId}?customer=${encodeURIComponent(user.email)}`;
+    const checkoutUrl = `https://checkout.kwify.com/payment/${mockCheckoutId}?customer=${encodeURIComponent(user.email)}&api_key=${encodeURIComponent(kwifyApiKey.substring(0, 8))}`;
 
     // Add the checkout session to your database for tracking
     const serviceClient = createClient(
@@ -63,7 +59,7 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Optional: Track the checkout session in your database
+    // Track the checkout session in your database
     await serviceClient.from('checkout_sessions').insert({
       user_id: user.id,
       session_id: mockCheckoutId,
