@@ -63,7 +63,7 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				insidebar: '#121212', // Dark sidebar color
+				insidebar: '#121212', // Reverted to original dark sidebar color
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
