@@ -15,6 +15,7 @@ type AuthContextType = {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
+  uploadAvatar: (file: File) => Promise<string | null>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,8 +32,8 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-// Lista de emails de administradores do sistema
-const ADMIN_EMAILS = ['admin@gestorpro.com', 'teste@gmail.com'];
+// Admin email
+const ADMIN_EMAIL = 'johnnysantos_177@msn.com';
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -42,10 +43,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Verificar se o usuário é um administrador
+  // Check if user is admin
   const checkIfUserIsAdmin = (userEmail: string | undefined) => {
     if (!userEmail) return false;
-    return ADMIN_EMAILS.includes(userEmail.toLowerCase());
+    return userEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase();
   };
 
   useEffect(() => {
@@ -115,6 +116,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     return () => subscription.unsubscribe();
   }, [navigate, location]);
+
+  // Upload user avatar
+  const uploadAvatar = async (file: File): Promise<string | null> => {
+    try {
+      if (!user) throw new Error("User not authenticated");
+
+      setLoading(true);
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user.id}/avatar.${fileExt}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get the public URL
+      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      
+      // Update user metadata
+      await supabase.auth.updateUser({
+        data: { avatar_url: data.publicUrl }
+      });
+
+      toast.success("Foto de perfil atualizada com sucesso!");
+      return data.publicUrl;
+    } catch (error: any) {
+      toast.error(`Erro ao atualizar foto: ${error.message}`);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Sign in with email and password
   const signIn = async (email: string, password: string) => {
@@ -235,7 +270,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signUp,
     signOut,
     resetPassword,
-    updatePassword
+    updatePassword,
+    uploadAvatar,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

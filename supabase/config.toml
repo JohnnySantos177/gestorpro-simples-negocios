@@ -1,4 +1,4 @@
 
 project_id = "jxzbartwbukfbqtylvtk"
-payment_provider = "kwify"
-kwify_api_key = "dd29c1d0a4091cef185a2938fa0c27d8773c888aa8a825759247648c9b73e723"
+payment_provider = "stripe"
+stripe_secret_key = "sk_test_51NZglfLuRxnPMKkCzvFsGYQoZJJW4KqxB3CfOVTrSSo1RPr2kzMEsl6bV0SBi5Z3E9RYwRakQeNglFGBvEaiQYBr00h6HcLQN7"

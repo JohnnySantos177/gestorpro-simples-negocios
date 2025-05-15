@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import Stripe from "https://esm.sh/stripe@12.5.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,29 +27,81 @@ serve(async (req) => {
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
-    // Use the provided Kwify API key
-    const kwifyApiKey = "dd29c1d0a4091cef185a2938fa0c27d8773c888aa8a825759247648c9b73e723";
-    
-    // Fetch subscription from your database or from Kwify API
-    // For this example, we'll check a subscriptions table in Supabase
-    const { data: subscriptions, error } = await supabaseClient
-      .from('subscriptions')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .limit(1);
+    // Initialize Stripe with secret key
+    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+      apiVersion: "2023-10-16",
+    });
 
-    if (error) throw error;
-    
-    const hasActiveSub = subscriptions && subscriptions.length > 0;
+    // Check if user already has a Stripe customer ID
+    const { data: subscribers, error: fetchError } = await supabaseClient
+      .from('subscribers')
+      .select('stripe_customer_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    let customerId = subscribers?.stripe_customer_id;
+
+    if (!customerId) {
+      // Look for existing customer in Stripe or create a new one
+      const customers = await stripe.customers.list({
+        email: user.email,
+        limit: 1,
+      });
+
+      if (customers.data.length > 0) {
+        customerId = customers.data[0].id;
+      } else {
+        // Create new customer in Stripe
+        const newCustomer = await stripe.customers.create({
+          email: user.email,
+          metadata: {
+            user_id: user.id,
+          },
+        });
+        customerId = newCustomer.id;
+      }
+
+      // Save the customer ID in Supabase
+      await supabaseClient.from('subscribers').upsert({
+        user_id: user.id,
+        email: user.email,
+        stripe_customer_id: customerId,
+        created_at: new Date().toISOString(),
+      });
+    }
+
+    // Check for active subscriptions
+    const subscriptions = await stripe.subscriptions.list({
+      customer: customerId,
+      status: 'active',
+      limit: 1,
+    });
+
+    const hasActiveSub = subscriptions.data.length > 0;
     let subscriptionEnd = null;
+    let subscriptionId = null;
 
     if (hasActiveSub) {
-      subscriptionEnd = subscriptions[0].end_date;
+      const subscription = subscriptions.data[0];
+      subscriptionId = subscription.id;
+      subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+
+      // Update subscription status in the database
+      await supabaseClient.from('subscriptions').upsert({
+        user_id: user.id,
+        stripe_subscription_id: subscriptionId,
+        status: 'active',
+        start_date: new Date(subscription.current_period_start * 1000).toISOString(),
+        end_date: subscriptionEnd,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id',
+      });
     }
 
     return new Response(JSON.stringify({
       subscribed: hasActiveSub,
+      subscription_id: subscriptionId,
       subscription_end: subscriptionEnd
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

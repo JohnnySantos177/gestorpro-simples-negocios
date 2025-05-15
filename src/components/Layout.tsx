@@ -11,7 +11,8 @@ import {
   BadgePercent,
   Camera,
   LogOut,
-  ShieldAlert
+  ShieldAlert,
+  User
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -26,9 +27,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { 
   Avatar, 
-  AvatarFallback 
+  AvatarFallback,
+  AvatarImage 
 } from "@/components/ui/avatar";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 // Importar o ícone ChartBar corretamente
 import { BarChart as ChartBarIcon } from "lucide-react";
@@ -43,7 +46,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const { isSubscribed } = useSubscription();
-  const { user, signOut, isAdmin } = useAuth();
+  const { user, signOut, isAdmin, uploadAvatar } = useAuth();
+  const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -55,8 +62,40 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   const handlePhotoRegistration = () => {
-    // For now just show a toast as we don't have file upload implemented yet
-    toast.info("Funcionalidade de registro de foto será implementada em breve");
+    setPhotoDialogOpen(true);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      
+      // Create a preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handlePhotoUpload = async () => {
+    if (!selectedFile) {
+      toast.error("Selecione uma foto para enviar");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const url = await uploadAvatar(selectedFile);
+      if (url) {
+        setPhotoDialogOpen(false);
+        setSelectedFile(null);
+        setPreviewUrl(null);
+      }
+    } finally {
+      setUploading(false);
+    }
   };
 
   // Menu items basic para todos os usuários
@@ -87,6 +126,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     return user.email.charAt(0).toUpperCase();
   };
 
+  // Get user avatar URL
+  const getUserAvatar = () => {
+    if (!user?.user_metadata) return null;
+    return user.user_metadata.avatar_url || null;
+  };
+
   return (
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
@@ -102,9 +147,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <img 
               src="/lovable-uploads/06397695-3081-4591-9816-edb718b6ee10.png" 
               alt="TotalGestor Logo" 
-              className="h-8 w-8"
+              className="h-12 w-12"
             />
-            <span className="font-semibold text-xl text-black">TotalGestor</span>
+            <span className="font-semibold text-2xl text-black">TotalGestor</span>
             {isAdmin && <ShieldAlert className="h-4 w-4 text-red-500 ml-2" />}
           </Link>
         </div>
@@ -209,6 +254,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <DropdownMenuTrigger asChild>
                   <button className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border bg-muted/50 hover:bg-muted/80 transition-colors">
                     <Avatar>
+                      <AvatarImage src={getUserAvatar() || undefined} alt={user?.email || "User"} />
                       <AvatarFallback>{getUserInitials()}</AvatarFallback>
                     </Avatar>
                   </button>
@@ -225,6 +271,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <DropdownMenuItem className="cursor-pointer" onClick={handlePhotoRegistration}>
                     <Camera className="mr-2 h-4 w-4" />
                     <span>Registrar Foto</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer" asChild>
+                    <Link to={`/perfil/${user?.id}`}>
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Meu Perfil</span>
+                    </Link>
                   </DropdownMenuItem>
                   {isAdmin && (
                     <DropdownMenuItem className="cursor-pointer" asChild>
@@ -249,6 +301,60 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           {children}
         </div>
       </main>
+
+      {/* Photo Upload Dialog */}
+      <Dialog open={photoDialogOpen} onOpenChange={setPhotoDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Registrar Foto</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center space-y-4">
+            <div className="w-full">
+              {previewUrl ? (
+                <div className="flex justify-center">
+                  <img 
+                    src={previewUrl} 
+                    alt="Preview" 
+                    className="w-32 h-32 object-cover rounded-full border-2 border-gray-300" 
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center justify-center w-32 h-32 mx-auto rounded-full bg-gray-100 border-2 border-dashed border-gray-300">
+                  <Camera className="text-gray-400" />
+                </div>
+              )}
+            </div>
+            <div className="w-full">
+              <label htmlFor="photo-upload" className="block text-sm font-medium text-gray-700 mb-2">
+                Selecione uma foto
+              </label>
+              <input 
+                type="file" 
+                id="photo-upload"
+                accept="image/*" 
+                onChange={handleFileChange}
+                className="block w-full text-sm text-gray-500
+                  file:mr-4 file:py-2 file:px-4 file:rounded-md
+                  file:border-0 file:text-sm file:font-medium
+                  file:bg-primary file:text-white
+                  hover:file:cursor-pointer"
+              />
+            </div>
+            <div className="flex justify-end w-full space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setPhotoDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handlePhotoUpload} 
+                disabled={!selectedFile || uploading}>
+                {uploading ? "Enviando..." : "Salvar"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

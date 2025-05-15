@@ -9,16 +9,16 @@ import { useSubscription } from "@/context/SubscriptionContext";
 const ConfirmationSuccessPage = () => {
   const { checkSubscriptionStatus } = useSubscription();
   const [searchParams] = useSearchParams();
-  const sessionId = searchParams.get("session_id") || searchParams.get("kwify_session");
+  const sessionId = searchParams.get("session_id");
 
   useEffect(() => {
-    // If this is a confirmation from Kwify checkout, check subscription status
+    // If this is a confirmation from Stripe checkout, check subscription status
     if (sessionId) {
       checkSubscriptionStatus();
     }
     
     // Log confirmation success for debugging
-    console.log("Confirmation success page loaded", { fromKwify: !!sessionId });
+    console.log("Confirmation success page loaded", { fromStripe: !!sessionId });
   }, [sessionId, checkSubscriptionStatus]);
 
   return (
@@ -26,14 +26,14 @@ const ConfirmationSuccessPage = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 text-center">
-            {/* Logo do TotalGestor */}
+            {/* Logo do TotalGestor - agora maior */}
             <div className="flex items-center justify-center mb-2">
               <img 
                 src="/lovable-uploads/06397695-3081-4591-9816-edb718b6ee10.png" 
                 alt="TotalGestor Logo" 
-                className="h-10 w-10 mr-2" 
+                className="h-20 w-20 mr-2" 
               />
-              <span className="font-bold text-2xl text-totalgestor-500">TotalGestor</span>
+              <span className="font-bold text-3xl text-totalgestor-500">TotalGestor</span>
             </div>
           </div>
           <div className="flex justify-center mb-4">
@@ -42,7 +42,7 @@ const ConfirmationSuccessPage = () => {
           <CardTitle className="text-2xl font-bold">Sua confirmação foi feita com sucesso!</CardTitle>
         </CardHeader>
         <CardContent className="text-center">
-          <p className="text-muted-foreground">Seu pagamento via Kwify foi processado. Por favor, vá para a tela de login</p>
+          <p className="text-muted-foreground">Seu pagamento via Stripe foi processado. Por favor, vá para a tela de login</p>
         </CardContent>
         <CardFooter className="flex justify-center">
           <Link to="/login">

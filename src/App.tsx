@@ -18,6 +18,7 @@ import FornecedoresPage from "./pages/FornecedoresPage";
 import AvaliacoesPage from "./pages/AvaliacoesPage";
 import PromocoesPage from "./pages/PromocoesPage";
 import AssinaturaPage from "./pages/AssinaturaPage";
+import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -65,6 +66,7 @@ const App = () => {
                     <Route path="/avaliacoes" element={<AvaliacoesPage />} />
                     <Route path="/promocoes" element={<PromocoesPage />} />
                     <Route path="/assinatura" element={<AssinaturaPage />} />
+                    <Route path="/perfil/:id" element={<ProfilePage />} />
                     
                     {/* Admin routes */}
                     <Route path="/admin" element={<AdminPanel />} />

@@ -9,6 +9,7 @@ interface SubscriptionContextType {
   isSubscribed: boolean;
   subscriptionStatus: SubscriptionStatus;
   checkoutLoading: boolean;
+  subscriptionPrice: number;
   initiateCheckout: () => Promise<void>;
   checkSubscriptionStatus: () => Promise<void>;
 }
@@ -31,6 +32,7 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
   const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>("inactive");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [subscriptionPrice, setSubscriptionPrice] = useState<number>(5999); // Default R$59.99 in cents
   
   // Check subscription status on mount and when auth state changes
   useEffect(() => {
@@ -42,9 +44,28 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
       }
     };
     
+    // Get current subscription price
+    const getPrice = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('get-subscription-price');
+        
+        if (error) {
+          console.error("Error getting subscription price:", error);
+          return;
+        }
+        
+        if (data && data.price) {
+          setSubscriptionPrice(data.price);
+        }
+      } catch (error) {
+        console.error("Error fetching subscription price:", error);
+      }
+    };
+    
     const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         checkStatus();
+        getPrice();
       } else if (event === 'SIGNED_OUT') {
         setIsSubscribed(false);
         setSubscriptionStatus("inactive");
@@ -52,6 +73,7 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
     });
 
     checkStatus();
+    getPrice();
     
     return () => {
       authListener?.subscription.unsubscribe();
@@ -97,7 +119,9 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
   const initiateCheckout = async () => {
     setCheckoutLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-checkout');
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { price: subscriptionPrice }
+      });
       
       if (error) {
         console.error("Error initiating checkout:", error);
@@ -106,9 +130,9 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
       }
       
       if (data.url) {
-        // Open the Kwify checkout URL in a new window
-        window.open(data.url, '_blank');
-        toast.info("Redirecionando para página de pagamento Kwify");
+        // Redirect to Stripe checkout
+        window.location.href = data.url;
+        toast.info("Redirecionando para página de pagamento");
       } else {
         toast.error("Erro ao gerar link de pagamento");
       }
@@ -124,6 +148,7 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
     isSubscribed,
     subscriptionStatus,
     checkoutLoading,
+    subscriptionPrice,
     initiateCheckout,
     checkSubscriptionStatus
   };

@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import Stripe from "https://esm.sh/stripe@12.5.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,55 +20,104 @@ serve(async (req) => {
   );
 
   try {
+    // Parse request body if it exists
+    let price = 5999; // Default price in cents (R$59.99)
+    if (req.body) {
+      const requestData = await req.json();
+      if (requestData.price && !isNaN(requestData.price)) {
+        price = parseInt(requestData.price);
+      }
+    }
+
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
-    // Use the provided Kwify API key
-    const kwifyApiKey = "dd29c1d0a4091cef185a2938fa0c27d8773c888aa8a825759247648c9b73e723";
+    // Initialize Stripe with secret key
+    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+      apiVersion: "2023-10-16",
+    });
 
-    // In a real implementation, you would make a request to the Kwify API using the API key
-    // For example:
-    // const kwifyResponse = await fetch("https://api.kwify.com/v1/checkout-sessions", {
-    //   method: "POST",
-    //   headers: {
-    //     "Authorization": `Bearer ${kwifyApiKey}`,
-    //     "Content-Type": "application/json"
-    //   },
-    //   body: JSON.stringify({
-    //     customer_email: user.email,
-    //     price: 5999, // R$59.99 in cents
-    //     currency: "BRL",
-    //     product_name: "Gestor Pro Premium",
-    //     success_url: `${req.headers.get("origin")}/confirmation-success`,
-    //     cancel_url: `${req.headers.get("origin")}/assinatura`
-    //   })
-    // });
-    // const kwifyData = await kwifyResponse.json();
-
-    // Generate a simulated Kwify checkout URL
-    // In a production environment, this would come from the Kwify API
-    const mockCheckoutId = `mock_${Date.now()}`;
-    const checkoutUrl = `https://checkout.kwify.com/payment/${mockCheckoutId}?customer=${encodeURIComponent(user.email)}&api_key=${encodeURIComponent(kwifyApiKey.substring(0, 8))}`;
-
-    // Add the checkout session to your database for tracking
+    // Check if user already has a Stripe customer ID
     const serviceClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       { auth: { persistSession: false } }
     );
 
+    const { data: subscribers } = await serviceClient
+      .from('subscribers')
+      .select('stripe_customer_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    let customerId = subscribers?.stripe_customer_id;
+
+    if (!customerId) {
+      // Look for existing customer in Stripe
+      const customers = await stripe.customers.list({
+        email: user.email,
+        limit: 1,
+      });
+
+      if (customers.data.length > 0) {
+        customerId = customers.data[0].id;
+      } else {
+        // Create new customer in Stripe
+        const newCustomer = await stripe.customers.create({
+          email: user.email,
+          metadata: {
+            user_id: user.id,
+          },
+        });
+        customerId = newCustomer.id;
+      }
+
+      // Save the customer ID in Supabase
+      await serviceClient.from('subscribers').upsert({
+        user_id: user.id,
+        email: user.email,
+        stripe_customer_id: customerId,
+        created_at: new Date().toISOString(),
+      });
+    }
+
+    // Create a Stripe checkout session
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'brl',
+            product_data: {
+              name: 'TotalGestor Pro Subscription',
+              description: 'Acesso completo a plataforma TotalGestor Pro',
+            },
+            unit_amount: price,
+            recurring: {
+              interval: 'month',
+            },
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'subscription',
+      success_url: `${req.headers.get("origin")}/confirmation-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.headers.get("origin")}/assinatura`,
+    });
+
     // Track the checkout session in your database
     await serviceClient.from('checkout_sessions').insert({
       user_id: user.id,
-      session_id: mockCheckoutId,
-      amount: 5999,
+      session_id: session.id,
+      amount: price,
       status: 'pending'
     });
 
-    return new Response(JSON.stringify({ url: checkoutUrl }), {
+    return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
