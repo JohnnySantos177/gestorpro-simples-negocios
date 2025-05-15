@@ -49,17 +49,20 @@ const LoginPage = () => {
     setIsLoading(true);
     try {
       // Special handling for the master admin account
-      if (data.email === "johnnysantos_177@msn.com") {
-        console.log("Admin login attempt");
+      if (data.email.toLowerCase() === "johnnysantos_177@msn.com") {
+        console.log("Admin login attempt detected");
       }
       
       await signIn(data.email, data.password);
       // Navigation handled in the useEffect above
     } catch (error: any) {
       console.error("Login error:", error);
-      // Error is handled in AuthContext
+      
+      // More specific error messaging
       if (error.message === "Email not confirmed") {
         toast.error("Por favor, confirme seu e-mail antes de fazer login.");
+      } else if (error.code === "invalid_credentials") {
+        toast.error("E-mail ou senha incorretos. Por favor, tente novamente.");
       } else {
         toast.error(`Erro ao fazer login: ${error.message}`);
       }

@@ -84,20 +84,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       navigate("/confirmation-success");
     }
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      // Define admin status
-      if (session?.user) {
-        setIsAdmin(checkIfUserIsAdmin(session.user.email));
-      }
-      
-      setLoading(false);
-    });
-
-    // Listen for auth changes
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
@@ -113,6 +100,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setLoading(false);
       }
     );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      // Define admin status
+      if (session?.user) {
+        setIsAdmin(checkIfUserIsAdmin(session.user.email));
+      }
+      
+      setLoading(false);
+    });
 
     return () => subscription.unsubscribe();
   }, [navigate, location]);
@@ -157,7 +157,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(true);
       console.log("Attempting to sign in with:", email);
       
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email: email.trim().toLowerCase(), 
+        password 
+      });
       
       if (error) {
         console.error("Sign in error:", error);
@@ -177,11 +180,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     } catch (error: any) {
       console.error("Sign in catch error:", error);
-      if (error.message === "Email not confirmed") {
-        toast.error("Por favor, confirme seu e-mail antes de fazer login.");
-      } else {
-        toast.error(`Erro ao fazer login: ${error.message}`);
-      }
       throw error;
     } finally {
       setLoading(false);
@@ -193,7 +191,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       const { error } = await supabase.auth.signUp({ 
-        email, 
+        email: email.trim().toLowerCase(), 
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/confirmation-success`,
@@ -230,7 +228,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const resetPassword = async (email: string) => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       
