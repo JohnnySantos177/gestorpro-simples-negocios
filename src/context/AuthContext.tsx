@@ -155,12 +155,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      console.log("Attempting to sign in with:", email);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
+        console.error("Sign in error:", error);
         throw error;
       }
       
+      console.log("Sign in successful:", data);
       toast.success("Login realizado com sucesso!");
       
       // Redirect after login if there's a stored redirect path
@@ -172,6 +176,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       }
     } catch (error: any) {
+      console.error("Sign in catch error:", error);
       if (error.message === "Email not confirmed") {
         toast.error("Por favor, confirme seu e-mail antes de fazer login.");
       } else {

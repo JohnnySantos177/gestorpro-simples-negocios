@@ -36,7 +36,7 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
     // Initialize Stripe with secret key
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    const stripe = new Stripe("sk_test_51RNhaPQVGReNUF6iM9HtcrW7XLbfOCZEcCz2R0jdaI2rDO7jjyUJV5N5WqsvHGKZP19Ed0tBL5KvcAaunHcdDtz200i1aUi3bC", {
       apiVersion: "2023-10-16",
     });
 
