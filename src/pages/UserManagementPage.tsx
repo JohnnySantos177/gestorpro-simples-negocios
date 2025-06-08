@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { PageHeader } from "@/components/PageHeader";
@@ -33,6 +32,20 @@ const editUserSchema = z.object({
 
 type UserFormValues = z.infer<typeof userSchema>;
 type EditUserFormValues = z.infer<typeof editUserSchema>;
+
+interface ProfileData {
+  id: string;
+  nome: string | null;
+  tipo_plano: string | null;
+  tipo_usuario: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface AuthUser {
+  id: string;
+  email: string;
+}
 
 const UserManagementPage = () => {
   const { isAdmin, user } = useAuth();
@@ -88,18 +101,22 @@ const UserManagementPage = () => {
       if (authError) throw authError;
 
       // Combine profile and auth data with proper typing
-      const usersWithEmails: UserProfile[] = profiles ? profiles.map((profile: any) => {
-        const authUser = authUsers?.find((u: any) => u.id === profile.id);
-        return {
-          id: profile.id,
-          nome: profile.nome || '',
-          tipo_plano: (profile.tipo_plano as 'padrao' | 'premium') || 'padrao',
-          tipo_usuario: (profile.tipo_usuario as 'usuario' | 'admin_mestre') || 'usuario',
-          created_at: profile.created_at,
-          updated_at: profile.updated_at,
-          email: authUser?.email
-        };
-      }) : [];
+      const usersWithEmails: UserProfile[] = [];
+      
+      if (profiles && Array.isArray(profiles)) {
+        profiles.forEach((profile: ProfileData) => {
+          const authUser = authUsers?.find((u: AuthUser) => u.id === profile.id);
+          usersWithEmails.push({
+            id: profile.id,
+            nome: profile.nome || '',
+            tipo_plano: (profile.tipo_plano as 'padrao' | 'premium') || 'padrao',
+            tipo_usuario: (profile.tipo_usuario as 'usuario' | 'admin_mestre') || 'usuario',
+            created_at: profile.created_at,
+            updated_at: profile.updated_at,
+            email: authUser?.email
+          });
+        });
+      }
 
       setUsers(usersWithEmails);
     } catch (error: any) {
