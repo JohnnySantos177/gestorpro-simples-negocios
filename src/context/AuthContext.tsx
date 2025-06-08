@@ -4,15 +4,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate, useLocation } from "react-router-dom";
-
-type UserProfile = {
-  id: string;
-  nome: string;
-  tipo_plano: 'padrao' | 'premium';
-  tipo_usuario: 'usuario' | 'admin_mestre';
-  created_at: string;
-  updated_at: string;
-};
+import { UserProfile } from "@/types";
 
 type AuthContextType = {
   session: Session | null;
@@ -63,8 +55,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (error) throw error;
 
-      setProfile(data);
-      setIsAdmin(data?.tipo_usuario === 'admin_mestre');
+      // Type cast the data to ensure it matches UserProfile interface
+      const profileData: UserProfile = {
+        id: data.id,
+        nome: data.nome,
+        tipo_plano: (data.tipo_plano as 'padrao' | 'premium') || 'padrao',
+        tipo_usuario: (data.tipo_usuario as 'usuario' | 'admin_mestre') || 'usuario',
+        created_at: data.created_at,
+        updated_at: data.updated_at
+      };
+
+      setProfile(profileData);
+      setIsAdmin(profileData.tipo_usuario === 'admin_mestre');
     } catch (error) {
       console.error('Error loading profile:', error);
       setProfile(null);

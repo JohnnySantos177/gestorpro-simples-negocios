@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { PageHeader } from "@/components/PageHeader";
@@ -17,6 +16,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Pencil, Trash2, UserPlus, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { UserProfile } from "@/types";
 
 type UserProfile = {
   id: string;
@@ -96,14 +96,19 @@ const UserManagementPage = () => {
       
       if (authError) throw authError;
 
-      // Combine profile and auth data
-      const usersWithEmails = profiles?.map(profile => {
+      // Combine profile and auth data with proper typing
+      const usersWithEmails: UserProfile[] = (profiles || []).map(profile => {
         const authUser = authUsers?.find(u => u.id === profile.id);
         return {
-          ...profile,
+          id: profile.id,
+          nome: profile.nome,
+          tipo_plano: (profile.tipo_plano as 'padrao' | 'premium') || 'padrao',
+          tipo_usuario: (profile.tipo_usuario as 'usuario' | 'admin_mestre') || 'usuario',
+          created_at: profile.created_at,
+          updated_at: profile.updated_at,
           email: authUser?.email
         };
-      }) || [];
+      });
 
       setUsers(usersWithEmails);
     } catch (error: any) {
@@ -203,7 +208,7 @@ const UserManagementPage = () => {
   // Open edit dialog
   const openEditDialog = (userProfile: UserProfile) => {
     setSelectedUser(userProfile);
-    editUserForm.setValue('nome', userProfile.nome);
+    editUserForm.setValue('nome', userProfile.nome || '');
     editUserForm.setValue('tipo_plano', userProfile.tipo_plano);
     setIsEditDialogOpen(true);
   };

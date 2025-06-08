@@ -140,3 +140,14 @@ export interface DashboardStats {
     alto: number;
   };
 }
+
+// UserProfile type - updated to match database schema
+export interface UserProfile {
+  id: string;
+  nome: string | null;
+  tipo_plano: 'padrao' | 'premium';
+  tipo_usuario: 'usuario' | 'admin_mestre';
+  created_at: string;
+  updated_at: string;
+  email?: string; // Optional field for admin views
+}
