@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Layout } from "@/components/Layout";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/context/AuthContext";
@@ -7,18 +7,44 @@ import { useSubscription } from "@/context/SubscriptionContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Camera } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Camera, Save } from "lucide-react";
 import { formatCurrency } from "@/utils/format";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 
+const profileSchema = z.object({
+  nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+});
+
+type ProfileFormValues = z.infer<typeof profileSchema>;
+
 const ProfilePage = () => {
-  const { user, loading, uploadAvatar } = useAuth();
-  const { isSubscribed, subscriptionStatus } = useSubscription();
+  const { user, profile, loading, uploadAvatar, updateProfile } = useAuth();
+  const { isSubscribed } = useSubscription();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [updating, setUpdating] = useState(false);
+
+  const form = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      nome: profile?.nome || "",
+    },
+  });
+
+  // Update form when profile loads
+  React.useEffect(() => {
+    if (profile) {
+      form.setValue('nome', profile.nome);
+    }
+  }, [profile, form]);
 
   // Get user avatar URL
   const getUserAvatar = () => {
@@ -28,6 +54,9 @@ const ProfilePage = () => {
 
   // Get user initials for the avatar fallback
   const getUserInitials = () => {
+    if (profile?.nome) {
+      return profile.nome.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    }
     if (!user || !user.email) return "U";
     return user.email.charAt(0).toUpperCase();
   };
@@ -61,8 +90,17 @@ const ProfilePage = () => {
     }
   };
 
-  useEffect(() => {
-    // Reset preview when the avatar URL changes
+  // Handle profile update
+  const onUpdateProfile = async (data: ProfileFormValues) => {
+    setUpdating(true);
+    try {
+      await updateProfile(data);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  React.useEffect(() => {
     setPreviewUrl(getUserAvatar());
   }, [user]);
 
@@ -128,26 +166,49 @@ const ProfilePage = () => {
               )}
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground">Email</h3>
-                <p className="font-medium">{user?.email}</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground">Data de Cadastro</h3>
-                <p className="font-medium">
-                  {user?.created_at && format(new Date(user.created_at), "PPP", { locale: ptBR })}
-                </p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground">Último Acesso</h3>
-                <p className="font-medium">
-                  {user?.last_sign_in_at 
-                    ? format(new Date(user.last_sign_in_at), "PPP 'às' p", { locale: ptBR })
-                    : "Primeiro acesso"}
-                </p>
-              </div>
-            </div>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onUpdateProfile)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="nome"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome Completo</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Seu nome completo" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Email</label>
+                  <p className="font-medium">{user?.email}</p>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Data de Cadastro</label>
+                  <p className="font-medium">
+                    {profile?.created_at && format(new Date(profile.created_at), "PPP", { locale: ptBR })}
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Último Acesso</label>
+                  <p className="font-medium">
+                    {user?.last_sign_in_at 
+                      ? format(new Date(user.last_sign_in_at), "PPP 'às' p", { locale: ptBR })
+                      : "Primeiro acesso"}
+                  </p>
+                </div>
+
+                <Button type="submit" disabled={updating} className="w-full">
+                  <Save className="h-4 w-4 mr-2" />
+                  {updating ? "Salvando..." : "Salvar Alterações"}
+                </Button>
+              </form>
+            </Form>
           </CardContent>
         </Card>
 
@@ -157,12 +218,12 @@ const ProfilePage = () => {
           </CardHeader>
           <CardContent>
             <div className="mb-6">
-              <Badge className={isSubscribed ? "bg-green-500" : "bg-amber-500"}>
-                {isSubscribed ? "Assinatura Ativa" : "Versão Gratuita"}
+              <Badge className={profile?.tipo_plano === 'premium' ? "bg-green-500" : "bg-amber-500"}>
+                {profile?.tipo_plano === 'premium' ? "Plano Premium" : "Plano Padrão"}
               </Badge>
             </div>
 
-            {isSubscribed ? (
+            {profile?.tipo_plano === 'premium' ? (
               <div className="space-y-4">
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground">Plano</h3>
@@ -190,7 +251,7 @@ const ProfilePage = () => {
               <div className="space-y-6">
                 <div>
                   <p className="mb-4">
-                    Você está utilizando a versão gratuita do TotalGestor com recursos limitados.
+                    Você está utilizando o plano padrão do TotalGestor com recursos limitados.
                   </p>
                   <p className="text-muted-foreground text-sm">
                     Assine o plano premium para desbloquear todos os recursos.

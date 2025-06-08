@@ -19,6 +19,7 @@ import AvaliacoesPage from "./pages/AvaliacoesPage";
 import PromocoesPage from "./pages/PromocoesPage";
 import AssinaturaPage from "./pages/AssinaturaPage";
 import ProfilePage from "./pages/ProfilePage";
+import UserManagementPage from "./pages/UserManagementPage";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -71,6 +72,7 @@ const App = () => {
                     {/* Admin routes */}
                     <Route path="/admin" element={<AdminPanel />} />
                     <Route path="/admin/view/:userId" element={<AdminUserView />} />
+                    <Route path="/admin/usuarios" element={<UserManagementPage />} />
                   </Route>
                   
                   {/* Fallback route */}

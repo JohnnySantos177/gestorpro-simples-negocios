@@ -5,16 +5,27 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate, useLocation } from "react-router-dom";
 
+type UserProfile = {
+  id: string;
+  nome: string;
+  tipo_plano: 'padrao' | 'premium';
+  tipo_usuario: 'usuario' | 'admin_mestre';
+  created_at: string;
+  updated_at: string;
+};
+
 type AuthContextType = {
   session: Session | null;
   user: User | null;
+  profile: UserProfile | null;
   loading: boolean;
   isAdmin: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, nome?: string) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   uploadAvatar: (file: File) => Promise<string | null>;
 };
 
@@ -32,21 +43,33 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-// Admin email
-const ADMIN_EMAIL = 'johnnysantos_177@msn.com';
-
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Check if user is admin
-  const checkIfUserIsAdmin = (userEmail: string | undefined) => {
-    if (!userEmail) return false;
-    return userEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  // Load user profile
+  const loadUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+
+      setProfile(data);
+      setIsAdmin(data?.tipo_usuario === 'admin_mestre');
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      setProfile(null);
+      setIsAdmin(false);
+    }
   };
 
   useEffect(() => {
@@ -67,7 +90,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           if (type === "recovery") {
             toast.success("Você pode redefinir sua senha agora.");
           } else if (type === "signup") {
-            // Redirect to confirmation success page instead of showing just a toast
             navigate("/confirmation-success");
             return;
           }
@@ -75,7 +97,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     };
 
-    // Check for hash parameters in URL
     handleAuthFromHash();
 
     // Check for confirmation success in URL params
@@ -86,14 +107,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Update admin status on auth changes
         if (session?.user) {
-          setIsAdmin(checkIfUserIsAdmin(session.user.email));
+          await loadUserProfile(session.user.id);
         } else {
+          setProfile(null);
           setIsAdmin(false);
         }
         
@@ -102,13 +123,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
-      // Define admin status
       if (session?.user) {
-        setIsAdmin(checkIfUserIsAdmin(session.user.email));
+        await loadUserProfile(session.user.id);
       }
       
       setLoading(false);
@@ -116,6 +136,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     return () => subscription.unsubscribe();
   }, [navigate, location]);
+
+  // Update profile
+  const updateProfile = async (updates: Partial<UserProfile>) => {
+    if (!user) throw new Error("User not authenticated");
+
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // Reload profile
+      await loadUserProfile(user.id);
+      toast.success("Perfil atualizado com sucesso!");
+    } catch (error: any) {
+      toast.error(`Erro ao atualizar perfil: ${error.message}`);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Upload user avatar
   const uploadAvatar = async (file: File): Promise<string | null> => {
@@ -126,17 +170,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const fileExt = file.name.split('.').pop();
       const filePath = `${user.id}/avatar.${fileExt}`;
 
-      // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      // Get the public URL
       const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
       
-      // Update user metadata
       await supabase.auth.updateUser({
         data: { avatar_url: data.publicUrl }
       });
@@ -170,7 +211,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log("Sign in successful:", data);
       toast.success("Login realizado com sucesso!");
       
-      // Redirect after login if there's a stored redirect path
       if (typeof window !== 'undefined') {
         const redirectPath = sessionStorage.getItem("redirectAfterLogin");
         if (redirectPath) {
@@ -187,7 +227,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Sign up with email and password
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, nome?: string) => {
     try {
       setLoading(true);
       const { error } = await supabase.auth.signUp({ 
@@ -195,6 +235,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/confirmation-success`,
+          data: {
+            nome: nome || ''
+          }
         }
       });
       
@@ -216,6 +259,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       await supabase.auth.signOut();
+      setProfile(null);
+      setIsAdmin(false);
       toast.success("Você saiu do sistema");
     } catch (error: any) {
       toast.error(`Erro ao sair: ${error.message}`);
@@ -267,6 +312,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value = {
     session,
     user,
+    profile,
     loading,
     isAdmin,
     signIn,
@@ -274,6 +320,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signOut,
     resetPassword,
     updatePassword,
+    updateProfile,
     uploadAvatar,
   };
 
