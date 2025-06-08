@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { PageHeader } from "@/components/PageHeader";
@@ -17,16 +18,6 @@ import { z } from "zod";
 import { Pencil, Trash2, UserPlus, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { UserProfile } from "@/types";
-
-type UserProfile = {
-  id: string;
-  nome: string;
-  email?: string;
-  tipo_plano: 'padrao' | 'premium';
-  tipo_usuario: 'usuario' | 'admin_mestre';
-  created_at: string;
-  updated_at: string;
-};
 
 const userSchema = z.object({
   nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
