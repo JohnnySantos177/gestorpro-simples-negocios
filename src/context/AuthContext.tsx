@@ -44,7 +44,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Load user profile
+  // Load user profile function
   const loadUserProfile = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -53,9 +53,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading profile:', error);
+        return;
+      }
 
-      // Type cast the data to ensure it matches UserProfile interface
       const profileData: UserProfile = {
         id: data.id,
         nome: data.nome,
@@ -75,41 +77,66 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    // Handle email confirmation or password reset from URL hash
-    const handleAuthFromHash = async () => {
-      if (typeof window !== 'undefined') {
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const accessToken = hashParams.get("access_token");
-        const refreshToken = hashParams.get("refresh_token");
-        const type = hashParams.get("type");
-        
-        if (accessToken) {
-          await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken || "",
-          });
+    let mounted = true;
+
+    const initializeAuth = async () => {
+      try {
+        // Handle email confirmation or password reset from URL hash
+        if (typeof window !== 'undefined') {
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const accessToken = hashParams.get("access_token");
+          const refreshToken = hashParams.get("refresh_token");
+          const type = hashParams.get("type");
           
-          if (type === "recovery") {
-            toast.success("Você pode redefinir sua senha agora.");
-          } else if (type === "signup") {
-            navigate("/confirmation-success");
-            return;
+          if (accessToken) {
+            await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken || "",
+            });
+            
+            if (type === "recovery") {
+              toast.success("Você pode redefinir sua senha agora.");
+            } else if (type === "signup") {
+              navigate("/confirmation-success");
+              return;
+            }
           }
+        }
+
+        // Check for confirmation success in URL params
+        const params = new URLSearchParams(location.search);
+        if (params.get("confirmed") === "true") {
+          navigate("/confirmation-success");
+          return;
+        }
+
+        // Get initial session
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+
+        if (initialSession) {
+          setSession(initialSession);
+          setUser(initialSession.user);
+          await loadUserProfile(initialSession.user.id);
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        if (mounted) {
+          setLoading(false);
         }
       }
     };
 
-    handleAuthFromHash();
-
-    // Check for confirmation success in URL params
-    const params = new URLSearchParams(location.search);
-    if (params.get("confirmed") === "true") {
-      navigate("/confirmation-success");
-    }
-
-    // Set up auth state listener FIRST
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
+        if (!mounted) return;
+        
+        console.log('Auth state changed:', event, session?.user?.email);
+        
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -124,20 +151,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        await loadUserProfile(session.user.id);
-      }
-      
-      setLoading(false);
-    });
+    initializeAuth();
 
-    return () => subscription.unsubscribe();
-  }, [navigate, location]);
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [navigate, location.pathname]);
 
   // Update profile
   const updateProfile = async (updates: Partial<UserProfile>) => {
@@ -212,14 +232,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       console.log("Sign in successful:", data);
       toast.success("Login realizado com sucesso!");
-      
-      if (typeof window !== 'undefined') {
-        const redirectPath = sessionStorage.getItem("redirectAfterLogin");
-        if (redirectPath) {
-          sessionStorage.removeItem("redirectAfterLogin");
-          window.location.href = redirectPath;
-        }
-      }
     } catch (error: any) {
       console.error("Sign in catch error:", error);
       throw error;
