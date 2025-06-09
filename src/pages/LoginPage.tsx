@@ -25,9 +25,12 @@ const LoginPage = () => {
   const { signIn, loading, user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
+  console.log("LoginPage: Rendered, loading:", loading, "user:", !!user);
+
   // Redirect if already logged in
   React.useEffect(() => {
-    if (user) {
+    if (user && !loading) {
+      console.log("LoginPage: User authenticated, redirecting");
       const redirectPath = sessionStorage.getItem("redirectAfterLogin");
       if (redirectPath) {
         sessionStorage.removeItem("redirectAfterLogin");
@@ -36,7 +39,7 @@ const LoginPage = () => {
         navigate("/");
       }
     }
-  }, [user, navigate]);
+  }, [user, loading, navigate]);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -48,14 +51,16 @@ const LoginPage = () => {
 
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
+    console.log("LoginPage: Form submitted");
+    
     try {
       if (data.email.toLowerCase() === "johnnysantos_177@msn.com") {
-        console.log("Admin login attempt detected");
+        console.log("LoginPage: Admin login attempt detected");
       }
       
       await signIn(data.email, data.password);
     } catch (error: any) {
-      console.error("Login error:", error);
+      console.error("LoginPage: Login error:", error);
       
       if (error.message === "Email not confirmed") {
         toast.error("Por favor, confirme seu e-mail antes de fazer login.");
@@ -68,6 +73,19 @@ const LoginPage = () => {
       setIsLoading(false);
     }
   };
+
+  // Show loading if auth is still loading
+  if (loading) {
+    console.log("LoginPage: Auth loading, showing spinner");
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="mb-4 h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
+          <p>Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
@@ -111,7 +129,7 @@ const LoginPage = () => {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full" disabled={isLoading || loading}>
                   {isLoading ? "Entrando..." : "Entrar"}
                 </Button>
               </form>

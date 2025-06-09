@@ -28,66 +28,57 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAdmin,
     setProfile,
     setIsAdmin,
-    setLoading,
     loadUserProfile
   } = useAuthState();
 
-  // Wrapper functions that handle loading state
+  console.log("AuthContext: Provider rendered, loading:", loading);
+
+  // Wrapper functions - remove unnecessary loading state manipulation
   const signIn = async (email: string, password: string) => {
     try {
-      setLoading(true);
+      console.log("AuthContext: Sign in attempt");
       await authService.signIn(email, password);
     } catch (error: any) {
-      console.error("Sign in catch error:", error);
+      console.error("AuthContext: Sign in error:", error);
       throw error;
-    } finally {
-      setLoading(false);
     }
   };
 
   const signUp = async (email: string, password: string, nome?: string) => {
     try {
-      setLoading(true);
+      console.log("AuthContext: Sign up attempt");
       await authService.signUp(email, password, nome);
     } catch (error: any) {
       throw error;
-    } finally {
-      setLoading(false);
     }
   };
 
   const signOut = async () => {
     try {
-      setLoading(true);
+      console.log("AuthContext: Sign out attempt");
       await authService.signOut();
       setProfile(null);
       setIsAdmin(false);
     } catch (error: any) {
       throw error;
-    } finally {
-      setLoading(false);
     }
   };
 
   const resetPassword = async (email: string) => {
     try {
-      setLoading(true);
+      console.log("AuthContext: Reset password attempt");
       await authService.resetPassword(email);
     } catch (error: any) {
       throw error;
-    } finally {
-      setLoading(false);
     }
   };
 
   const updatePassword = async (password: string) => {
     try {
-      setLoading(true);
+      console.log("AuthContext: Update password attempt");
       await authService.updatePassword(password);
     } catch (error: any) {
       throw error;
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -95,13 +86,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (!user) throw new Error("User not authenticated");
 
     try {
-      setLoading(true);
+      console.log("AuthContext: Update profile attempt");
       await authService.updateProfile(user.id, updates);
       await loadUserProfile(user.id);
     } catch (error: any) {
       throw error;
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -109,12 +98,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       if (!user) throw new Error("User not authenticated");
 
-      setLoading(true);
+      console.log("AuthContext: Upload avatar attempt");
       return await authService.uploadAvatar(user.id, file);
     } catch (error: any) {
       return null;
-    } finally {
-      setLoading(false);
     }
   };
 
