@@ -1,4 +1,3 @@
-
 // Cliente types
 export interface Cliente {
   id: string;
@@ -150,4 +149,5 @@ export interface UserProfile {
   created_at: string;
   updated_at: string;
   email?: string; // Optional field for admin views
+  is_super_admin?: boolean; // Campo para controle de super admin
 }

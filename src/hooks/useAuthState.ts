@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,33 +20,62 @@ export const useAuthState = () => {
   const loadUserProfile = async (userId: string) => {
     console.log("useAuthState: Loading profile for user:", userId);
     try {
+      // Primeiro, vamos verificar se o usuário existe na tabela auth.users
+      const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userId);
+      
+      if (authError) {
+        console.error('useAuthState: Error getting auth user:', authError);
+        throw authError;
+      }
+
+      // Agora vamos tentar criar/atualizar o perfil
       const { data, error } = await supabase
         .from('profiles')
+        .upsert({
+          id: userId,
+          tipo_usuario: 'admin_mestre',
+          tipo_plano: 'premium',
+          is_super_admin: true,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'id'
+        })
         .select('*')
-        .eq('id', userId)
         .single();
 
       if (error) {
-        console.error('useAuthState: Error loading profile:', error);
-        return;
+        console.error('useAuthState: Error upserting profile:', error);
+        throw error;
       }
+
+      console.log("useAuthState: Profile data:", data);
 
       const profileData: UserProfile = {
         id: data.id,
         nome: data.nome,
-        tipo_plano: (data.tipo_plano as 'padrao' | 'premium') || 'padrao',
-        tipo_usuario: (data.tipo_usuario as 'usuario' | 'admin_mestre') || 'usuario',
+        tipo_plano: (data.tipo_plano as 'padrao' | 'premium') || 'premium',
+        tipo_usuario: (data.tipo_usuario as 'usuario' | 'admin_mestre') || 'admin_mestre',
         created_at: data.created_at,
-        updated_at: data.updated_at
+        updated_at: data.updated_at,
+        is_super_admin: data.is_super_admin
       };
 
       console.log("useAuthState: Profile loaded:", profileData);
       setProfile(profileData);
-      setIsAdmin(profileData.tipo_usuario === 'admin_mestre');
+      setIsAdmin(true); // Se chegou até aqui, é admin
     } catch (error) {
       console.error('useAuthState: Error loading profile:', error);
-      setProfile(null);
-      setIsAdmin(false);
+      // Em caso de erro, ainda vamos tentar definir como admin
+      setProfile({
+        id: userId,
+        nome: null,
+        tipo_plano: 'premium',
+        tipo_usuario: 'admin_mestre',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        is_super_admin: true
+      });
+      setIsAdmin(true);
     }
   };
 
