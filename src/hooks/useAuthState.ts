@@ -5,6 +5,9 @@ import { UserProfile } from "@/types";
 import { toast } from "sonner";
 import { useNavigate, useLocation } from "react-router-dom";
 
+// Define o email do admin mestre
+const MASTER_ADMIN_EMAIL = "johnnysantos_177@msn.com";
+
 export const useAuthState = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -17,65 +20,70 @@ export const useAuthState = () => {
   console.log("useAuthState: Hook rendered");
 
   // Load user profile function
-  const loadUserProfile = async (userId: string) => {
-    console.log("useAuthState: Loading profile for user:", userId);
-    try {
-      // Primeiro, vamos verificar se o usuário existe na tabela auth.users
-      const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userId);
-      
-      if (authError) {
-        console.error('useAuthState: Error getting auth user:', authError);
-        throw authError;
-      }
+  const loadUserProfile = async (currentUser: User) => {
+    console.log("useAuthState: Loading profile for user:", currentUser.id);
+    const isMasterAdmin = currentUser.email === MASTER_ADMIN_EMAIL;
+    setIsAdmin(isMasterAdmin); // Set isAdmin immediately based on email
 
-      // Agora vamos tentar criar/atualizar o perfil
+    try {
+      // Attempt to upsert the profile in the database
       const { data, error } = await supabase
-        .from('profiles')
+        .from("profiles")
         .upsert({
-          id: userId,
-          tipo_usuario: 'admin_mestre',
-          tipo_plano: 'premium',
-          is_super_admin: true,
+          id: currentUser.id,
+          tipo_usuario: isMasterAdmin ? "admin_mestre" : "usuario",
+          tipo_plano: isMasterAdmin ? "premium" : "padrao",
+          is_super_admin: isMasterAdmin, // Ensure this is set correctly on upsert
           updated_at: new Date().toISOString()
         }, {
-          onConflict: 'id'
+          onConflict: "id"
         })
-        .select('*')
+        .select("*")
         .single();
 
       if (error) {
-        console.error('useAuthState: Error upserting profile:', error);
-        throw error;
+        console.error("useAuthState: Error upserting profile:", error);
+        // Even if upsert fails, we still want to set the profile in state
+        // based on the current user's data, and isAdmin is already set.
+        setProfile({
+          id: currentUser.id,
+          nome: currentUser.user_metadata?.full_name || null, // Assuming name might be in user_metadata
+          tipo_plano: isMasterAdmin ? "premium" : "padrao",
+          tipo_usuario: isMasterAdmin ? "admin_mestre" : "usuario",
+          created_at: currentUser.created_at,
+          updated_at: new Date().toISOString(),
+          is_super_admin: isMasterAdmin // Ensure this is true for master admin even on upsert error
+        });
+        return; // Exit after setting profile and logging error
       }
 
-      console.log("useAuthState: Profile data:", data);
+      console.log("useAuthState: Profile data from upsert:", data);
 
       const profileData: UserProfile = {
         id: data.id,
         nome: data.nome,
-        tipo_plano: (data.tipo_plano as 'padrao' | 'premium') || 'premium',
-        tipo_usuario: (data.tipo_usuario as 'usuario' | 'admin_mestre') || 'admin_mestre',
+        tipo_plano: (data.tipo_plano as "padrao" | "premium") || "padrao",
+        tipo_usuario: (data.tipo_usuario as "usuario" | "admin_mestre") || "usuario",
         created_at: data.created_at,
         updated_at: data.updated_at,
-        is_super_admin: data.is_super_admin
+        is_super_admin: isMasterAdmin // Alterado para garantir que isAdmin é apenas para o admin mestre
       };
 
-      console.log("useAuthState: Profile loaded:", profileData);
+      console.log("useAuthState: Profile loaded and set:", profileData);
       setProfile(profileData);
-      setIsAdmin(true); // Se chegou até aqui, é admin
+      // isAdmin is already set above, no need to set again here
     } catch (error) {
-      console.error('useAuthState: Error loading profile:', error);
-      // Em caso de erro, ainda vamos tentar definir como admin
+      console.error("useAuthState: Unexpected error loading profile:", error);
+      // Fallback in case of unexpected error during upsert or data processing
       setProfile({
-        id: userId,
-        nome: null,
-        tipo_plano: 'premium',
-        tipo_usuario: 'admin_mestre',
-        created_at: new Date().toISOString(),
+        id: currentUser.id,
+        nome: currentUser.user_metadata?.full_name || null,
+        tipo_plano: isMasterAdmin ? "premium" : "padrao",
+        tipo_usuario: isMasterAdmin ? "admin_mestre" : "usuario",
+        created_at: currentUser.created_at,
         updated_at: new Date().toISOString(),
-        is_super_admin: true
+        is_super_admin: isMasterAdmin // Ensure this is true for master admin even on unexpected error
       });
-      setIsAdmin(true);
     }
   };
 
@@ -125,12 +133,10 @@ export const useAuthState = () => {
           console.log("useAuthState: Initial session found");
           setSession(initialSession);
           setUser(initialSession.user);
-          // Defer profile loading to avoid blocking
-          setTimeout(() => {
-            if (mounted) {
-              loadUserProfile(initialSession.user.id);
-            }
-          }, 0);
+          // Load profile with the new function
+          if (mounted) {
+            loadUserProfile(initialSession.user);
+          }
         }
         
         setLoading(false);
@@ -142,7 +148,7 @@ export const useAuthState = () => {
       }
     };
 
-    // Set up auth state listener - NOT async to prevent deadlocks
+    // Set up auth state listener
     console.log("useAuthState: Setting up auth state listener");
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -154,12 +160,8 @@ export const useAuthState = () => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Defer profile loading to prevent loops
-          setTimeout(() => {
-            if (mounted) {
-              loadUserProfile(session.user.id);
-            }
-          }, 0);
+          // Use the new loadUserProfile function
+          loadUserProfile(session.user);
         } else {
           setProfile(null);
           setIsAdmin(false);
@@ -176,7 +178,7 @@ export const useAuthState = () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []); // Remove navigate and location.search from dependencies to prevent loops
+  }, []);
 
   return {
     session,
