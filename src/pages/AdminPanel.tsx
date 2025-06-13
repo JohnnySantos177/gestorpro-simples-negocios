@@ -22,22 +22,36 @@ import {
   CardDescription 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Eye, RefreshCw } from "lucide-react";
+import { Eye, RefreshCw, Crown } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
-type UserDetails = {
+type UserOverview = {
   id: string;
-  email: string;
+  nome: string | null;
+  email: string | null;
+  tipo_plano: string | null;
+  tipo_usuario: string | null;
+  status: string | null;
   created_at: string;
-  last_sign_in_at: string | null;
+  updated_at: string;
+  total_clientes: number;
+  total_produtos: number;
+  total_vendas: number;
+  nome_completo: string | null;
+  telefone: string | null;
+  empresa: string | null;
+  cargo: string | null;
+  cidade: string | null;
+  estado: string | null;
 };
 
 const AdminPanel = () => {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
-  const [users, setUsers] = useState<UserDetails[]>([]);
+  const [users, setUsers] = useState<UserOverview[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [subscriptionPrice, setSubscriptionPrice] = useState<number>(5999); // Default R$59.99 in cents
@@ -100,30 +114,26 @@ const AdminPanel = () => {
     }
   };
 
-  // Carregar lista de usuários
+  // Carregar lista de usuários usando a view que criamos
   const loadUsers = async () => {
     try {
       setLoading(true);
       
-      // Buscar usuários do Supabase Auth
-      const { data, error } = await supabase.auth.admin.listUsers();
+      console.log("AdminPanel: Loading users from super_admin_user_overview");
+      
+      // Usar a view que criamos para buscar dados dos usuários
+      const { data, error } = await supabase
+        .from('super_admin_user_overview')
+        .select('*')
+        .order('created_at', { ascending: false });
       
       if (error) {
+        console.error("AdminPanel: Error loading users:", error);
         throw error;
       }
       
-      if (data && data.users) {
-        const formattedUsers = data.users.map(user => ({
-          id: user.id,
-          email: user.email || "Sem e-mail",
-          created_at: new Date(user.created_at).toLocaleString('pt-BR'),
-          last_sign_in_at: user.last_sign_in_at 
-            ? new Date(user.last_sign_in_at).toLocaleString('pt-BR') 
-            : null
-        }));
-        
-        setUsers(formattedUsers);
-      }
+      console.log("AdminPanel: Users loaded successfully:", data);
+      setUsers(data || []);
     } catch (error: any) {
       console.error("Erro ao buscar usuários:", error);
       toast.error(`Erro ao carregar usuários: ${error.message}`);
@@ -143,12 +153,8 @@ const AdminPanel = () => {
     try {
       setSelectedUserId(userId);
       
-      // Aqui podemos configurar uma sessão de visualização do usuário
-      // Por enquanto, apenas vamos salvar o ID do usuário selecionado
+      // Salvar o ID do usuário selecionado para visualização
       toast.success("Visualizando painel do usuário selecionado");
-      
-      // Futuramente, podemos implementar a troca real de contexto
-      // para visualizar os dados específicos deste usuário
       localStorage.setItem("adminViewingUserId", userId);
       
       // Redirecionar para o dashboard com o contexto do usuário selecionado
@@ -184,9 +190,9 @@ const AdminPanel = () => {
                   <div className="text-3xl font-bold">{users.length}</div>
                 </div>
                 <div className="p-4 bg-green-50 rounded-lg">
-                  <div className="text-lg font-semibold">Usuários Ativos</div>
+                  <div className="text-lg font-semibold">Usuários Premium</div>
                   <div className="text-3xl font-bold">
-                    {users.filter(user => user.last_sign_in_at).length}
+                    {users.filter(user => user.tipo_plano === 'premium').length}
                   </div>
                 </div>
                 <div className="p-4 bg-purple-50 rounded-lg">
@@ -230,9 +236,10 @@ const AdminPanel = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Email</TableHead>
+                        <TableHead>Nome / Email</TableHead>
+                        <TableHead>Plano</TableHead>
+                        <TableHead>Dados do Negócio</TableHead>
                         <TableHead>Data de Criação</TableHead>
-                        <TableHead>Último Login</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -240,9 +247,42 @@ const AdminPanel = () => {
                       {users.length > 0 ? (
                         users.map((user) => (
                           <TableRow key={user.id}>
-                            <TableCell className="font-medium">{user.email}</TableCell>
-                            <TableCell>{user.created_at}</TableCell>
-                            <TableCell>{user.last_sign_in_at || "Nunca"}</TableCell>
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <div className="font-medium flex items-center gap-2">
+                                  {user.nome || user.nome_completo || "Nome não informado"}
+                                  {user.tipo_usuario === 'admin_mestre' && (
+                                    <Crown className="h-4 w-4 text-yellow-500" />
+                                  )}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {user.email || "Email não informado"}
+                                </div>
+                                {user.telefone && (
+                                  <div className="text-sm text-muted-foreground">
+                                    {user.telefone}
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={user.tipo_plano === 'premium' ? 'default' : 'secondary'}>
+                                {user.tipo_plano === 'premium' ? 'Premium' : 'Padrão'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                <div>Clientes: {user.total_clientes}</div>
+                                <div>Produtos: {user.total_produtos}</div>
+                                <div>Vendas: R$ {(user.total_vendas || 0).toFixed(2)}</div>
+                                {user.empresa && (
+                                  <div className="text-muted-foreground">{user.empresa}</div>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {new Date(user.created_at).toLocaleDateString('pt-BR')}
+                            </TableCell>
                             <TableCell className="text-right">
                               <Button 
                                 size="sm" 
@@ -257,7 +297,7 @@ const AdminPanel = () => {
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={4} className="text-center py-4">
+                          <TableCell colSpan={5} className="text-center py-4">
                             Nenhum usuário encontrado
                           </TableCell>
                         </TableRow>

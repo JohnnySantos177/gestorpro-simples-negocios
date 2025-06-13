@@ -165,6 +165,13 @@ export type Database = {
             referencedRelation: "clientes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_compras_cliente_id"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
         ]
       }
       feedbacks: {
@@ -210,6 +217,13 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "feedbacks_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_feedbacks_cliente_id"
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
@@ -329,7 +343,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_produtos_fornecedor_id"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -415,6 +437,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_promocoes_produto_id"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "promocoes_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
@@ -422,6 +451,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subscriptions: {
+        Row: {
+          created_at: string | null
+          end_date: string
+          id: string
+          payment_provider: string
+          start_date: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          end_date: string
+          id?: string
+          payment_provider: string
+          start_date: string
+          status: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          end_date?: string
+          id?: string
+          payment_provider?: string
+          start_date?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       transacoes: {
         Row: {
@@ -470,6 +529,27 @@ export type Database = {
           valor?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_transacoes_cliente_id"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_transacoes_compra_id"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_transacoes_fornecedor_id"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transacoes_cliente_id_fkey"
             columns: ["cliente_id"]
@@ -559,7 +639,7 @@ export type Database = {
     }
     Functions: {
       is_admin: {
-        Args: { user_id?: string }
+        Args: { user_id: string }
         Returns: boolean
       }
       is_super_admin: {
