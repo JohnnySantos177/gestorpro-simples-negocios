@@ -4,7 +4,6 @@ import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { UserProfile } from "@/types";
 import { toast } from "sonner";
-import { useNavigate, useLocation } from "react-router-dom";
 
 // Define o email do admin mestre
 const MASTER_ADMIN_EMAIL = "johnnysantos_177@msn.com";
@@ -15,8 +14,6 @@ export const useAuthState = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const location = useLocation();
-  const navigate = useNavigate();
 
   console.log("useAuthState: Hook rendered");
 
@@ -180,17 +177,10 @@ export const useAuthState = () => {
             if (type === "recovery") {
               toast.success("Você pode redefinir sua senha agora.");
             } else if (type === "signup") {
-              navigate("/confirmation-success");
+              // Handle signup confirmation without navigation
               return;
             }
           }
-        }
-
-        // Check for confirmation success in URL params - only check once
-        const params = new URLSearchParams(location.search);
-        if (params.get("confirmed") === "true") {
-          navigate("/confirmation-success");
-          return;
         }
 
         // Get initial session
@@ -209,7 +199,9 @@ export const useAuthState = () => {
           }
         }
         
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       } catch (error) {
         console.error('useAuthState: Error initializing auth:', error);
         if (mounted) {
@@ -237,7 +229,9 @@ export const useAuthState = () => {
           setIsAdmin(false);
         }
         
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     );
 
@@ -248,7 +242,7 @@ export const useAuthState = () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, []); // Removido as dependências que causavam o loop
 
   return {
     session,
