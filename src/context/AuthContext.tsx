@@ -88,7 +88,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       console.log("AuthContext: Update profile attempt");
       await authService.updateProfile(user.id, updates);
-      await loadUserProfile(user.id);
+      await loadUserProfile(user);
     } catch (error: any) {
       throw error;
     }
