@@ -4,7 +4,7 @@ import { Layout } from "@/components/Layout";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Card,
@@ -15,11 +15,22 @@ import {
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
+type UserData = {
+  id: string;
+  nome: string | null;
+  email: string | null;
+  tipo_plano: string | null;
+  tipo_usuario: string | null;
+  total_clientes: number;
+  total_produtos: number;
+  total_vendas: number;
+};
+
 const AdminUserView = () => {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
   const { userId } = useParams<{ userId: string }>();
-  const [userEmail, setUserEmail] = useState<string>("");
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Verificar se o usuário é administrador, caso contrário, redirecionar
@@ -30,22 +41,35 @@ const AdminUserView = () => {
       return;
     }
 
-    // Carregar informações do usuário
+    // Carregar informações do usuário usando a view que já funciona
     const loadUserDetails = async () => {
       if (!userId) return;
       
       try {
         setLoading(true);
         
-        // Buscar detalhes do usuário
-        const { data, error } = await supabase.auth.admin.getUserById(userId);
+        // Usar a mesma view que funciona no AdminPanel
+        const { data, error } = await supabase
+          .from('super_admin_user_overview')
+          .select('*')
+          .eq('id', userId)
+          .single();
         
         if (error) {
           throw error;
         }
         
-        if (data && data.user) {
-          setUserEmail(data.user.email || "Usuário sem email");
+        if (data) {
+          setUserData({
+            id: data.id,
+            nome: data.nome,
+            email: data.email,
+            tipo_plano: data.tipo_plano,
+            tipo_usuario: data.tipo_usuario,
+            total_clientes: data.total_clientes || 0,
+            total_produtos: data.total_produtos || 0,
+            total_vendas: data.total_vendas || 0
+          });
         }
       } catch (error: any) {
         console.error("Erro ao buscar detalhes do usuário:", error);
@@ -73,7 +97,7 @@ const AdminUserView = () => {
       </div>
 
       <PageHeader 
-        title={`Painel de ${userEmail}`}
+        title={`Painel de ${userData?.nome || userData?.email || 'Usuário'}`}
         description={`Visualizando dados do usuário ID: ${userId}`}
       />
 
@@ -81,7 +105,7 @@ const AdminUserView = () => {
         <div className="flex justify-center items-center p-8">
           <div className="animate-spin h-8 w-8 border-4 border-totalgestor-500 border-t-transparent rounded-full"></div>
         </div>
-      ) : (
+      ) : userData ? (
         <div className="grid gap-6">
           <Card>
             <CardHeader>
@@ -91,7 +115,15 @@ const AdminUserView = () => {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="font-medium">Email:</span>
-                  <span>{userEmail}</span>
+                  <span>{userData.email || "Email não informado"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Nome:</span>
+                  <span>{userData.nome || "Nome não informado"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Plano:</span>
+                  <span>{userData.tipo_plano === 'premium' ? 'Premium' : 'Padrão'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="font-medium">ID:</span>
@@ -106,38 +138,31 @@ const AdminUserView = () => {
               <CardTitle>Dados do Usuário</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">
-                Aqui você pode ver todos os dados específicos deste usuário.
-                Essa funcionalidade requer implementação personalizada baseada nos
-                dados específicos que você deseja visualizar para cada usuário.
-              </p>
-
-              <div className="mt-4 space-y-4">
+              <div className="space-y-4">
                 <div className="p-4 border rounded-lg bg-muted/50">
                   <h3 className="font-medium mb-2">Dados de Clientes</h3>
-                  <p>Total de clientes: 24</p>
+                  <p>Total de clientes: {userData.total_clientes}</p>
                 </div>
 
                 <div className="p-4 border rounded-lg bg-muted/50">
                   <h3 className="font-medium mb-2">Dados de Produtos</h3>
-                  <p>Total de produtos: 58</p>
+                  <p>Total de produtos: {userData.total_produtos}</p>
                 </div>
 
                 <div className="p-4 border rounded-lg bg-muted/50">
                   <h3 className="font-medium mb-2">Dados de Vendas</h3>
-                  <p>Total de vendas: 137</p>
-                  <p>Faturamento: R$ 15.420,75</p>
+                  <p>Total de vendas: R$ {userData.total_vendas.toFixed(2)}</p>
                 </div>
-              </div>
-
-              <div className="mt-6">
-                <Button className="bg-totalgestor-500 hover:bg-totalgestor-600 text-black">
-                  Baixar Relatório Completo
-                </Button>
               </div>
             </CardContent>
           </Card>
         </div>
+      ) : (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <p className="text-muted-foreground">Usuário não encontrado</p>
+          </CardContent>
+        </Card>
       )}
     </Layout>
   );

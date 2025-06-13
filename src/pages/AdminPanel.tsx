@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { PageHeader } from "@/components/PageHeader";
@@ -22,11 +21,26 @@ import {
   CardDescription 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Eye, RefreshCw, Crown } from "lucide-react";
+import { Eye, RefreshCw, Crown, Settings } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 
 type UserOverview = {
   id: string;
@@ -56,6 +70,9 @@ const AdminPanel = () => {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [subscriptionPrice, setSubscriptionPrice] = useState<number>(5999); // Default R$59.99 in cents
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isChangePlanDialogOpen, setIsChangePlanDialogOpen] = useState(false);
+  const [selectedUserForPlan, setSelectedUserForPlan] = useState<UserOverview | null>(null);
+  const [newPlan, setNewPlan] = useState<string>("");
 
   // Verificar se o usuário é administrador, caso contrário, redirecionar
   useEffect(() => {
@@ -161,6 +178,34 @@ const AdminPanel = () => {
       navigate(`/admin/view/${userId}`);
     } catch (error: any) {
       toast.error(`Erro ao visualizar usuário: ${error.message}`);
+    }
+  };
+
+  // Abrir dialog para alterar plano
+  const openChangePlanDialog = (user: UserOverview) => {
+    setSelectedUserForPlan(user);
+    setNewPlan(user.tipo_plano || 'padrao');
+    setIsChangePlanDialogOpen(true);
+  };
+
+  // Alterar plano do usuário
+  const handleChangePlan = async () => {
+    if (!selectedUserForPlan) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ tipo_plano: newPlan })
+        .eq('id', selectedUserForPlan.id);
+
+      if (error) throw error;
+
+      toast.success("Plano alterado com sucesso!");
+      setIsChangePlanDialogOpen(false);
+      setSelectedUserForPlan(null);
+      loadUsers(); // Recarregar a lista
+    } catch (error: any) {
+      toast.error(`Erro ao alterar plano: ${error.message}`);
     }
   };
 
@@ -284,14 +329,24 @@ const AdminPanel = () => {
                               {new Date(user.created_at).toLocaleDateString('pt-BR')}
                             </TableCell>
                             <TableCell className="text-right">
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => viewUserDashboard(user.id)}
-                              >
-                                <Eye className="h-4 w-4 mr-2" />
-                                Visualizar Painel
-                              </Button>
+                              <div className="flex gap-2 justify-end">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => viewUserDashboard(user.id)}
+                                >
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  Visualizar Painel
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => openChangePlanDialog(user)}
+                                >
+                                  <Settings className="h-4 w-4 mr-2" />
+                                  Alterar Plano
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))
@@ -365,6 +420,40 @@ const AdminPanel = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Dialog para alterar plano */}
+      <Dialog open={isChangePlanDialogOpen} onOpenChange={setIsChangePlanDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Alterar Plano do Usuário</DialogTitle>
+            <DialogDescription>
+              Altere o plano de {selectedUserForPlan?.nome || selectedUserForPlan?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="plan">Novo Plano</Label>
+              <Select value={newPlan} onValueChange={setNewPlan}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o plano" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="padrao">Padrão</SelectItem>
+                  <SelectItem value="premium">Premium</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsChangePlanDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleChangePlan}>
+              Alterar Plano
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
