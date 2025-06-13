@@ -14,16 +14,24 @@ export const useAuthState = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
 
-  console.log("useAuthState: Hook rendered");
+  console.log("useAuthState: Hook rendered, loading:", loading);
 
-  // Load user profile function
+  // Simplified profile loading function
   const loadUserProfile = async (currentUser: User) => {
+    if (profileLoading) {
+      console.log("useAuthState: Profile already loading, skipping");
+      return;
+    }
+
     console.log("useAuthState: Loading profile for user:", currentUser.id);
+    setProfileLoading(true);
+    
     const isMasterAdmin = currentUser.email === MASTER_ADMIN_EMAIL;
 
     try {
-      // First try to get existing profile
+      // Get existing profile
       const { data: existingProfile, error: selectError } = await supabase
         .from("profiles")
         .select("*")
@@ -38,11 +46,9 @@ export const useAuthState = () => {
       let profileData: UserProfile;
 
       if (existingProfile) {
-        // Profile exists, check if we need to update it for master admin
-        const needsUpdate = isMasterAdmin && (!existingProfile.is_super_admin || existingProfile.tipo_usuario !== 'admin_mestre');
-        
-        if (needsUpdate) {
-          const { data: updatedProfile, error: updateError } = await supabase
+        // Use existing profile, update if master admin
+        if (isMasterAdmin && (!existingProfile.is_super_admin || existingProfile.tipo_usuario !== 'admin_mestre')) {
+          const { data: updatedProfile } = await supabase
             .from("profiles")
             .update({
               tipo_usuario: 'admin_mestre',
@@ -54,31 +60,16 @@ export const useAuthState = () => {
             .select("*")
             .single();
 
-          if (updateError) {
-            console.error("useAuthState: Error updating profile:", updateError);
-            // Use existing profile even if update fails
-            profileData = {
-              id: existingProfile.id,
-              nome: existingProfile.nome,
-              tipo_plano: (existingProfile.tipo_plano as 'padrao' | 'premium') || 'padrao',
-              tipo_usuario: (existingProfile.tipo_usuario as 'usuario' | 'admin_mestre') || 'usuario',
-              created_at: existingProfile.created_at,
-              updated_at: existingProfile.updated_at,
-              is_super_admin: existingProfile.is_super_admin || isMasterAdmin
-            };
-          } else {
-            profileData = {
-              id: updatedProfile.id,
-              nome: updatedProfile.nome,
-              tipo_plano: (updatedProfile.tipo_plano as 'padrao' | 'premium') || 'padrao',
-              tipo_usuario: (updatedProfile.tipo_usuario as 'usuario' | 'admin_mestre') || 'usuario',
-              created_at: updatedProfile.created_at,
-              updated_at: updatedProfile.updated_at,
-              is_super_admin: updatedProfile.is_super_admin || false
-            };
-          }
+          profileData = {
+            id: updatedProfile?.id || existingProfile.id,
+            nome: updatedProfile?.nome || existingProfile.nome,
+            tipo_plano: (updatedProfile?.tipo_plano as 'padrao' | 'premium') || 'premium',
+            tipo_usuario: (updatedProfile?.tipo_usuario as 'usuario' | 'admin_mestre') || 'admin_mestre',
+            created_at: updatedProfile?.created_at || existingProfile.created_at,
+            updated_at: updatedProfile?.updated_at || existingProfile.updated_at,
+            is_super_admin: true
+          };
         } else {
-          // Use existing profile as is
           profileData = {
             id: existingProfile.id,
             nome: existingProfile.nome,
@@ -90,8 +81,8 @@ export const useAuthState = () => {
           };
         }
       } else {
-        // Profile doesn't exist, create one
-        const { data: newProfile, error: insertError } = await supabase
+        // Create new profile
+        const { data: newProfile } = await supabase
           .from("profiles")
           .insert({
             id: currentUser.id,
@@ -104,19 +95,7 @@ export const useAuthState = () => {
           .select("*")
           .single();
 
-        if (insertError) {
-          console.error("useAuthState: Error inserting profile:", insertError);
-          // Create fallback profile
-          profileData = {
-            id: currentUser.id,
-            nome: currentUser.user_metadata?.full_name || currentUser.user_metadata?.nome || '',
-            tipo_plano: isMasterAdmin ? "premium" : "padrao",
-            tipo_usuario: isMasterAdmin ? "admin_mestre" : "usuario",
-            created_at: currentUser.created_at,
-            updated_at: new Date().toISOString(),
-            is_super_admin: isMasterAdmin
-          };
-        } else {
+        if (newProfile) {
           profileData = {
             id: newProfile.id,
             nome: newProfile.nome,
@@ -126,20 +105,31 @@ export const useAuthState = () => {
             updated_at: newProfile.updated_at,
             is_super_admin: newProfile.is_super_admin || false
           };
+        } else {
+          // Fallback profile
+          profileData = {
+            id: currentUser.id,
+            nome: currentUser.user_metadata?.full_name || currentUser.user_metadata?.nome || '',
+            tipo_plano: isMasterAdmin ? "premium" : "padrao",
+            tipo_usuario: isMasterAdmin ? "admin_mestre" : "usuario",
+            created_at: currentUser.created_at,
+            updated_at: new Date().toISOString(),
+            is_super_admin: isMasterAdmin
+          };
         }
       }
 
-      console.log("useAuthState: Profile loaded and set:", profileData);
+      console.log("useAuthState: Profile loaded:", profileData);
       setProfile(profileData);
       
-      // Set admin status based on profile data
+      // Set admin status
       const adminStatus = profileData.is_super_admin || profileData.tipo_usuario === 'admin_mestre' || isMasterAdmin;
       setIsAdmin(adminStatus);
       console.log("useAuthState: Admin status set to:", adminStatus);
       
     } catch (error) {
-      console.error("useAuthState: Unexpected error loading profile:", error);
-      // Fallback in case of unexpected error
+      console.error("useAuthState: Error loading profile:", error);
+      // Fallback profile on error
       const fallbackProfile = {
         id: currentUser.id,
         nome: currentUser.user_metadata?.full_name || currentUser.user_metadata?.nome || '',
@@ -151,16 +141,20 @@ export const useAuthState = () => {
       };
       setProfile(fallbackProfile);
       setIsAdmin(isMasterAdmin);
+    } finally {
+      setProfileLoading(false);
     }
   };
 
   useEffect(() => {
     let mounted = true;
+    let sessionChecked = false;
+    
     console.log("useAuthState: Initializing auth");
 
     const initializeAuth = async () => {
       try {
-        // Handle email confirmation or password reset from URL hash
+        // Handle email confirmation from URL hash
         if (typeof window !== 'undefined') {
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
           const accessToken = hashParams.get("access_token");
@@ -176,31 +170,25 @@ export const useAuthState = () => {
             
             if (type === "recovery") {
               toast.success("Você pode redefinir sua senha agora.");
-            } else if (type === "signup") {
-              // Handle signup confirmation without navigation
-              return;
             }
+            return; // Let the auth state change handler deal with the rest
           }
         }
 
-        // Get initial session
-        console.log("useAuthState: Getting initial session");
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
-        
-        if (!mounted) return;
-
-        if (initialSession) {
-          console.log("useAuthState: Initial session found");
-          setSession(initialSession);
-          setUser(initialSession.user);
-          // Load profile with the new function
-          if (mounted) {
-            await loadUserProfile(initialSession.user);
+        // Get initial session only if not already checked
+        if (!sessionChecked && mounted) {
+          console.log("useAuthState: Getting initial session");
+          const { data: { session: initialSession } } = await supabase.auth.getSession();
+          sessionChecked = true;
+          
+          if (mounted && initialSession) {
+            console.log("useAuthState: Initial session found");
+            setSession(initialSession);
+            setUser(initialSession.user);
+            // Profile will be loaded by the auth state change listener
+          } else if (mounted) {
+            setLoading(false);
           }
-        }
-        
-        if (mounted) {
-          setLoading(false);
         }
       } catch (error) {
         console.error('useAuthState: Error initializing auth:', error);
@@ -221,10 +209,10 @@ export const useAuthState = () => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        if (session?.user) {
-          // Use the new loadUserProfile function
+        if (session?.user && event !== 'TOKEN_REFRESHED') {
+          // Load profile only for significant auth events, not token refresh
           await loadUserProfile(session.user);
-        } else {
+        } else if (!session) {
           setProfile(null);
           setIsAdmin(false);
         }
@@ -242,7 +230,7 @@ export const useAuthState = () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []); // Removido as dependências que causavam o loop
+  }, []); // Empty dependency array to prevent loops
 
   return {
     session,
