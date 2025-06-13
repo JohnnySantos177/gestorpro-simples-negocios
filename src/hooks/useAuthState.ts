@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -185,7 +184,8 @@ export const useAuthState = () => {
             console.log("useAuthState: Initial session found");
             setSession(initialSession);
             setUser(initialSession.user);
-            // Profile will be loaded by the auth state change listener
+            await loadUserProfile(initialSession.user);
+            if (mounted) setLoading(false);
           } else if (mounted) {
             setLoading(false);
           }
@@ -212,13 +212,11 @@ export const useAuthState = () => {
         if (session?.user && event !== 'TOKEN_REFRESHED') {
           // Load profile only for significant auth events, not token refresh
           await loadUserProfile(session.user);
+          if (mounted) setLoading(false);
         } else if (!session) {
           setProfile(null);
           setIsAdmin(false);
-        }
-        
-        if (mounted) {
-          setLoading(false);
+          if (mounted) setLoading(false);
         }
       }
     );

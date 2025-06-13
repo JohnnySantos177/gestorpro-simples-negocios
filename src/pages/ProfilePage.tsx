@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Layout } from "@/components/Layout";
 import { PageHeader } from "@/components/PageHeader";
@@ -230,21 +229,8 @@ const ProfilePage = () => {
                   <p className="font-medium">TotalGestor Pro</p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Valor</h3>
-                  <p className="font-medium">{formatCurrency(59.99)}/mês</p>
-                </div>
-                <div>
                   <h3 className="text-sm font-medium text-muted-foreground">Status</h3>
                   <p className="font-medium text-green-600">Ativo</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Próxima Cobrança</h3>
-                  <p className="font-medium">
-                    {format(new Date(new Date().setMonth(new Date().getMonth() + 1)), "PPP", { locale: ptBR })}
-                  </p>
-                </div>
-                <div className="pt-2">
-                  <Button variant="outline">Gerenciar Assinatura</Button>
                 </div>
               </div>
             ) : (

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
@@ -239,7 +238,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
             )}
             
-            {!isSubscribed && (
+            {!isSubscribed && !user?.tipo_plano === 'premium' && (
               <div className="hidden md:block">
                 <Button asChild variant="default" size="sm">
                   <Link to="/assinatura">

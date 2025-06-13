@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { Layout } from "@/components/Layout";
@@ -13,17 +12,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const AssinaturaPage = () => {
   const { isSubscribed, checkoutLoading, initiateCheckout, checkSubscriptionStatus, subscriptionPrice } = useSubscription();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user, profile, loading } = useAuth();
   const [adminPrice, setAdminPrice] = useState<number>(subscriptionPrice);
   const [isUpdating, setIsUpdating] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
   
   // Check subscription status when the page loads
   useEffect(() => {
     checkSubscriptionStatus();
-  }, []);
+    if (!loading && profile?.tipo_plano === 'premium' && location.pathname !== '/perfil') {
+      navigate('/perfil', { replace: true });
+      toast.info('Você já possui o plano premium!');
+    }
+  }, [profile?.tipo_plano, loading, location.pathname]);
   
   // Format the price for display (dividing by 100 to convert from cents)
   const priceInReais = subscriptionPrice / 100;
@@ -71,6 +77,22 @@ const AssinaturaPage = () => {
     "Acesso via dispositivos móveis",
     "Exportação dos relatórios em múltiplos formatos"
   ];
+  
+  // Se ainda está carregando o perfil, mostre loading
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex justify-center items-center h-96">
+          <span>Carregando...</span>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Se for premium, não renderiza nada (o useEffect já redireciona)
+  if (profile?.tipo_plano === 'premium') {
+    return null;
+  }
   
   return (
     <Layout>
@@ -156,78 +178,39 @@ const AssinaturaPage = () => {
           </CardContent>
         </Card>
         
-        <div className="flex-1">
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Sobre a Assinatura</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">
-                O TotalGestor é oferecido como uma assinatura mensal que proporciona acesso completo a todas as funcionalidades do sistema.
-              </p>
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Sobre a Assinatura</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">
+              O TotalGestor é oferecido como uma assinatura mensal que proporciona acesso completo a todas as funcionalidades do sistema.
+            </p>
+            
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold mb-1">Pagamento Seguro com Stripe</h3>
+                <p className="text-sm text-muted-foreground">
+                  Seus dados de pagamento são protegidos com criptografia de ponta a ponta pela plataforma Stripe.
+                </p>
+              </div>
               
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-semibold mb-1">Pagamento Seguro com Stripe</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Seus dados de pagamento são protegidos com criptografia de ponta a ponta pela plataforma Stripe.
-                  </p>
-                </div>
-                
-                <div>
-                  <h3 className="font-semibold mb-1">Cancelamento Flexível</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Você pode cancelar sua assinatura a qualquer momento, sem taxas adicionais.
-                  </p>
-                </div>
-                
-                <div>
-                  <h3 className="font-semibold mb-1">Garantia de Satisfação</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Oferecemos garantia de 30 dias. Se não estiver satisfeito, devolveremos seu dinheiro.
-                  </p>
-                </div>
+              <div>
+                <h3 className="font-semibold mb-1">Cancelamento Flexível</h3>
+                <p className="text-sm text-muted-foreground">
+                  Você pode cancelar sua assinatura a qualquer momento, sem taxas adicionais.
+                </p>
               </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Perguntas Frequentes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-semibold mb-1">Como funciona a cobrança?</h3>
-                  <p className="text-sm text-muted-foreground">
-                    A assinatura é cobrada mensalmente através da Stripe e renovada automaticamente até que você cancele.
-                  </p>
-                </div>
-                
-                <div>
-                  <h3 className="font-semibold mb-1">Posso usar em múltiplos dispositivos?</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Sim, você pode acessar o sistema de qualquer dispositivo com acesso à internet, incluindo computadores, tablets e smartphones.
-                  </p>
-                </div>
-                
-                <div>
-                  <h3 className="font-semibold mb-1">O que acontece se eu cancelar?</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Você terá acesso ao sistema até o final do período pago. Seus dados serão mantidos por 30 dias após o cancelamento.
-                  </p>
-                </div>
-                
-                <div>
-                  <h3 className="font-semibold mb-1">Há contratos de fidelidade?</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Não, você pode cancelar a qualquer momento sem multas ou taxas adicionais.
-                  </p>
-                </div>
+              
+              <div>
+                <h3 className="font-semibold mb-1">Garantia de Satisfação</h3>
+                <p className="text-sm text-muted-foreground">
+                  Oferecemos garantia de 30 dias. Se não estiver satisfeito, devolveremos seu dinheiro.
+                </p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );
