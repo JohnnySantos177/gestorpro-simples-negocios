@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { DataProvider } from "./context/DataContext";
 import { SubscriptionProvider } from "./context/SubscriptionContext";
 import { AuthProvider } from "./context/AuthContext"; 
+import { VisitorModeProvider } from "./context/VisitorModeContext";
 
 import Index from "./pages/Index";
 import ClientesPage from "./pages/ClientesPage";
@@ -44,43 +44,45 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <BrowserRouter>
-          <AuthProvider>
-            <SubscriptionProvider>
-              <DataProvider>
-                <Toaster />
-                <Sonner />
-                <Routes>
-                  {/* Public routes */}
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/register" element={<RegisterPage />} />
-                  <Route path="/reset-password" element={<ResetPasswordPage />} />
-                  <Route path="/confirmation-success" element={<ConfirmationSuccessPage />} />
-                  
-                  {/* Protected routes */}
-                  <Route element={<ProtectedRoute />}>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/clientes" element={<ClientesPage />} />
-                    <Route path="/produtos" element={<ProdutosPage />} />
-                    <Route path="/vendas" element={<VendasPage />} />
-                    <Route path="/financeiro" element={<FinanceiroPage />} />
-                    <Route path="/fornecedores" element={<FornecedoresPage />} />
-                    <Route path="/avaliacoes" element={<AvaliacoesPage />} />
-                    <Route path="/promocoes" element={<PromocoesPage />} />
-                    <Route path="/assinatura" element={<AssinaturaPage />} />
-                    <Route path="/perfil/:id" element={<ProfilePage />} />
+          <VisitorModeProvider>
+            <AuthProvider>
+              <SubscriptionProvider>
+                <DataProvider>
+                  <Toaster />
+                  <Sonner />
+                  <Routes>
+                    {/* Public routes */}
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/register" element={<RegisterPage />} />
+                    <Route path="/reset-password" element={<ResetPasswordPage />} />
+                    <Route path="/confirmation-success" element={<ConfirmationSuccessPage />} />
                     
-                    {/* Admin routes */}
-                    <Route path="/admin" element={<AdminPanel />} />
-                    <Route path="/admin/view/:userId" element={<AdminUserView />} />
-                    <Route path="/admin/usuarios" element={<UserManagementPage />} />
-                  </Route>
-                  
-                  {/* Fallback route */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </DataProvider>
-            </SubscriptionProvider>
-          </AuthProvider>
+                    {/* Protected routes */}
+                    <Route element={<ProtectedRoute />}>
+                      <Route path="/" element={<Index />} />
+                      <Route path="/clientes" element={<ClientesPage />} />
+                      <Route path="/produtos" element={<ProdutosPage />} />
+                      <Route path="/vendas" element={<VendasPage />} />
+                      <Route path="/financeiro" element={<FinanceiroPage />} />
+                      <Route path="/fornecedores" element={<FornecedoresPage />} />
+                      <Route path="/avaliacoes" element={<AvaliacoesPage />} />
+                      <Route path="/promocoes" element={<PromocoesPage />} />
+                      <Route path="/assinatura" element={<AssinaturaPage />} />
+                      <Route path="/perfil/:id" element={<ProfilePage />} />
+                      
+                      {/* Admin routes */}
+                      <Route path="/admin" element={<AdminPanel />} />
+                      <Route path="/admin/view/:userId" element={<AdminUserView />} />
+                      <Route path="/admin/usuarios" element={<UserManagementPage />} />
+                    </Route>
+                    
+                    {/* Fallback route */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </DataProvider>
+              </SubscriptionProvider>
+            </AuthProvider>
+          </VisitorModeProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>

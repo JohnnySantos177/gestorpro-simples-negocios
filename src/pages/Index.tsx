@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { 
   Users, 
@@ -33,6 +32,7 @@ import {
   Cell,
 } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { VisitorBanner } from "@/components/VisitorBanner";
 
 const Dashboard = () => {
   const { dashboardStats, updateDashboardStats } = useData();
@@ -68,6 +68,7 @@ const Dashboard = () => {
 
   return (
     <Layout>
+      <VisitorBanner />
       <PageHeader 
         title={`${greeting}!`}
         description="Bem-vindo ao seu painel do TotalGestor. Veja os principais indicadores do seu negócio."

@@ -3,6 +3,7 @@ import { AuthContextType } from "@/types/auth";
 import { useAuthState } from "@/hooks/useAuthState";
 import { authService } from "@/services/authService";
 import { UserProfile } from "@/types";
+import { useVisitorMode } from "./VisitorModeContext";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -29,6 +30,45 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsAdmin,
     loadUserProfile
   } = useAuthState();
+
+  const { isVisitorMode, targetUserId } = useVisitorMode();
+
+  // Visitor mode: fetch user/profile for the target user
+  const [visitorProfile, setVisitorProfile] = React.useState<UserProfile | null>(null);
+  const [visitorLoading, setVisitorLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isVisitorMode && targetUserId && (!visitorProfile || visitorProfile.id !== targetUserId)) {
+      setVisitorLoading(true);
+      // Fetch profile via supabase for the selected user
+      import("@/integrations/supabase/client").then(({ supabase }) => {
+        supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", targetUserId)
+          .maybeSingle()
+          .then(({ data }) => {
+            setVisitorProfile(data as UserProfile);
+          })
+          .finally(() => setVisitorLoading(false));
+      });
+    } else if (!isVisitorMode) {
+      setVisitorProfile(null);
+    }
+    // eslint-disable-next-line
+  }, [isVisitorMode, targetUserId]);
+
+  const effectiveUser = isVisitorMode && visitorProfile
+    ? { ...user, id: visitorProfile.id } // keep the object shape
+    : user;
+
+  const effectiveProfile = isVisitorMode && visitorProfile
+    ? visitorProfile
+    : profile;
+
+  const effectiveIsAdmin = isVisitorMode ? false : isAdmin;
+
+  const effectiveLoading = loading || (isVisitorMode && visitorLoading);
 
   console.log("AuthContext: Provider rendered, loading:", loading);
 
@@ -95,10 +135,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const value = {
     session,
-    user,
-    profile,
-    loading,
-    isAdmin,
+    user: effectiveUser,
+    profile: effectiveProfile,
+    loading: effectiveLoading,
+    isAdmin: effectiveIsAdmin,
     signIn,
     signUp,
     signOut,

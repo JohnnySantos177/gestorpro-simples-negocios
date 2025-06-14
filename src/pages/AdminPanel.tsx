@@ -41,6 +41,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { useVisitorMode } from "@/context/VisitorModeContext";
 
 type UserOverview = {
   id: string;
@@ -165,17 +166,14 @@ const AdminPanel = () => {
     }
   }, [isAdmin]);
 
-  // Visualizar painel do usuário
+  // Visualizar painel do usuário COMO visitante
+  const { enterVisitorMode } = useVisitorMode();
   const viewUserDashboard = async (userId: string) => {
     try {
       setSelectedUserId(userId);
-      
-      // Salvar o ID do usuário selecionado para visualização
-      toast.success("Visualizando painel do usuário selecionado");
-      localStorage.setItem("adminViewingUserId", userId);
-      
-      // Redirecionar para o dashboard com o contexto do usuário selecionado
-      navigate(`/admin/view/${userId}`);
+      enterVisitorMode(userId);
+      toast.success("Entrando como visitante nessa conta do usuário...");
+      navigate("/");
     } catch (error: any) {
       toast.error(`Erro ao visualizar usuário: ${error.message}`);
     }
