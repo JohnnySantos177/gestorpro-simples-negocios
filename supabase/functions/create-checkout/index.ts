@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -48,6 +47,9 @@ serve(async (req) => {
     console.log("Creating checkout for user:", user.email);
     console.log("Plan type:", planType, "Price:", price);
 
+    // Use domínio fixo para URLs de retorno
+    const origin = "https://gestorpro-simples-negocios.lovable.app";
+
     // Calculate period description based on plan type
     let periodDescription = "Assinatura Mensal";
     if (planType === 'quarterly') {
@@ -55,9 +57,6 @@ serve(async (req) => {
     } else if (planType === 'semiannual') {
       periodDescription = "Assinatura Semestral (6 meses)";
     }
-
-    // Get the origin for redirect URLs
-    const origin = req.headers.get("origin") || "https://preview--gestorpro-simples-negocios.lovable.app";
 
     // Create payment preference - simplified version
     const preferenceData = {
