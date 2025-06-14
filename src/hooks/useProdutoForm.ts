@@ -1,9 +1,9 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Produto, Fornecedor } from "@/types";
+import { useData } from "@/context/DataContext";
 
 // Match ProdutoFormData in ProdutoForm.tsx!
 export const produtoSchema = z.object({
