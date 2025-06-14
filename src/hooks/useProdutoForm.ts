@@ -76,19 +76,25 @@ export const useProdutoForm = (fornecedores: Fornecedor[]) => {
   const handleAddEditSubmit = (data: ProdutoFormData) => {
     if (dialogType === "add") {
       const newProduto = {
-        ...data,
+        nome: data.nome || "", // Ensure nome is always a string
+        descricao: data.descricao || "",
+        categoria: data.categoria || "",
         precoCompra: data.precoCompra || 0,
         precoVenda: data.precoVenda || 0,
         quantidade: data.quantidade || 0,
+        fornecedorId: data.fornecedorId || "",
         fornecedorNome: fornecedores.find(f => f.id === data.fornecedorId)?.nome || "",
       };
       addProduto(newProduto);
     } else if (dialogType === "edit" && selectedProduto) {
       const updatedProduto = {
-        ...data,
+        nome: data.nome || "", // Ensure nome is always a string
+        descricao: data.descricao || "",
+        categoria: data.categoria || "",
         precoCompra: data.precoCompra || 0,
         precoVenda: data.precoVenda || 0,
         quantidade: data.quantidade || 0,
+        fornecedorId: data.fornecedorId || "",
         fornecedorNome: fornecedores.find(f => f.id === data.fornecedorId)?.nome || "",
       };
       updateProduto(selectedProduto.id, updatedProduto);

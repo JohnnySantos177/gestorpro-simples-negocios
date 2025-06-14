@@ -8,7 +8,7 @@ import { FilterOptions, Compra } from "@/types";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Plus, Edit, Trash2, Eye } from "lucide-react";
 import { CrudDialog } from "@/components/CrudDialog";
-import { VendaProdutosForm } from "./Vendas/components/VendaProdutosForm";
+import { VendaForm } from "./Vendas/components/VendaForm";
 import { useVendasLimits } from "@/hooks/useVendasLimits";
 import { VendasLimitBanner } from "@/components/VendasLimitBanner";
 import { toast } from "sonner";
@@ -26,7 +26,7 @@ const VendasPage = () => {
   });
   
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogType, setDialogType] = useState<"add" | "edit" | "delete" | "view">("add");
+  const [dialogType, setDialogType] = useState<"add" | "edit" | "delete">("add");
   const [selectedCompra, setSelectedCompra] = useState<Compra | null>(null);
 
   const filteredCompras = filterCompras(filterOptions);
@@ -56,7 +56,7 @@ const VendasPage = () => {
 
   const openViewDialog = (compra: Compra) => {
     setSelectedCompra(compra);
-    setDialogType("view");
+    setDialogType("edit"); // Use "edit" type but with readOnly prop
     setDialogOpen(true);
   };
 
@@ -130,25 +130,21 @@ const VendasPage = () => {
           title={
             dialogType === "add" 
               ? "Nova Venda" 
-              : dialogType === "edit"
-                ? "Editar Venda"
-                : "Visualizar Venda"
+              : "Editar Venda"
           }
           description={
             dialogType === "add" 
               ? "Registre uma nova venda"
-              : dialogType === "edit"
-                ? "Edite os detalhes da venda"
-                : "Detalhes da venda"
+              : "Edite os detalhes da venda"
           }
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           type={dialogType}
         >
-          <VendaProdutosForm 
+          <VendaForm 
             compra={selectedCompra}
             onClose={() => setDialogOpen(false)}
-            readOnly={dialogType === "view"}
+            readOnly={false}
           />
         </CrudDialog>
       ) : (
