@@ -1,3 +1,4 @@
+
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -175,7 +176,81 @@ export const exportToExcel = (data: ExportData, type: 'vendas' | 'transacoes' | 
 
   // Criar workbook e worksheet
   const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(worksheetData);
+  
+  // Criar cabeçalho com informações da empresa e data
+  const headerData = [
+    ['TotalGestor - Sistema de Gestão'],
+    [`Relatório de ${type.charAt(0).toUpperCase() + type.slice(1)}`],
+    [`Data de geração: ${new Date().toLocaleDateString('pt-BR')}`],
+    [], // Linha em branco
+  ];
+
+  // Combinar cabeçalho com dados
+  const combinedData = [...headerData, headers, ...worksheetData.map(row => headers.map(header => row[header]))];
+  
+  // Criar worksheet com os dados combinados
+  const ws = XLSX.utils.aoa_to_sheet(combinedData);
+
+  // Configurar estilos para o cabeçalho
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:A1');
+  
+  // Aplicar estilos ao cabeçalho da empresa (primeira linha)
+  if (ws['A1']) {
+    ws['A1'].s = {
+      font: { bold: true, size: 16 },
+      alignment: { horizontal: 'center' }
+    };
+  }
+  
+  // Aplicar estilos ao título do relatório (segunda linha)
+  if (ws['A2']) {
+    ws['A2'].s = {
+      font: { bold: true, size: 14 },
+      alignment: { horizontal: 'center' }
+    };
+  }
+
+  // Aplicar estilos à data (terceira linha)
+  if (ws['A3']) {
+    ws['A3'].s = {
+      font: { italic: true },
+      alignment: { horizontal: 'center' }
+    };
+  }
+
+  // Aplicar estilos aos cabeçalhos das colunas (quinta linha)
+  const headerRowIndex = 5; // 0-indexed (linha 5 no Excel)
+  for (let col = 0; col < headers.length; col++) {
+    const cellAddress = XLSX.utils.encode_cell({ r: headerRowIndex - 1, c: col });
+    if (ws[cellAddress]) {
+      ws[cellAddress].s = {
+        font: { bold: true },
+        fill: { fgColor: { rgb: 'E3F2FD' } },
+        alignment: { horizontal: 'center' }
+      };
+    }
+  }
+
+  // Mesclar células para o cabeçalho
+  if (!ws['!merges']) ws['!merges'] = [];
+  
+  // Mesclar título da empresa
+  ws['!merges'].push({
+    s: { r: 0, c: 0 },
+    e: { r: 0, c: headers.length - 1 }
+  });
+
+  // Mesclar título do relatório
+  ws['!merges'].push({
+    s: { r: 1, c: 0 },
+    e: { r: 1, c: headers.length - 1 }
+  });
+
+  // Mesclar data de geração
+  ws['!merges'].push({
+    s: { r: 2, c: 0 },
+    e: { r: 2, c: headers.length - 1 }
+  });
 
   // Ajustar largura das colunas
   const colWidths = headers.map(() => ({ wch: 20 }));
