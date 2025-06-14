@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -24,9 +23,9 @@ type EmailFormType = z.infer<typeof emailSchema>;
 type ResetFormType = z.infer<typeof resetSchema>;
 
 export const ChangePasswordModal: React.FC<{ userEmail: string }> = ({ userEmail }) => {
-  const { resetPassword, updatePassword } = useAuth();
+  const { resetPassword } = useAuth();
   const [open, setOpen] = useState(false);
-  const [status, setStatus] = useState<"start" | "sent" | "reset">("start");
+  const [status, setStatus] = useState<"start" | "sent">("start");
   const [email, setEmail] = useState(userEmail || "");
   const [loading, setLoading] = useState(false);
 
@@ -35,30 +34,12 @@ export const ChangePasswordModal: React.FC<{ userEmail: string }> = ({ userEmail
     defaultValues: { email: userEmail },
   });
 
-  const resetForm = useForm<ResetFormType>({
-    resolver: zodResolver(resetSchema),
-    defaultValues: { password: "", confirmPassword: "", code: "" }
-  });
-
   async function handleSendCode(values: EmailFormType) {
     setLoading(true);
     try {
       await resetPassword(values.email);
       setStatus("sent");
       setEmail(values.email);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleSetPassword(values: ResetFormType) {
-    setLoading(true);
-    try {
-      // Usar a hash para setSession antes de trocar a senha (Supabase flow)
-      const { code, password } = values;
-      // Simular a troca, precisa/usuário entrar pelo link do email para validar hash/token
-      // Alertar o usuário sobre seguir o link do e-mail!
-      window.location.href = `${window.location.origin}/reset-password#access_token=${code}&type=recovery`;
     } finally {
       setLoading(false);
     }
@@ -75,7 +56,7 @@ export const ChangePasswordModal: React.FC<{ userEmail: string }> = ({ userEmail
         <DialogHeader>
           <DialogTitle>Alterar senha</DialogTitle>
           <DialogDescription>
-            Enviaremos um código para seu e-mail para confirmar a alteração de senha.
+            Enviaremos um link de redefinição de senha para seu e-mail.
           </DialogDescription>
         </DialogHeader>
 
@@ -87,37 +68,25 @@ export const ChangePasswordModal: React.FC<{ userEmail: string }> = ({ userEmail
             </div>
             <DialogFooter>
               <Button type="submit" disabled={loading}>
-                {loading ? "Enviando..." : "Enviar código"}
+                {loading ? "Enviando..." : "Enviar link"}
               </Button>
             </DialogFooter>
           </form>
         )}
 
         {status === "sent" && (
-          <>
-            <div className="mb-4 text-sm">
-              Um código foi enviado para <strong>{email}</strong>. Siga o link do e-mail ou digite o código abaixo junto com sua nova senha.
+          <div className="space-y-4">
+            <div className="mb-3 text-sm">
+              Um link de redefinição foi enviado para <strong>{email}</strong>.<br />
+              Por favor, acesse seu e-mail e clique no link recebido para cadastrar uma nova senha.<br />
+              <span className="block text-xs mt-2 text-muted-foreground">
+                O campo de código manual foi removido para maior segurança – use apenas o link do e-mail!
+              </span>
             </div>
-            <form className="space-y-4" onSubmit={resetForm.handleSubmit(handleSetPassword)}>
-              <div>
-                <label className="block text-sm font-medium mb-1">Novo senha</label>
-                <Input type="password" {...resetForm.register("password")} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Confirmar nova senha</label>
-                <Input type="password" {...resetForm.register("confirmPassword")} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Código recebido</label>
-                <Input type="text" {...resetForm.register("code")} />
-              </div>
-              <DialogFooter>
-                <Button type="submit" disabled={loading}>
-                  {loading ? "Validando..." : "Alterar senha"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </>
+            <DialogFooter>
+              <Button onClick={() => setOpen(false)}>Fechar</Button>
+            </DialogFooter>
+          </div>
         )}
       </DialogContent>
     </Dialog>
