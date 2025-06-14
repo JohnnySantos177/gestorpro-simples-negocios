@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Cliente, Produto, Fornecedor, Compra, Transacao, 
@@ -310,16 +309,18 @@ export const supabaseDataService = {
     
     if (error) throw error;
     
-    return (data || []).map(item => ({
-      id: item.id,
-      clienteId: item.cliente_id || '',
-      clienteNome: item.cliente_nome || '',
-      data: item.data,
-      produtos: Array.isArray(item.produtos) ? item.produtos as ItemCompra[] : [],
-      valorTotal: Number(item.valor_total),
-      formaPagamento: item.forma_pagamento,
-      status: item.status
+    const compras = data.map(row => ({
+      id: row.id,
+      clienteId: row.cliente_id,
+      clienteNome: row.cliente_nome,
+      data: row.data,
+      produtos: Array.isArray(row.produtos) ? (row.produtos as unknown as ItemCompra[]) : [],
+      valorTotal: row.valor_total,
+      formaPagamento: row.forma_pagamento,
+      status: row.status,
     }));
+
+    return compras;
   },
 
   async createCompra(compra: Omit<Compra, "id">): Promise<Compra> {
@@ -343,16 +344,18 @@ export const supabaseDataService = {
 
     if (error) throw error;
     
-    return {
+    const compra = {
       id: data.id,
-      clienteId: data.cliente_id || '',
-      clienteNome: data.cliente_nome || '',
+      clienteId: data.cliente_id,
+      clienteNome: data.cliente_nome,
       data: data.data,
-      produtos: Array.isArray(data.produtos) ? data.produtos as ItemCompra[] : [],
-      valorTotal: Number(data.valor_total),
+      produtos: Array.isArray(data.produtos) ? (data.produtos as unknown as ItemCompra[]) : [],
+      valorTotal: data.valor_total,
       formaPagamento: data.forma_pagamento,
-      status: data.status
+      status: data.status,
     };
+
+    return compra;
   },
 
   async updateCompra(id: string, updates: Partial<Compra>): Promise<void> {
