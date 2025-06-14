@@ -233,9 +233,9 @@ const AssinaturaPage = () => {
               
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-semibold mb-1">Pagamento Seguro com Stripe</h3>
+                  <h3 className="font-semibold mb-1">Pagamento Seguro</h3>
                   <p className="text-sm text-muted-foreground">
-                    Seus dados de pagamento são protegidos com criptografia de ponta a ponta pela plataforma Stripe.
+                    Seus dados de pagamento são protegidos com criptografia de ponta a ponta.
                   </p>
                 </div>
                 
@@ -249,7 +249,7 @@ const AssinaturaPage = () => {
                 <div>
                   <h3 className="font-semibold mb-1">Garantia de Satisfação</h3>
                   <p className="text-sm text-muted-foreground">
-                    Oferecemos garantia de 30 dias. Se não estiver satisfeito, devolveremos seu dinheiro.
+                    Oferecemos garantia de 7 dias. Se não estiver satisfeito, devolveremos seu dinheiro.
                   </p>
                 </div>
 
@@ -272,14 +272,14 @@ const AssinaturaPage = () => {
                 <div>
                   <h3 className="font-semibold mb-1">Como funciona a cobrança?</h3>
                   <p className="text-sm text-muted-foreground">
-                    A assinatura é cobrada através da Stripe de acordo com o plano escolhido e renovada automaticamente até que você cancele.
+                    A assinatura é cobrada de acordo com o plano escolhido e renovada automaticamente até que você cancele.
                   </p>
                 </div>
                 
                 <div>
                   <h3 className="font-semibold mb-1">Posso trocar de plano?</h3>
                   <p className="text-sm text-muted-foreground">
-                    Sim, você pode alterar seu plano a qualquer momento através do portal do cliente Stripe.
+                    Sim, você pode alterar seu plano a qualquer momento entrando em contato com nosso suporte.
                   </p>
                 </div>
                 
