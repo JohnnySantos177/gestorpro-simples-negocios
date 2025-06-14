@@ -34,6 +34,7 @@ import { GRUPOS_CLIENTES, ESTADOS_BRASILEIROS } from "@/data/constants";
 import { formatDate } from "@/utils/format";
 import { toast } from "sonner";
 import { z } from "zod";
+import { ExportButtons } from "@/components/ExportButtons";
 
 // Atualize o schema: somente nome e telefone obrigatórios
 const clienteSchema = z.object({
@@ -193,146 +194,153 @@ const ClientesPage = () => {
         title="Clientes"
         description="Gerencie os clientes do seu negócio."
         actions={
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Adicionar Cliente
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px]">
-              <DialogHeader>
-                <DialogTitle>Adicionar Novo Cliente</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
+          <div className="flex gap-2">
+            <ExportButtons 
+              data={clientes} 
+              type="clientes" 
+              disabled={clientes.length === 0}
+            />
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Adicionar Cliente
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[600px]">
+                <DialogHeader>
+                  <DialogTitle>Adicionar Novo Cliente</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="nome">Nome *</Label>
+                      <Input
+                        id="nome"
+                        value={newCliente.nome}
+                        onChange={(e) =>
+                          setNewCliente({ ...newCliente, nome: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={newCliente.email}
+                        onChange={(e) =>
+                          setNewCliente({ ...newCliente, email: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="telefone">Telefone *</Label>
+                      <Input
+                        id="telefone"
+                        value={newCliente.telefone}
+                        onChange={(e) =>
+                          setNewCliente({ ...newCliente, telefone: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="grupo">Grupo</Label>
+                      <Select
+                        value={newCliente.grupo}
+                        onValueChange={(value) =>
+                          setNewCliente({ ...newCliente, grupo: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um grupo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {GRUPOS_CLIENTES.filter(g => g !== "Todos").map((grupo) => (
+                            <SelectItem key={grupo} value={grupo}>
+                              {grupo}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                   <div className="space-y-2">
-                    <Label htmlFor="nome">Nome *</Label>
+                    <Label htmlFor="endereco">Endereço</Label>
                     <Input
-                      id="nome"
-                      value={newCliente.nome}
+                      id="endereco"
+                      value={newCliente.endereco}
                       onChange={(e) =>
-                        setNewCliente({ ...newCliente, nome: e.target.value })
+                        setNewCliente({ ...newCliente, endereco: e.target.value })
                       }
                     />
                   </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="cidade">Cidade</Label>
+                      <Input
+                        id="cidade"
+                        value={newCliente.cidade}
+                        onChange={(e) =>
+                          setNewCliente({ ...newCliente, cidade: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="estado">Estado</Label>
+                      <Select
+                        value={newCliente.estado}
+                        onValueChange={(value) =>
+                          setNewCliente({ ...newCliente, estado: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="UF" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ESTADOS_BRASILEIROS.map((estado) => (
+                            <SelectItem key={estado} value={estado}>
+                              {estado}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cep">CEP</Label>
+                      <Input
+                        id="cep"
+                        value={newCliente.cep}
+                        onChange={(e) =>
+                          setNewCliente({ ...newCliente, cep: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="observacoes">Observações</Label>
                     <Input
-                      id="email"
-                      type="email"
-                      value={newCliente.email}
+                      id="observacoes"
+                      value={newCliente.observacoes}
                       onChange={(e) =>
-                        setNewCliente({ ...newCliente, email: e.target.value })
+                        setNewCliente({ ...newCliente, observacoes: e.target.value })
                       }
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="telefone">Telefone *</Label>
-                    <Input
-                      id="telefone"
-                      value={newCliente.telefone}
-                      onChange={(e) =>
-                        setNewCliente({ ...newCliente, telefone: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="grupo">Grupo</Label>
-                    <Select
-                      value={newCliente.grupo}
-                      onValueChange={(value) =>
-                        setNewCliente({ ...newCliente, grupo: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um grupo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {GRUPOS_CLIENTES.filter(g => g !== "Todos").map((grupo) => (
-                          <SelectItem key={grupo} value={grupo}>
-                            {grupo}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="endereco">Endereço</Label>
-                  <Input
-                    id="endereco"
-                    value={newCliente.endereco}
-                    onChange={(e) =>
-                      setNewCliente({ ...newCliente, endereco: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="cidade">Cidade</Label>
-                    <Input
-                      id="cidade"
-                      value={newCliente.cidade}
-                      onChange={(e) =>
-                        setNewCliente({ ...newCliente, cidade: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="estado">Estado</Label>
-                    <Select
-                      value={newCliente.estado}
-                      onValueChange={(value) =>
-                        setNewCliente({ ...newCliente, estado: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="UF" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ESTADOS_BRASILEIROS.map((estado) => (
-                          <SelectItem key={estado} value={estado}>
-                            {estado}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cep">CEP</Label>
-                    <Input
-                      id="cep"
-                      value={newCliente.cep}
-                      onChange={(e) =>
-                        setNewCliente({ ...newCliente, cep: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="observacoes">Observações</Label>
-                  <Input
-                    id="observacoes"
-                    value={newCliente.observacoes}
-                    onChange={(e) =>
-                      setNewCliente({ ...newCliente, observacoes: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="outline">Cancelar</Button>
-                </DialogClose>
-                <DialogClose asChild>
-                  <Button onClick={handleSaveCliente}>Salvar</Button>
-                </DialogClose>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline">Cancelar</Button>
+                  </DialogClose>
+                  <DialogClose asChild>
+                    <Button onClick={handleSaveCliente}>Salvar</Button>
+                  </DialogClose>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
         }
       />
       

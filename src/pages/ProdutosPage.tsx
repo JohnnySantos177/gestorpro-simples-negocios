@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { PageHeader } from "@/components/PageHeader";
@@ -10,9 +9,10 @@ import { CATEGORIAS_PRODUTOS } from "@/data/constants";
 import { Package, Edit, Trash2, RefreshCw } from "lucide-react";
 import { ProdutoDialogs } from "@/components/produtos/ProdutoDialogs";
 import { useProdutoForm, ProdutoFormData } from "@/hooks/useProdutoForm";
+import { ExportButtons } from "@/components/ExportButtons";
 
 const ProdutosPage = () => {
-  const { filterProdutos, fornecedores, addProduto, updateProduto, deleteProduto, refreshData, loading } = useData();
+  const { filterProdutos, fornecedores, addProduto, updateProduto, deleteProduto, refreshData, loading, produtos } = useData();
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     search: "",
     sortBy: "nome",
@@ -150,6 +150,11 @@ const ProdutosPage = () => {
         icon={<Package className="h-6 w-6" />}
         actions={
           <div className="flex gap-2">
+            <ExportButtons 
+              data={produtos} 
+              type="produtos" 
+              disabled={produtos.length === 0}
+            />
             <Button 
               variant="outline" 
               onClick={handleRefresh}

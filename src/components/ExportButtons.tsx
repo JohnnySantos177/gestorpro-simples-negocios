@@ -9,11 +9,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { exportToPDF, exportToExcel } from '@/utils/exportUtils';
-import { Compra, Transacao, Cliente, Produto } from '@/types';
+import { Compra, Transacao, Cliente, Produto, Fornecedor } from '@/types';
 
 interface ExportButtonsProps {
-  data: Compra[] | Transacao[] | Cliente[] | Produto[];
-  type: 'vendas' | 'transacoes' | 'clientes' | 'produtos';
+  data: Compra[] | Transacao[] | Cliente[] | Produto[] | Fornecedor[];
+  type: 'vendas' | 'transacoes' | 'clientes' | 'produtos' | 'fornecedores';
   disabled?: boolean;
 }
 

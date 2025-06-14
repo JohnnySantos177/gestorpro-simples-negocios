@@ -1,17 +1,17 @@
-
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
-import { Compra, Transacao, Cliente, Produto } from '@/types';
+import { Compra, Transacao, Cliente, Produto, Fornecedor } from '@/types';
 
 interface ExportData {
   vendas?: Compra[];
   transacoes?: Transacao[];
   clientes?: Cliente[];
   produtos?: Produto[];
+  fornecedores?: Fornecedor[];
 }
 
-export const exportToPDF = (data: ExportData, type: 'vendas' | 'transacoes' | 'clientes' | 'produtos') => {
+export const exportToPDF = (data: ExportData, type: 'vendas' | 'transacoes' | 'clientes' | 'produtos' | 'fornecedores') => {
   const doc = new jsPDF();
   
   // Configurações gerais
@@ -68,6 +68,18 @@ export const exportToPDF = (data: ExportData, type: 'vendas' | 'transacoes' | 'c
         produto.fornecedorNome || 'N/A'
       ]) || [];
       break;
+
+    case 'fornecedores':
+      headers = ['Nome', 'Contato', 'Telefone', 'Email', 'Cidade', 'Estado'];
+      tableData = data.fornecedores?.map(fornecedor => [
+        fornecedor.nome,
+        fornecedor.contato,
+        fornecedor.telefone,
+        fornecedor.email,
+        fornecedor.cidade,
+        fornecedor.estado
+      ]) || [];
+      break;
   }
 
   autoTable(doc, {
@@ -91,7 +103,7 @@ export const exportToPDF = (data: ExportData, type: 'vendas' | 'transacoes' | 'c
   doc.save(`${type}_${new Date().toISOString().slice(0, 10)}.pdf`);
 };
 
-export const exportToExcel = (data: ExportData, type: 'vendas' | 'transacoes' | 'clientes' | 'produtos') => {
+export const exportToExcel = (data: ExportData, type: 'vendas' | 'transacoes' | 'clientes' | 'produtos' | 'fornecedores') => {
   let worksheetData: any[] = [];
   let headers: string[] = [];
 
@@ -142,6 +154,21 @@ export const exportToExcel = (data: ExportData, type: 'vendas' | 'transacoes' | 
         'Quantidade': produto.quantidade,
         'Fornecedor': produto.fornecedorNome || 'N/A',
         'Data Cadastro': new Date(produto.dataCadastro).toLocaleDateString('pt-BR')
+      })) || [];
+      break;
+
+    case 'fornecedores':
+      headers = ['Nome', 'Contato', 'Telefone', 'Email', 'Endereço', 'Cidade', 'Estado', 'CNPJ', 'Prazo Entrega'];
+      worksheetData = data.fornecedores?.map(fornecedor => ({
+        'Nome': fornecedor.nome,
+        'Contato': fornecedor.contato,
+        'Telefone': fornecedor.telefone,
+        'Email': fornecedor.email,
+        'Endereço': fornecedor.endereco,
+        'Cidade': fornecedor.cidade,
+        'Estado': fornecedor.estado,
+        'CNPJ': fornecedor.cnpj,
+        'Prazo Entrega': `${fornecedor.prazoEntrega} dias`
       })) || [];
       break;
   }

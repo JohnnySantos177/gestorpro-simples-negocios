@@ -12,10 +12,10 @@ import { toast } from "sonner";
 import { useFornecedorForm } from "@/hooks/useFornecedorForm";
 import { FornecedorDialogs } from "@/components/fornecedores/FornecedorDialogs";
 import { FornecedorFormData } from "@/components/fornecedores/FornecedorForm";
+import { ExportButtons } from "@/components/ExportButtons";
 
 const FornecedoresPage = () => {
   const { filterFornecedores, addFornecedor, updateFornecedor, deleteFornecedor, fornecedores } = useData();
-  const { isSubscribed } = useSubscription();
   
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     search: "",
@@ -122,7 +122,14 @@ const FornecedoresPage = () => {
         description="Gerencie seus fornecedores"
         icon={<Truck className="h-6 w-6" />}
         actions={
-          <Button onClick={handleOpenAddDialog}>Novo Fornecedor</Button>
+          <div className="flex gap-2">
+            <ExportButtons 
+              data={fornecedores} 
+              type="fornecedores" 
+              disabled={fornecedores.length === 0}
+            />
+            <Button onClick={handleOpenAddDialog}>Novo Fornecedor</Button>
+          </div>
         }
       />
 
