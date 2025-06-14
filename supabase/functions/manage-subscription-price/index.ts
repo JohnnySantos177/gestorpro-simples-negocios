@@ -30,7 +30,7 @@ serve(async (req) => {
     
     // Use database function to check admin status instead of hardcoded email
     const { data: isAdminResult, error: adminError } = await supabaseClient
-      .rpc('is_admin', { user_id: user.id });
+      .rpc('is_admin_secure', { user_id: user.id });
     
     if (adminError) throw new Error("Failed to verify admin status");
     if (!isAdminResult) throw new Error("Unauthorized: Admin access required");
@@ -44,6 +44,13 @@ serve(async (req) => {
       throw new Error("Invalid price value");
     }
 
+    // Get old price for audit logging
+    const { data: oldSetting } = await supabaseClient
+      .from('settings')
+      .select('value')
+      .eq('key', 'subscription_price')
+      .single();
+
     // Save the new price to the settings table
     const { data, error } = await supabaseClient
       .from('settings')
@@ -55,10 +62,12 @@ serve(async (req) => {
     if (error) throw error;
     
     // Log admin action for security monitoring
-    await supabaseClient.from('admin_logs').insert({
-      admin_id: user.id,
+    await supabaseClient.from('security_audit_logs').insert({
+      user_id: user.id,
       action: 'update_subscription_price',
-      details: { old_price: null, new_price: price },
+      resource_type: 'settings',
+      success: true,
+      metadata: { old_price: oldSetting?.value, new_price: price },
     });
     
     return new Response(JSON.stringify({ 
@@ -69,8 +78,24 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error updating subscription price:", error);
+    
+    // Log failed admin action for security monitoring
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userData } = await supabaseClient.auth.getUser(token);
+      if (userData.user) {
+        await supabaseClient.from('security_audit_logs').insert({
+          user_id: userData.user.id,
+          action: 'update_subscription_price',
+          resource_type: 'settings',
+          success: false,
+          error_message: error.message,
+        });
+      }
+    }
     
     // Generic error messages for security (don't expose internal details)
     let userMessage = "Unable to process request";

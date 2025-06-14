@@ -12,45 +12,93 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    // Create a Supabase client using the anon key (this is a read-only operation)
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-    );
+  // Create a Supabase client using the service role key for secure data access
+  const supabaseClient = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    { auth: { persistSession: false } }
+  );
 
-    // Get the subscription price from settings
-    const { data, error } = await supabaseClient
+  try {
+    // Verify user authentication
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      throw new Error("Authentication required");
+    }
+    
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData } = await supabaseClient.auth.getUser(token);
+    const user = userData.user;
+    
+    if (!user?.id) {
+      throw new Error("User not authenticated");
+    }
+
+    // Get subscription price from settings table
+    const { data: setting, error } = await supabaseClient
       .from('settings')
       .select('value')
       .eq('key', 'subscription_price')
-      .maybeSingle();
+      .single();
 
     if (error) {
       console.error("Error fetching subscription price:", error);
-      return new Response(JSON.stringify({ 
-        price: 5999 // Default fallback price
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
+      throw new Error("Unable to fetch subscription price");
     }
+
+    const price = parseInt(setting.value);
     
-    const price = data?.value ? parseInt(data.value) : 5999; // Default R$59.99 in cents
-    
+    // Input validation
+    if (isNaN(price) || price <= 0) {
+      throw new Error("Invalid price configuration");
+    }
+
+    // Log successful action for security monitoring
+    await supabaseClient.from('security_audit_logs').insert({
+      user_id: user.id,
+      action: 'get_subscription_price',
+      resource_type: 'settings',
+      success: true,
+      metadata: { price: price },
+    });
+
     return new Response(JSON.stringify({ 
-      price: price
+      price: price,
+      success: true 
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in get-subscription-price:", error);
+    
+    // Log failed action for security monitoring
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userData } = await supabaseClient.auth.getUser(token);
+      if (userData.user) {
+        await supabaseClient.from('security_audit_logs').insert({
+          user_id: userData.user.id,
+          action: 'get_subscription_price',
+          resource_type: 'settings',
+          success: false,
+          error_message: error.message,
+        });
+      }
+    }
+    
+    // Generic error message for security
+    const userMessage = error.message.includes("Authentication required") 
+      ? "Authentication required" 
+      : "Unable to process request";
+    
     return new Response(JSON.stringify({ 
-      price: 5999 // Default fallback price
+      error: userMessage,
+      success: false
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
+      status: error.message.includes("Authentication") ? 401 : 500,
     });
   }
 });

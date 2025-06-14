@@ -104,7 +104,24 @@ export const useAuthState = () => {
 
       setProfile(profileData);
       
-      const adminStatus = profileData.is_super_admin || profileData.tipo_usuario === 'admin_mestre' || isMasterAdmin;
+      // Use secure admin check via database function
+      let adminStatus = false;
+      try {
+        const { data: isAdminResult, error: adminError } = await supabase
+          .rpc('is_admin_secure', { user_id: currentUser.id });
+        
+        if (!adminError && isAdminResult) {
+          adminStatus = true;
+        } else {
+          // Fallback to profile-based check for master admin
+          adminStatus = profileData.is_super_admin || profileData.tipo_usuario === 'admin_mestre' || isMasterAdmin;
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        // Fallback to profile-based check
+        adminStatus = profileData.is_super_admin || profileData.tipo_usuario === 'admin_mestre' || isMasterAdmin;
+      }
+      
       setIsAdmin(adminStatus);
       
     } catch (error) {
@@ -166,8 +183,8 @@ export const useAuthState = () => {
             if (type === "recovery") {
               toast.success("Você pode redefinir sua senha agora.");
             }
-            await handleAuthChange(null); // Force re-evaluation of auth state after setting session
-            return; // onAuthStateChange will be triggered and handle the rest
+            await handleAuthChange(null);
+            return;
           }
         }
 
@@ -183,11 +200,9 @@ export const useAuthState = () => {
     };
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event, currentSession) => {
-      // Use an IIFE to ensure the outer callback does not return a promise
       (async () => {
         if (!mounted) return;
 
-        // Only react to SIGNED_IN or SIGNED_OUT for changes, TOKEN_REFRESHED is handled by session update itself
         if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
           await handleAuthChange(currentSession);
         }
@@ -200,7 +215,7 @@ export const useAuthState = () => {
       mounted = false;
       authListener?.subscription.unsubscribe();
     };
-  }, [loadUserProfile]); // Only re-run if loadUserProfile changes (which it won't due to useCallback)
+  }, [loadUserProfile]);
 
   return {
     session,

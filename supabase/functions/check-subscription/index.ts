@@ -27,8 +27,14 @@ serve(async (req) => {
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
-    // Initialize Stripe with secret key
-    const stripe = new Stripe("sk_test_51RNhaPQVGReNUF6iM9HtcrW7XLbfOCZEcCz2R0jdaI2rDO7jjyUJV5N5WqsvHGKZP19Ed0tBL5KvcAaunHcdDtz200i1aUi3bC", {
+    // Get Stripe secret key from environment variables (security fix)
+    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeSecretKey) {
+      throw new Error("Stripe secret key not configured");
+    }
+
+    // Initialize Stripe with secret key from environment
+    const stripe = new Stripe(stripeSecretKey, {
       apiVersion: "2023-10-16",
     });
 
@@ -99,6 +105,15 @@ serve(async (req) => {
       });
     }
 
+    // Log successful action for security monitoring
+    await supabaseClient.from('security_audit_logs').insert({
+      user_id: user.id,
+      action: 'check_subscription',
+      resource_type: 'subscription',
+      success: true,
+      metadata: { has_active_subscription: hasActiveSub },
+    });
+
     return new Response(JSON.stringify({
       subscribed: hasActiveSub,
       subscription_id: subscriptionId,
@@ -109,7 +124,29 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("Error checking subscription:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    
+    // Log failed action for security monitoring
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userData } = await supabaseClient.auth.getUser(token);
+      if (userData.user) {
+        await supabaseClient.from('security_audit_logs').insert({
+          user_id: userData.user.id,
+          action: 'check_subscription',
+          resource_type: 'subscription',
+          success: false,
+          error_message: error.message,
+        });
+      }
+    }
+    
+    // Generic error message for security (don't expose internal details)
+    const userMessage = error.message.includes("not configured") 
+      ? "Service temporarily unavailable" 
+      : "Unable to process request";
+    
+    return new Response(JSON.stringify({ error: userMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
