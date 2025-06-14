@@ -36,13 +36,19 @@ const ResetPasswordPage = () => {
   const [tokenChecked, setTokenChecked] = useState(false);
   const [tokenError, setTokenError] = useState<string | null>(null);
 
-  // Verifica se existe um token de redefinição na URL
+  // URL DE EXEMPLO PARA O SUPABASE!
+  // No painel do Supabase > Auth > URL Configuration:
+  // Adicione: https://seuprojeto.lovable.app/reset-password
+  // E use exatamente este endereço no campo "Redirect URL" de recuperação de senha.
+
+  // Mantém a lógica: identificando o token do Supabase na URL,
+  // se houver, mostra a tela de redefinir senha.
+  
   useEffect(() => {
     const checkForToken = async () => {
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       const accessToken = hashParams.get('access_token');
       const type = hashParams.get('type');
-      // O "type" pode ser "recovery" quando for reset de senha
       if (accessToken && type === "recovery") {
         try {
           const { error } = await supabase.auth.setSession({
@@ -61,7 +67,6 @@ const ResetPasswordPage = () => {
           setTokenChecked(true);
         }
       } else if (accessToken) {
-        // Caso token mas não seja do tipo correto, ainda sim permita o fluxo (para compatibilidade)
         setHasResetToken(true);
         setTokenChecked(true);
       } else {
@@ -69,6 +74,7 @@ const ResetPasswordPage = () => {
       }
     };
     checkForToken();
+    // eslint-disable-next-line
   }, []);
 
   // Formulários de request e de redefinição de senha
