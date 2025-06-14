@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -50,7 +49,7 @@ export default function ResetPasswordPage() {
       toast({
         title: "Senha redefinida com sucesso!",
         description: "Agora você pode acessar o aplicativo com sua nova senha.",
-        variant: "success",
+        variant: "default", // Corrigido: só aceita "default" ou "destructive"
       });
       setTimeout(() => navigate("/login"), 2000);
     } else {
