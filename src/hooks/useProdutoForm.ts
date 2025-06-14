@@ -4,9 +4,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Produto, Fornecedor } from "@/types";
-import { useData } from "@/context/DataContext";
 
-const produtoSchema = z.object({
+// Match ProdutoFormData in ProdutoForm.tsx!
+export const produtoSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
   descricao: z.string().optional(),
   categoria: z.string().min(1, "Categoria é obrigatória"),
@@ -20,11 +20,12 @@ export type ProdutoFormData = z.infer<typeof produtoSchema>;
 
 export const useProdutoForm = (fornecedores: Fornecedor[]) => {
   const { addProduto, updateProduto, deleteProduto } = useData();
-  
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<"add" | "edit" | "delete">("add");
   const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null);
 
+  // EXPLICIT GENERIC: ProdutoFormData
   const form = useForm<ProdutoFormData>({
     resolver: zodResolver(produtoSchema),
     defaultValues: {
@@ -50,18 +51,19 @@ export const useProdutoForm = (fornecedores: Fornecedor[]) => {
     });
     setDialogType("add");
     setDialogOpen(true);
+    setSelectedProduto(null); // ensure no selectedProduto on add
   };
 
   const openEditDialog = (produto: Produto) => {
     setSelectedProduto(produto);
     form.reset({
-      nome: produto.nome,
-      descricao: produto.descricao,
-      categoria: produto.categoria,
-      precoCompra: produto.precoCompra,
-      precoVenda: produto.precoVenda,
-      quantidade: produto.quantidade,
-      fornecedorId: produto.fornecedorId,
+      nome: produto.nome ?? "",
+      descricao: produto.descricao ?? "",
+      categoria: produto.categoria ?? "",
+      precoCompra: produto.precoCompra ?? 0,
+      precoVenda: produto.precoVenda ?? 0,
+      quantidade: produto.quantidade ?? 0,
+      fornecedorId: produto.fornecedorId ?? "",
     });
     setDialogType("edit");
     setDialogOpen(true);
@@ -75,7 +77,7 @@ export const useProdutoForm = (fornecedores: Fornecedor[]) => {
 
   const handleAddEditSubmit = (data: ProdutoFormData) => {
     const fornecedor = fornecedores.find((f) => f.id === data.fornecedorId);
-    
+
     if (dialogType === "add") {
       addProduto({
         nome: data.nome,
@@ -99,7 +101,6 @@ export const useProdutoForm = (fornecedores: Fornecedor[]) => {
         fornecedorNome: fornecedor?.nome || "",
       });
     }
-    
     setDialogOpen(false);
   };
 
