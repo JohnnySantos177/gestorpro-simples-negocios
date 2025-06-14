@@ -56,34 +56,53 @@ const Dashboard = () => {
     return produto.quantidade <= limiteBaixo;
   });
 
-  const temEstoqueBaixo = produtosEstoqueBaixo.length > 0;
+  // Calcular produtos com estoque normal (entre o limite baixo e 70% do máximo)
+  const produtosEstoqueNormal = produtos.filter(produto => {
+    const estoqueMaximo = Math.max(...produtos.map(p => p.quantidade), 50);
+    const limiteBaixo = Math.max(estoqueMaximo * 0.15, 10);
+    const limiteAlto = estoqueMaximo * 0.7;
+    return produto.quantidade > limiteBaixo && produto.quantidade <= limiteAlto;
+  });
 
-  // Dados atualizados para o gráfico de status do estoque com alerta
+  // Calcular produtos com estoque alto (acima de 70% do máximo)
+  const produtosEstoqueAlto = produtos.filter(produto => {
+    const estoqueMaximo = Math.max(...produtos.map(p => p.quantidade), 50);
+    const limiteAlto = estoqueMaximo * 0.7;
+    return produto.quantidade > limiteAlto;
+  });
+
+  const temEstoqueBaixo = produtosEstoqueBaixo.length > 0;
+  const totalProdutos = produtos.length;
+
+  // Dados atualizados para o gráfico de status do estoque com percentuais corretos
   const estoqueData = [
     { 
       name: "Estoque Crítico", 
       value: produtosEstoqueBaixo.length,
+      percent: totalProdutos > 0 ? (produtosEstoqueBaixo.length / totalProdutos * 100).toFixed(1) : 0,
       color: "#EF4444" // Vermelho para estoque baixo
     },
     { 
       name: "Estoque Normal", 
-      value: dashboardStats.estoqueStatus.normal,
-      color: "#9b87f5" // Roxo padrão
+      value: produtosEstoqueNormal.length,
+      percent: totalProdutos > 0 ? (produtosEstoqueNormal.length / totalProdutos * 100).toFixed(1) : 0,
+      color: "#7C3AED" // Roxo médio
     },
     { 
       name: "Estoque Alto", 
-      value: dashboardStats.estoqueStatus.alto,
-      color: "#10B981" // Verde para estoque alto
+      value: produtosEstoqueAlto.length,
+      percent: totalProdutos > 0 ? (produtosEstoqueAlto.length / totalProdutos * 100).toFixed(1) : 0,
+      color: "#A855F7" // Roxo claro
     },
-  ];
+  ].filter(item => item.value > 0); // Só mostrar categorias que têm produtos
 
   // Configuração de cores dos gráficos
   const chartConfig = {
     vendas: { color: "#9b87f5" },
     produtos: { color: "#9b87f5" },
     estoqueCritico: { color: "#EF4444" },
-    estoqueNormal: { color: "#9b87f5" },
-    estoqueAlto: { color: "#10B981" },
+    estoqueNormal: { color: "#7C3AED" },
+    estoqueAlto: { color: "#A855F7" },
   };
 
   return (
@@ -184,39 +203,58 @@ const Dashboard = () => {
                 </AlertDescription>
               </Alert>
             )}
-            <div className="h-[180px] flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={estoqueData.filter(item => item.value > 0)}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={60}
-                    dataKey="value"
-                    label={({name, percent, value}) => 
-                      value > 0 ? `${name}: ${value} (${(percent * 100).toFixed(0)}%)` : ''
-                    }
-                    labelLine={false}
-                  >
-                    {estoqueData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={entry.color}
+            {totalProdutos > 0 ? (
+              <>
+                <div className="h-[180px] flex items-center justify-center">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={estoqueData}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={60}
+                        dataKey="value"
+                        label={({name, percent}) => 
+                          `${name}: ${percent}%`
+                        }
+                        labelLine={false}
+                      >
+                        {estoqueData.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={entry.color}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value: number, name: string, props: any) => [
+                          `${value} produtos (${props.payload.percent}%)`, 
+                          name === "Estoque Crítico" ? "⚠️ " + name : name
+                        ]} 
                       />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value: number, name: string) => [
-                      `${value} produtos`, 
-                      name === "Estoque Crítico" ? "⚠️ " + name : name
-                    ]} 
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="text-center mt-3">
-              <p className="text-sm text-red-600 font-medium">Estoque crítico</p>
-            </div>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="text-center mt-3 space-y-1">
+                  {estoqueData.map((item, index) => (
+                    <div key={index} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <span>{item.name}</span>
+                      </div>
+                      <span className="font-medium">{item.value} ({item.percent}%)</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="h-[180px] flex items-center justify-center text-gray-500">
+                <p>Nenhum produto cadastrado</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
