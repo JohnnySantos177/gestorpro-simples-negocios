@@ -165,7 +165,7 @@ export const ProdutoForm: React.FC<ProdutoFormProps> = ({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">Sem fornecedor</SelectItem>
+                  <SelectItem value="sem-fornecedor">Sem fornecedor</SelectItem>
                   {fornecedores.map((fornecedor) => (
                     <SelectItem key={fornecedor.id} value={fornecedor.id}>
                       {fornecedor.nome}

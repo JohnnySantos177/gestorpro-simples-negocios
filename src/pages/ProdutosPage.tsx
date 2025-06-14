@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Layout } from "@/components/Layout";
 import { PageHeader } from "@/components/PageHeader";
@@ -60,23 +59,29 @@ const ProdutosPage = () => {
     console.log('Form submitted:', data);
     
     // Buscar nome do fornecedor se fornecedorId estiver definido
-    const fornecedorNome = data.fornecedorId 
+    const fornecedorNome = data.fornecedorId && data.fornecedorId !== "sem-fornecedor"
       ? fornecedores.find(f => f.id === data.fornecedorId)?.nome || ""
       : "";
 
+    // Prepare the complete product data with all required fields
+    const produtoData = {
+      nome: data.nome,
+      descricao: data.descricao,
+      categoria: data.categoria,
+      precoCompra: data.precoCompra,
+      precoVenda: data.precoVenda,
+      quantidade: data.quantidade,
+      fornecedorId: data.fornecedorId === "sem-fornecedor" ? "" : data.fornecedorId,
+      fornecedorNome
+    };
+
     if (dialogType === 'add') {
-      const success = await addProduto({
-        ...data,
-        fornecedorNome
-      });
+      const success = await addProduto(produtoData);
       if (success) {
         setDialogOpen(false);
       }
     } else if (dialogType === 'edit' && selectedProduto) {
-      await updateProduto(selectedProduto.id, {
-        ...data,
-        fornecedorNome
-      });
+      await updateProduto(selectedProduto.id, produtoData);
       setDialogOpen(false);
     }
   };

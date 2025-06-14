@@ -25,7 +25,7 @@ export const useProdutoForm = (initialData?: Partial<ProdutoFormData>) => {
       precoCompra: initialData?.precoCompra || 0,
       precoVenda: initialData?.precoVenda || 0,
       quantidade: initialData?.quantidade || 0,
-      fornecedorId: initialData?.fornecedorId || "",
+      fornecedorId: initialData?.fornecedorId || "sem-fornecedor",
     },
   });
 };
