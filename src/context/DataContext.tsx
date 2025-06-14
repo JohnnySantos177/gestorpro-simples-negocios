@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { 
   Cliente, Produto, Fornecedor, Compra, Transacao, 
@@ -402,18 +403,64 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   // Compras - removida verificação de limite
   const addCompra = async (compra: Omit<Compra, "id">) => {
     try {
+      console.log('Iniciando processo de venda:', compra);
+      
+      // Verificar estoque suficiente antes de criar a venda
+      const estoqueInsuficiente = [];
+      for (const item of compra.produtos) {
+        const produto = produtos.find(p => p.id === item.produtoId);
+        if (!produto) {
+          toast.error(`Produto ${item.produtoNome} não encontrado`);
+          return false;
+        }
+        if (produto.quantidade < item.quantidade) {
+          estoqueInsuficiente.push({
+            nome: produto.nome,
+            disponivel: produto.quantidade,
+            solicitado: item.quantidade
+          });
+        }
+      }
+      
+      if (estoqueInsuficiente.length > 0) {
+        const mensagens = estoqueInsuficiente.map(item => 
+          `${item.nome}: disponível ${item.disponivel}, solicitado ${item.solicitado}`
+        );
+        toast.error(`Estoque insuficiente para: ${mensagens.join(', ')}`);
+        return false;
+      }
+
+      // Criar a venda
       const newCompra = await supabaseDataService.createCompra(compra);
       setCompras([newCompra, ...compras]);
       
-      // Atualizar estoque dos produtos
-      newCompra.produtos.forEach(item => {
-        const produto = produtos.find(p => p.id === item.produtoId);
-        if (produto) {
-          updateProduto(produto.id, { 
-            quantidade: produto.quantidade - item.quantidade 
+      console.log('Venda criada, atualizando estoque...');
+      
+      // Atualizar estoque dos produtos no estado local e no banco
+      const produtosAtualizados = [...produtos];
+      for (const item of newCompra.produtos) {
+        const produtoIndex = produtosAtualizados.findIndex(p => p.id === item.produtoId);
+        if (produtoIndex !== -1) {
+          const produto = produtosAtualizados[produtoIndex];
+          const novaQuantidade = produto.quantidade - item.quantidade;
+          
+          console.log(`Atualizando estoque do produto ${produto.nome}: ${produto.quantidade} -> ${novaQuantidade}`);
+          
+          // Atualizar no banco de dados
+          await supabaseDataService.updateProduto(produto.id, { 
+            quantidade: novaQuantidade 
           });
+          
+          // Atualizar no estado local
+          produtosAtualizados[produtoIndex] = {
+            ...produto,
+            quantidade: novaQuantidade
+          };
         }
-      });
+      }
+      
+      // Atualizar estado dos produtos
+      setProdutos(produtosAtualizados);
       
       // Adicionar transação correspondente
       await addTransacao({
@@ -427,6 +474,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         clienteId: newCompra.clienteId
       });
       
+      console.log('Venda e atualização de estoque concluídas com sucesso');
       toast.success('Venda registrada com sucesso!');
       return true;
     } catch (error) {
