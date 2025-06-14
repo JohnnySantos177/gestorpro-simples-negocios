@@ -12,13 +12,13 @@ const ConfirmationSuccessPage = () => {
   const sessionId = searchParams.get("session_id");
 
   useEffect(() => {
-    // If this is a confirmation from Stripe checkout, check subscription status
+    // If this is a confirmation from Mercado Pago checkout, check subscription status
     if (sessionId) {
       checkSubscriptionStatus();
     }
     
     // Log confirmation success for debugging
-    console.log("Confirmation success page loaded", { fromStripe: !!sessionId });
+    console.log("Confirmation success page loaded", { fromMercadoPago: !!sessionId });
   }, [sessionId, checkSubscriptionStatus]);
 
   return (
@@ -42,7 +42,7 @@ const ConfirmationSuccessPage = () => {
           <CardTitle className="text-2xl font-bold">Sua confirmação foi feita com sucesso!</CardTitle>
         </CardHeader>
         <CardContent className="text-center">
-          <p className="text-muted-foreground">Seu pagamento via Stripe foi processado. Por favor, vá para a tela de login</p>
+          <p className="text-muted-foreground">Seu pagamento via Mercado Pago foi processado. Por favor, vá para a tela de login</p>
         </CardContent>
         <CardFooter className="flex justify-center">
           <Link to="/login">
