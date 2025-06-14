@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { CATEGORIAS_FINANCEIRAS } from "@/data/constants";
 import { DollarSign, Edit, Trash2 } from "lucide-react";
 import { CrudDialog } from "@/components/CrudDialog";
+import { ExportButtons } from "@/components/ExportButtons";
 import { useSubscription } from "@/context/SubscriptionContext";
 import { toast } from "sonner";
 import {
@@ -192,6 +193,11 @@ const FinanceiroPage = () => {
         icon={<DollarSign className="h-6 w-6" />}
         actions={
           <div className="flex gap-2">
+            <ExportButtons 
+              data={transacoes} 
+              type="transacoes" 
+              disabled={transacoes.length === 0}
+            />
             <Button variant="outline" onClick={() => openAddDialog('entrada')}>Nova Entrada</Button>
             <Button onClick={() => openAddDialog('saida')}>Nova Saída</Button>
           </div>

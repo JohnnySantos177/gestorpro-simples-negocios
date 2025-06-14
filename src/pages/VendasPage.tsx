@@ -11,6 +11,7 @@ import { CrudDialog } from "@/components/CrudDialog";
 import { VendaForm } from "./Vendas/components/VendaForm";
 import { useVendasLimits } from "@/hooks/useVendasLimits";
 import { VendasLimitBanner } from "@/components/VendasLimitBanner";
+import { ExportButtons } from "@/components/ExportButtons";
 import { toast } from "sonner";
 
 const VendasPage = () => {
@@ -103,10 +104,17 @@ const VendasPage = () => {
         description="Gerencie suas vendas"
         icon={<ShoppingCart className="h-6 w-6" />}
         actions={
-          <Button onClick={openAddDialog}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Venda
-          </Button>
+          <div className="flex gap-2">
+            <ExportButtons 
+              data={compras} 
+              type="vendas" 
+              disabled={compras.length === 0}
+            />
+            <Button onClick={openAddDialog}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Venda
+            </Button>
+          </div>
         }
       />
 
