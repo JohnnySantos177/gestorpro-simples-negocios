@@ -105,47 +105,41 @@ const Dashboard = () => {
           <CardHeader>
             <CardTitle>Vendas por Período</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-[280px] w-full">
-              <ChartContainer config={chartConfig}>
+          <CardContent className="p-4">
+            <div className="h-[250px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
                 <LineChart
                   data={dashboardStats.vendasPorPeriodo}
                   margin={{
-                    top: 5,
-                    right: 20,
-                    left: 20,
-                    bottom: 5,
+                    top: 10,
+                    right: 10,
+                    left: 10,
+                    bottom: 20,
                   }}
                 >
                   <XAxis 
                     dataKey="periodo" 
-                    tick={{ fontSize: 12 }}
-                    tickMargin={5}
+                    tick={{ fontSize: 10 }}
+                    height={30}
                   />
                   <YAxis 
-                    tick={{ fontSize: 12 }}
-                    tickMargin={5}
-                    width={60}
+                    tick={{ fontSize: 10 }}
+                    width={50}
                   />
-                  <ChartTooltip
-                    content={
-                      <ChartTooltipContent 
-                        formatter={(value: number) => [formatCurrency(value), "Vendas"]}
-                        labelFormatter={(label) => `Período: ${label}`}
-                      />
-                    }
+                  <Tooltip
+                    formatter={(value: number) => [formatCurrency(value), "Vendas"]}
+                    labelFormatter={(label) => `Período: ${label}`}
                   />
                   <Line
                     type="monotone"
                     dataKey="valor"
                     stroke="#9b87f5"
                     strokeWidth={2}
-                    dot={{ r: 4, fill: "#9b87f5" }}
-                    activeDot={{ r: 6, fill: "#9b87f5" }}
-                    name="vendas"
+                    dot={{ r: 3, fill: "#9b87f5" }}
+                    activeDot={{ r: 5, fill: "#9b87f5" }}
                   />
                 </LineChart>
-              </ChartContainer>
+              </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
@@ -154,15 +148,15 @@ const Dashboard = () => {
           <CardHeader>
             <CardTitle>Status do Estoque</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-[280px] flex items-center justify-center">
+          <CardContent className="p-4">
+            <div className="h-[250px] flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={estoqueData}
                     cx="50%"
                     cy="50%"
-                    outerRadius={70}
+                    outerRadius={60}
                     dataKey="value"
                     label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
                   >
@@ -184,48 +178,41 @@ const Dashboard = () => {
           <CardHeader>
             <CardTitle>Produtos Mais Vendidos</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-[280px] w-full">
-              <ChartContainer config={chartConfig}>
+          <CardContent className="p-4">
+            <div className="h-[250px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={dashboardStats.produtosMaisVendidos}
                   layout="vertical"
                   margin={{
-                    top: 5,
+                    top: 10,
                     right: 20,
-                    left: 100,
-                    bottom: 5,
+                    left: 80,
+                    bottom: 10,
                   }}
                 >
                   <XAxis 
                     type="number" 
-                    tick={{ fontSize: 12 }}
-                    tickMargin={5}
+                    tick={{ fontSize: 10 }}
                   />
                   <YAxis
                     type="category"
                     dataKey="nome"
-                    width={90}
-                    tick={{ fontSize: 11 }}
-                    tickMargin={5}
+                    width={75}
+                    tick={{ fontSize: 9 }}
                   />
-                  <ChartTooltip
-                    content={
-                      <ChartTooltipContent 
-                        formatter={(value: number) => [`${value} unidades`, "Quantidade"]}
-                        labelFormatter={(label) => `Produto: ${label}`}
-                      />
-                    }
+                  <Tooltip
+                    formatter={(value: number) => [`${value} unidades`, "Quantidade"]}
+                    labelFormatter={(label) => `Produto: ${label}`}
                   />
                   <Bar 
                     dataKey="quantidade" 
-                    name="produtos"
                     fill="#9b87f5" 
-                    barSize={20}
-                    radius={[0, 4, 4, 0]}
+                    barSize={18}
+                    radius={[0, 3, 3, 0]}
                   />
                 </BarChart>
-              </ChartContainer>
+              </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
