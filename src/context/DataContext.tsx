@@ -1,12 +1,12 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { v4 as uuidv4 } from "uuid";
 import { 
   Cliente, Produto, Fornecedor, Compra, Transacao, 
   Feedback, Promocao, FilterOptions, DashboardStats 
 } from "../types";
 import { useSubscription } from "./SubscriptionContext";
+import { useAuth } from "./AuthContext";
 import { toast } from "sonner";
+import { supabaseDataService } from "@/services/supabaseDataService";
 
 interface DataContextType {
   // Data arrays
@@ -18,34 +18,37 @@ interface DataContextType {
   feedbacks: Feedback[];
   promocoes: Promocao[];
   
+  // Loading states
+  loading: boolean;
+  
   // CRUD operations
-  addCliente: (cliente: Omit<Cliente, "id" | "dataCadastro">) => boolean;
-  updateCliente: (id: string, cliente: Partial<Cliente>) => void;
-  deleteCliente: (id: string) => void;
+  addCliente: (cliente: Omit<Cliente, "id" | "dataCadastro">) => Promise<boolean>;
+  updateCliente: (id: string, cliente: Partial<Cliente>) => Promise<void>;
+  deleteCliente: (id: string) => Promise<void>;
   
-  addProduto: (produto: Omit<Produto, "id" | "dataCadastro">) => boolean;
-  updateProduto: (id: string, produto: Partial<Produto>) => void;
-  deleteProduto: (id: string) => void;
+  addProduto: (produto: Omit<Produto, "id" | "dataCadastro">) => Promise<boolean>;
+  updateProduto: (id: string, produto: Partial<Produto>) => Promise<void>;
+  deleteProduto: (id: string) => Promise<void>;
   
-  addFornecedor: (fornecedor: Omit<Fornecedor, "id" | "dataCadastro">) => boolean;
-  updateFornecedor: (id: string, fornecedor: Partial<Fornecedor>) => void;
-  deleteFornecedor: (id: string) => void;
+  addFornecedor: (fornecedor: Omit<Fornecedor, "id" | "dataCadastro">) => Promise<boolean>;
+  updateFornecedor: (id: string, fornecedor: Partial<Fornecedor>) => Promise<void>;
+  deleteFornecedor: (id: string) => Promise<void>;
   
-  addCompra: (compra: Omit<Compra, "id">) => boolean;
-  updateCompra: (id: string, compra: Partial<Compra>) => void;
-  deleteCompra: (id: string) => void;
+  addCompra: (compra: Omit<Compra, "id">) => Promise<boolean>;
+  updateCompra: (id: string, compra: Partial<Compra>) => Promise<void>;
+  deleteCompra: (id: string) => Promise<void>;
   
-  addTransacao: (transacao: Omit<Transacao, "id">) => boolean;
-  updateTransacao: (id: string, transacao: Partial<Transacao>) => void;
-  deleteTransacao: (id: string) => void;
+  addTransacao: (transacao: Omit<Transacao, "id">) => Promise<boolean>;
+  updateTransacao: (id: string, transacao: Partial<Transacao>) => Promise<void>;
+  deleteTransacao: (id: string) => Promise<void>;
   
-  addFeedback: (feedback: Omit<Feedback, "id">) => boolean;
-  updateFeedback: (id: string, feedback: Partial<Feedback>) => void;
-  deleteFeedback: (id: string) => void;
+  addFeedback: (feedback: Omit<Feedback, "id">) => Promise<boolean>;
+  updateFeedback: (id: string, feedback: Partial<Feedback>) => Promise<void>;
+  deleteFeedback: (id: string) => Promise<void>;
   
-  addPromocao: (promocao: Omit<Promocao, "id">) => boolean;
-  updatePromocao: (id: string, promocao: Partial<Promocao>) => void;
-  deletePromocao: (id: string) => void;
+  addPromocao: (promocao: Omit<Promocao, "id">) => Promise<boolean>;
+  updatePromocao: (id: string, promocao: Partial<Promocao>) => Promise<void>;
+  deletePromocao: (id: string) => Promise<void>;
   
   // Dashboard data
   dashboardStats: DashboardStats;
@@ -62,6 +65,9 @@ interface DataContextType {
   filterFornecedores: (options: FilterOptions) => Fornecedor[];
   filterCompras: (options: FilterOptions) => Compra[];
   filterTransacoes: (options: FilterOptions) => Transacao[];
+
+  // Refresh data
+  refreshData: () => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -80,42 +86,17 @@ interface DataProviderProps {
 
 export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const { isSubscribed } = useSubscription();
+  const { user, loading: authLoading } = useAuth();
   
   // Estado inicial
-  const [clientes, setClientes] = useState<Cliente[]>(() => {
-    const saved = localStorage.getItem("gestorpro_clientes");
-    return saved ? JSON.parse(saved) : [];
-  });
-  
-  const [produtos, setProdutos] = useState<Produto[]>(() => {
-    const saved = localStorage.getItem("gestorpro_produtos");
-    return saved ? JSON.parse(saved) : [];
-  });
-  
-  const [fornecedores, setFornecedores] = useState<Fornecedor[]>(() => {
-    const saved = localStorage.getItem("gestorpro_fornecedores");
-    return saved ? JSON.parse(saved) : [];
-  });
-  
-  const [compras, setCompras] = useState<Compra[]>(() => {
-    const saved = localStorage.getItem("gestorpro_compras");
-    return saved ? JSON.parse(saved) : [];
-  });
-  
-  const [transacoes, setTransacoes] = useState<Transacao[]>(() => {
-    const saved = localStorage.getItem("gestorpro_transacoes");
-    return saved ? JSON.parse(saved) : [];
-  });
-  
-  const [feedbacks, setFeedbacks] = useState<Feedback[]>(() => {
-    const saved = localStorage.getItem("gestorpro_feedbacks");
-    return saved ? JSON.parse(saved) : [];
-  });
-  
-  const [promocoes, setPromocoes] = useState<Promocao[]>(() => {
-    const saved = localStorage.getItem("gestorpro_promocoes");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
+  const [compras, setCompras] = useState<Compra[]>([]);
+  const [transacoes, setTransacoes] = useState<Transacao[]>([]);
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+  const [promocoes, setPromocoes] = useState<Promocao[]>([]);
+  const [loading, setLoading] = useState(false);
   
   const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
     totalClientes: 0,
@@ -137,35 +118,52 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     }
     return true;
   };
-  
-  // Persistência no localStorage
+
+  // Função para carregar todos os dados
+  const loadData = async () => {
+    if (!user || authLoading) return;
+    
+    setLoading(true);
+    try {
+      const [
+        clientesData,
+        produtosData,
+        fornecedoresData,
+        comprasData,
+        transacoesData,
+        feedbacksData,
+        promocoesData
+      ] = await Promise.all([
+        supabaseDataService.getClientes(),
+        supabaseDataService.getProdutos(),
+        supabaseDataService.getFornecedores(),
+        supabaseDataService.getCompras(),
+        supabaseDataService.getTransacoes(),
+        supabaseDataService.getFeedbacks(),
+        supabaseDataService.getPromocoes()
+      ]);
+
+      setClientes(clientesData);
+      setProdutos(produtosData);
+      setFornecedores(fornecedoresData);
+      setCompras(comprasData);
+      setTransacoes(transacoesData);
+      setFeedbacks(feedbacksData);
+      setPromocoes(promocoesData);
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+      toast.error('Erro ao carregar dados do servidor');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Carregar dados quando o usuário estiver autenticado
   useEffect(() => {
-    localStorage.setItem("gestorpro_clientes", JSON.stringify(clientes));
-  }, [clientes]);
-  
-  useEffect(() => {
-    localStorage.setItem("gestorpro_produtos", JSON.stringify(produtos));
-  }, [produtos]);
-  
-  useEffect(() => {
-    localStorage.setItem("gestorpro_fornecedores", JSON.stringify(fornecedores));
-  }, [fornecedores]);
-  
-  useEffect(() => {
-    localStorage.setItem("gestorpro_compras", JSON.stringify(compras));
-  }, [compras]);
-  
-  useEffect(() => {
-    localStorage.setItem("gestorpro_transacoes", JSON.stringify(transacoes));
-  }, [transacoes]);
-  
-  useEffect(() => {
-    localStorage.setItem("gestorpro_feedbacks", JSON.stringify(feedbacks));
-  }, [feedbacks]);
-  
-  useEffect(() => {
-    localStorage.setItem("gestorpro_promocoes", JSON.stringify(promocoes));
-  }, [promocoes]);
+    if (user && !authLoading) {
+      loadData();
+    }
+  }, [user, authLoading]);
   
   // Atualizar estatísticas do dashboard
   const updateDashboardStats = () => {
@@ -252,235 +250,345 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   // CRUD operations
   
   // Clientes
-  const addCliente = (cliente: Omit<Cliente, "id" | "dataCadastro">) => {
+  const addCliente = async (cliente: Omit<Cliente, "id" | "dataCadastro">) => {
     if (!checkFreeLimit(clientes, "clientes")) return false;
     
-    const newCliente: Cliente = {
-      ...cliente,
-      id: uuidv4(),
-      dataCadastro: new Date().toISOString()
-    };
-    setClientes([...clientes, newCliente]);
-    return true;
-  };
-  
-  const updateCliente = (id: string, clienteUpdate: Partial<Cliente>) => {
-    setClientes(
-      clientes.map(cliente => 
-        cliente.id === id ? { ...cliente, ...clienteUpdate } : cliente
-      )
-    );
-  };
-  
-  const deleteCliente = (id: string) => {
-    setClientes(clientes.filter(cliente => cliente.id !== id));
-    // Remover compras, transações e feedbacks relacionados
-    setCompras(compras.filter(compra => compra.clienteId !== id));
-    setTransacoes(transacoes.filter(transacao => transacao.clienteId !== id));
-    setFeedbacks(feedbacks.filter(feedback => feedback.clienteId !== id));
-  };
-  
-  // Produtos
-  const addProduto = (produto: Omit<Produto, "id" | "dataCadastro">) => {
-    if (!checkFreeLimit(produtos, "produtos")) return false;
-    
-    const newProduto: Produto = {
-      ...produto,
-      id: uuidv4(),
-      dataCadastro: new Date().toISOString()
-    };
-    setProdutos([...produtos, newProduto]);
-    return true;
-  };
-  
-  const updateProduto = (id: string, produtoUpdate: Partial<Produto>) => {
-    setProdutos(
-      produtos.map(produto => 
-        produto.id === id ? { ...produto, ...produtoUpdate } : produto
-      )
-    );
-  };
-  
-  const deleteProduto = (id: string) => {
-    setProdutos(produtos.filter(produto => produto.id !== id));
-    // Atualizar compras que contenham o produto
-    setCompras(
-      compras.map(compra => ({
-        ...compra,
-        produtos: compra.produtos.filter(item => item.produtoId !== id),
-        valorTotal: compra.produtos
-          .filter(item => item.produtoId !== id)
-          .reduce((total, item) => total + item.subtotal, 0)
-      }))
-    );
-    // Remover promoções relacionadas ao produto
-    setPromocoes(promocoes.filter(promo => promo.produtoId !== id));
-  };
-  
-  // Fornecedores
-  const addFornecedor = (fornecedor: Omit<Fornecedor, "id" | "dataCadastro">) => {
-    if (!checkFreeLimit(fornecedores, "fornecedores")) return false;
-    
-    const newFornecedor: Fornecedor = {
-      ...fornecedor,
-      id: uuidv4(),
-      dataCadastro: new Date().toISOString()
-    };
-    setFornecedores([...fornecedores, newFornecedor]);
-    return true;
-  };
-  
-  const updateFornecedor = (id: string, fornecedorUpdate: Partial<Fornecedor>) => {
-    setFornecedores(
-      fornecedores.map(fornecedor => 
-        fornecedor.id === id ? { ...fornecedor, ...fornecedorUpdate } : fornecedor
-      )
-    );
-  };
-  
-  const deleteFornecedor = (id: string) => {
-    setFornecedores(fornecedores.filter(fornecedor => fornecedor.id !== id));
-    // Atualizar produtos que pertençam ao fornecedor
-    setProdutos(
-      produtos.map(produto => 
-        produto.fornecedorId === id 
-          ? { ...produto, fornecedorId: '', fornecedorNome: 'Sem fornecedor' } 
-          : produto
-      )
-    );
-    // Remover transações relacionadas ao fornecedor
-    setTransacoes(transacoes.filter(transacao => transacao.fornecedorId !== id));
-  };
-  
-  // Compras
-  const addCompra = (compra: Omit<Compra, "id">) => {
-    if (!checkFreeLimit(compras, "compras")) return false;
-    
-    const newCompra: Compra = {
-      ...compra,
-      id: uuidv4()
-    };
-    setCompras([...compras, newCompra]);
-    
-    // Atualizar estoque dos produtos
-    newCompra.produtos.forEach(item => {
-      const produto = produtos.find(p => p.id === item.produtoId);
-      if (produto) {
-        updateProduto(produto.id, { 
-          quantidade: produto.quantidade - item.quantidade 
-        });
-      }
-    });
-    
-    // Adicionar transação correspondente
-    addTransacao({
-      tipo: 'entrada',
-      categoria: 'Vendas',
-      descricao: `Venda para ${newCompra.clienteNome}`,
-      valor: newCompra.valorTotal,
-      data: newCompra.data,
-      formaPagamento: newCompra.formaPagamento,
-      compraId: newCompra.id,
-      clienteId: newCompra.clienteId
-    });
-    
-    return true;
-  };
-  
-  const updateCompra = (id: string, compraUpdate: Partial<Compra>) => {
-    const compraAntiga = compras.find(c => c.id === id);
-    
-    setCompras(
-      compras.map(compra => 
-        compra.id === id ? { ...compra, ...compraUpdate } : compra
-      )
-    );
-    
-    // Atualizar transação correspondente
-    if (compraAntiga && compraUpdate.valorTotal !== undefined) {
-      const transacao = transacoes.find(t => t.compraId === id);
-      if (transacao) {
-        updateTransacao(transacao.id, { valor: compraUpdate.valorTotal });
-      }
+    try {
+      const newCliente = await supabaseDataService.createCliente(cliente);
+      setClientes([newCliente, ...clientes]);
+      toast.success('Cliente adicionado com sucesso!');
+      return true;
+    } catch (error) {
+      console.error('Erro ao adicionar cliente:', error);
+      toast.error('Erro ao adicionar cliente');
+      return false;
     }
   };
   
-  const deleteCompra = (id: string) => {
-    setCompras(compras.filter(compra => compra.id !== id));
-    // Remover transações relacionadas
-    setTransacoes(transacoes.filter(transacao => transacao.compraId !== id));
+  const updateCliente = async (id: string, clienteUpdate: Partial<Cliente>) => {
+    try {
+      await supabaseDataService.updateCliente(id, clienteUpdate);
+      setClientes(
+        clientes.map(cliente => 
+          cliente.id === id ? { ...cliente, ...clienteUpdate } : cliente
+        )
+      );
+      toast.success('Cliente atualizado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao atualizar cliente:', error);
+      toast.error('Erro ao atualizar cliente');
+    }
+  };
+  
+  const deleteCliente = async (id: string) => {
+    try {
+      await supabaseDataService.deleteCliente(id);
+      setClientes(clientes.filter(cliente => cliente.id !== id));
+      setCompras(compras.filter(compra => compra.clienteId !== id));
+      setTransacoes(transacoes.filter(transacao => transacao.clienteId !== id));
+      setFeedbacks(feedbacks.filter(feedback => feedback.clienteId !== id));
+      toast.success('Cliente removido com sucesso!');
+    } catch (error) {
+      console.error('Erro ao remover cliente:', error);
+      toast.error('Erro ao remover cliente');
+    }
+  };
+  
+  // Produtos
+  const addProduto = async (produto: Omit<Produto, "id" | "dataCadastro">) => {
+    if (!checkFreeLimit(produtos, "produtos")) return false;
+    
+    try {
+      const newProduto = await supabaseDataService.createProduto(produto);
+      setProdutos([newProduto, ...produtos]);
+      toast.success('Produto adicionado com sucesso!');
+      return true;
+    } catch (error) {
+      console.error('Erro ao adicionar produto:', error);
+      toast.error('Erro ao adicionar produto');
+      return false;
+    }
+  };
+  
+  const updateProduto = async (id: string, produtoUpdate: Partial<Produto>) => {
+    try {
+      await supabaseDataService.updateProduto(id, produtoUpdate);
+      setProdutos(
+        produtos.map(produto => 
+          produto.id === id ? { ...produto, ...produtoUpdate } : produto
+        )
+      );
+      toast.success('Produto atualizado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao atualizar produto:', error);
+      toast.error('Erro ao atualizar produto');
+    }
+  };
+  
+  const deleteProduto = async (id: string) => {
+    try {
+      await supabaseDataService.deleteProduto(id);
+      setProdutos(produtos.filter(produto => produto.id !== id));
+      setCompras(
+        compras.map(compra => ({
+          ...compra,
+          produtos: compra.produtos.filter(item => item.produtoId !== id),
+          valorTotal: compra.produtos
+            .filter(item => item.produtoId !== id)
+            .reduce((total, item) => total + item.subtotal, 0)
+        }))
+      );
+      setPromocoes(promocoes.filter(promo => promo.produtoId !== id));
+      toast.success('Produto removido com sucesso!');
+    } catch (error) {
+      console.error('Erro ao remover produto:', error);
+      toast.error('Erro ao remover produto');
+    }
+  };
+  
+  // Fornecedores
+  const addFornecedor = async (fornecedor: Omit<Fornecedor, "id" | "dataCadastro">) => {
+    if (!checkFreeLimit(fornecedores, "fornecedores")) return false;
+    
+    try {
+      const newFornecedor = await supabaseDataService.createFornecedor(fornecedor);
+      setFornecedores([newFornecedor, ...fornecedores]);
+      toast.success('Fornecedor adicionado com sucesso!');
+      return true;
+    } catch (error) {
+      console.error('Erro ao adicionar fornecedor:', error);
+      toast.error('Erro ao adicionar fornecedor');
+      return false;
+    }
+  };
+  
+  const updateFornecedor = async (id: string, fornecedorUpdate: Partial<Fornecedor>) => {
+    try {
+      await supabaseDataService.updateFornecedor(id, fornecedorUpdate);
+      setFornecedores(
+        fornecedores.map(fornecedor => 
+          fornecedor.id === id ? { ...fornecedor, ...fornecedorUpdate } : fornecedor
+        )
+      );
+      toast.success('Fornecedor atualizado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao atualizar fornecedor:', error);
+      toast.error('Erro ao atualizar fornecedor');
+    }
+  };
+  
+  const deleteFornecedor = async (id: string) => {
+    try {
+      await supabaseDataService.deleteFornecedor(id);
+      setFornecedores(fornecedores.filter(fornecedor => fornecedor.id !== id));
+      setProdutos(
+        produtos.map(produto => 
+          produto.fornecedorId === id 
+            ? { ...produto, fornecedorId: '', fornecedorNome: 'Sem fornecedor' } 
+            : produto
+        )
+      );
+      setTransacoes(transacoes.filter(transacao => transacao.fornecedorId !== id));
+      toast.success('Fornecedor removido com sucesso!');
+    } catch (error) {
+      console.error('Erro ao remover fornecedor:', error);
+      toast.error('Erro ao remover fornecedor');
+    }
+  };
+  
+  // Compras
+  const addCompra = async (compra: Omit<Compra, "id">) => {
+    if (!checkFreeLimit(compras, "compras")) return false;
+    
+    try {
+      const newCompra = await supabaseDataService.createCompra(compra);
+      setCompras([newCompra, ...compras]);
+      
+      // Atualizar estoque dos produtos
+      newCompra.produtos.forEach(item => {
+        const produto = produtos.find(p => p.id === item.produtoId);
+        if (produto) {
+          updateProduto(produto.id, { 
+            quantidade: produto.quantidade - item.quantidade 
+          });
+        }
+      });
+      
+      // Adicionar transação correspondente
+      await addTransacao({
+        tipo: 'entrada',
+        categoria: 'Vendas',
+        descricao: `Venda para ${newCompra.clienteNome}`,
+        valor: newCompra.valorTotal,
+        data: newCompra.data,
+        formaPagamento: newCompra.formaPagamento,
+        compraId: newCompra.id,
+        clienteId: newCompra.clienteId
+      });
+      
+      toast.success('Venda registrada com sucesso!');
+      return true;
+    } catch (error) {
+      console.error('Erro ao registrar venda:', error);
+      toast.error('Erro ao registrar venda');
+      return false;
+    }
+  };
+  
+  const updateCompra = async (id: string, compraUpdate: Partial<Compra>) => {
+    try {
+      await supabaseDataService.updateCompra(id, compraUpdate);
+      setCompras(
+        compras.map(compra => 
+          compra.id === id ? { ...compra, ...compraUpdate } : compra
+        )
+      );
+      
+      // Atualizar transação correspondente
+      if (compraUpdate.valorTotal !== undefined) {
+        const transacao = transacoes.find(t => t.compraId === id);
+        if (transacao) {
+          await updateTransacao(transacao.id, { valor: compraUpdate.valorTotal });
+        }
+      }
+      
+      toast.success('Venda atualizada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao atualizar venda:', error);
+      toast.error('Erro ao atualizar venda');
+    }
+  };
+  
+  const deleteCompra = async (id: string) => {
+    try {
+      await supabaseDataService.deleteCompra(id);
+      setCompras(compras.filter(compra => compra.id !== id));
+      setTransacoes(transacoes.filter(transacao => transacao.compraId !== id));
+      toast.success('Venda removida com sucesso!');
+    } catch (error) {
+      console.error('Erro ao remover venda:', error);
+      toast.error('Erro ao remover venda');
+    }
   };
   
   // Transações
-  const addTransacao = (transacao: Omit<Transacao, "id">) => {
+  const addTransacao = async (transacao: Omit<Transacao, "id">) => {
     if (!checkFreeLimit(transacoes, "transações")) return false;
     
-    const newTransacao: Transacao = {
-      ...transacao,
-      id: uuidv4()
-    };
-    setTransacoes([...transacoes, newTransacao]);
-    return true;
+    try {
+      const newTransacao = await supabaseDataService.createTransacao(transacao);
+      setTransacoes([newTransacao, ...transacoes]);
+      return true;
+    } catch (error) {
+      console.error('Erro ao adicionar transação:', error);
+      return false;
+    }
   };
   
-  const updateTransacao = (id: string, transacaoUpdate: Partial<Transacao>) => {
-    setTransacoes(
-      transacoes.map(transacao => 
-        transacao.id === id ? { ...transacao, ...transacaoUpdate } : transacao
-      )
-    );
+  const updateTransacao = async (id: string, transacaoUpdate: Partial<Transacao>) => {
+    try {
+      await supabaseDataService.updateTransacao(id, transacaoUpdate);
+      setTransacoes(
+        transacoes.map(transacao => 
+          transacao.id === id ? { ...transacao, ...transacaoUpdate } : transacao
+        )
+      );
+    } catch (error) {
+      console.error('Erro ao atualizar transação:', error);
+    }
   };
   
-  const deleteTransacao = (id: string) => {
-    setTransacoes(transacoes.filter(transacao => transacao.id !== id));
+  const deleteTransacao = async (id: string) => {
+    try {
+      await supabaseDataService.deleteTransacao(id);
+      setTransacoes(transacoes.filter(transacao => transacao.id !== id));
+    } catch (error) {
+      console.error('Erro ao remover transação:', error);
+    }
   };
   
   // Feedbacks
-  const addFeedback = (feedback: Omit<Feedback, "id">) => {
+  const addFeedback = async (feedback: Omit<Feedback, "id">) => {
     if (!checkFreeLimit(feedbacks, "avaliações")) return false;
     
-    const newFeedback: Feedback = {
-      ...feedback,
-      id: uuidv4()
-    };
-    setFeedbacks([...feedbacks, newFeedback]);
-    return true;
+    try {
+      const newFeedback = await supabaseDataService.createFeedback(feedback);
+      setFeedbacks([newFeedback, ...feedbacks]);
+      toast.success('Avaliação adicionada com sucesso!');
+      return true;
+    } catch (error) {
+      console.error('Erro ao adicionar avaliação:', error);
+      toast.error('Erro ao adicionar avaliação');
+      return false;
+    }
   };
   
-  const updateFeedback = (id: string, feedbackUpdate: Partial<Feedback>) => {
-    setFeedbacks(
-      feedbacks.map(feedback => 
-        feedback.id === id ? { ...feedback, ...feedbackUpdate } : feedback
-      )
-    );
+  const updateFeedback = async (id: string, feedbackUpdate: Partial<Feedback>) => {
+    try {
+      await supabaseDataService.updateFeedback(id, feedbackUpdate);
+      setFeedbacks(
+        feedbacks.map(feedback => 
+          feedback.id === id ? { ...feedback, ...feedbackUpdate } : feedback
+        )
+      );
+      toast.success('Avaliação atualizada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao atualizar avaliação:', error);
+      toast.error('Erro ao atualizar avaliação');
+    }
   };
   
-  const deleteFeedback = (id: string) => {
-    setFeedbacks(feedbacks.filter(feedback => feedback.id !== id));
+  const deleteFeedback = async (id: string) => {
+    try {
+      await supabaseDataService.deleteFeedback(id);
+      setFeedbacks(feedbacks.filter(feedback => feedback.id !== id));
+      toast.success('Avaliação removida com sucesso!');
+    } catch (error) {
+      console.error('Erro ao remover avaliação:', error);
+      toast.error('Erro ao remover avaliação');
+    }
   };
   
   // Promoções
-  const addPromocao = (promocao: Omit<Promocao, "id">) => {
+  const addPromocao = async (promocao: Omit<Promocao, "id">) => {
     if (!checkFreeLimit(promocoes, "promoções")) return false;
     
-    const newPromocao: Promocao = {
-      ...promocao,
-      id: uuidv4()
-    };
-    setPromocoes([...promocoes, newPromocao]);
-    return true;
+    try {
+      const newPromocao = await supabaseDataService.createPromocao(promocao);
+      setPromocoes([newPromocao, ...promocoes]);
+      toast.success('Promoção adicionada com sucesso!');
+      return true;
+    } catch (error) {
+      console.error('Erro ao adicionar promoção:', error);
+      toast.error('Erro ao adicionar promoção');
+      return false;
+    }
   };
   
-  const updatePromocao = (id: string, promocaoUpdate: Partial<Promocao>) => {
-    setPromocoes(
-      promocoes.map(promocao => 
-        promocao.id === id ? { ...promocao, ...promocaoUpdate } : promocao
-      )
-    );
+  const updatePromocao = async (id: string, promocaoUpdate: Partial<Promocao>) => {
+    try {
+      await supabaseDataService.updatePromocao(id, promocaoUpdate);
+      setPromocoes(
+        promocoes.map(promocao => 
+          promocao.id === id ? { ...promocao, ...promocaoUpdate } : promocao
+        )
+      );
+      toast.success('Promoção atualizada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao atualizar promoção:', error);
+      toast.error('Erro ao atualizar promoção');
+    }
   };
   
-  const deletePromocao = (id: string) => {
-    setPromocoes(promocoes.filter(promocao => promocao.id !== id));
+  const deletePromocao = async (id: string) => {
+    try {
+      await supabaseDataService.deletePromocao(id);
+      setPromocoes(promocoes.filter(promocao => promocao.id !== id));
+      toast.success('Promoção removida com sucesso!');
+    } catch (error) {
+      console.error('Erro ao remover promoção:', error);
+      toast.error('Erro ao remover promoção');
+    }
   };
   
   // Helper functions
@@ -668,6 +776,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     const startIndex = (options.page - 1) * options.itemsPerPage;
     return result.slice(startIndex, startIndex + options.itemsPerPage);
   };
+
+  const refreshData = async () => {
+    await loadData();
+  };
   
   const value = {
     clientes,
@@ -677,6 +789,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     transacoes,
     feedbacks,
     promocoes,
+    loading,
     
     addCliente,
     updateCliente,
@@ -717,7 +830,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     filterProdutos,
     filterFornecedores,
     filterCompras,
-    filterTransacoes
+    filterTransacoes,
+
+    refreshData
   };
   
   return (
