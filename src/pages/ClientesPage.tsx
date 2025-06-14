@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { 
   Edit, 
@@ -35,9 +36,10 @@ import { formatDate } from "@/utils/format";
 import { toast } from "sonner";
 import { z } from "zod";
 
+// Atualize o schema: email deve ser string().optional().or(z.literal(""))
 const clienteSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
-  email: z.string().optional(), // Email não é mais obrigatório
+  email: z.string().email("E-mail inválido").optional().or(z.literal("")),
   telefone: z.string().min(1, "Telefone é obrigatório"),
   endereco: z.string().min(1, "Endereço é obrigatório"),
   cidade: z.string().min(1, "Cidade é obrigatória"),
@@ -83,11 +85,18 @@ const ClientesPage = () => {
   };
   
   const handleSaveCliente = () => {
+    // Não exige mais e-mail obrigatório
     if (!newCliente.nome || !newCliente.telefone) {
       toast.error("Por favor, preencha os campos obrigatórios: nome e telefone.");
       return;
     }
-    
+    // Valida dados usando schema atualizado
+    const result = clienteSchema.safeParse(newCliente);
+    if (!result.success) {
+      toast.error(result.error.errors.map(e => e.message).join(", "));
+      return;
+    }
+
     addCliente(newCliente as Omit<Cliente, "id" | "dataCadastro">);
     toast.success("Cliente adicionado com sucesso!");
     setNewCliente({
@@ -109,7 +118,13 @@ const ClientesPage = () => {
         toast.error("Por favor, preencha os campos obrigatórios: nome e telefone.");
         return;
       }
-      
+      // Valida dados usando schema atualizado
+      const result = clienteSchema.safeParse(editingCliente);
+      if (!result.success) {
+        toast.error(result.error.errors.map(e => e.message).join(", "));
+        return;
+      }
+
       updateCliente(editingCliente.id, editingCliente);
       toast.success("Cliente atualizado com sucesso!");
       setEditingCliente(null);
@@ -203,7 +218,7 @@ const ClientesPage = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email *</Label>
+                    <Label htmlFor="email">Email</Label>
                     <Input
                       id="email"
                       type="email"
@@ -378,7 +393,7 @@ const ClientesPage = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-email">Email *</Label>
+                  <Label htmlFor="edit-email">Email</Label>
                   <Input
                     id="edit-email"
                     type="email"
@@ -500,3 +515,4 @@ const ClientesPage = () => {
 };
 
 export default ClientesPage;
+
