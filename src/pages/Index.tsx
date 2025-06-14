@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { 
   Users, 
@@ -131,23 +130,23 @@ const Dashboard = () => {
                 <LineChart
                   data={dashboardStats.vendasPorPeriodo}
                   margin={{
-                    top: 20,
-                    right: 20,
-                    left: 20,
-                    bottom: 40,
+                    top: 10,
+                    right: 10,
+                    left: 10,
+                    bottom: 30,
                   }}
                 >
                   <XAxis 
                     dataKey="periodo" 
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 10 }}
                     interval={0}
                     angle={-45}
                     textAnchor="end"
-                    height={60}
+                    height={50}
                   />
                   <YAxis 
-                    tick={{ fontSize: 11 }}
-                    width={60}
+                    tick={{ fontSize: 10 }}
+                    width={50}
                   />
                   <Tooltip
                     formatter={(value: number) => [formatCurrency(value), "Vendas"]}
@@ -158,8 +157,8 @@ const Dashboard = () => {
                     dataKey="valor"
                     stroke="#9b87f5"
                     strokeWidth={2}
-                    dot={{ r: 4, fill: "#9b87f5" }}
-                    activeDot={{ r: 6, fill: "#9b87f5" }}
+                    dot={{ r: 3, fill: "#9b87f5" }}
+                    activeDot={{ r: 5, fill: "#9b87f5" }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -185,14 +184,14 @@ const Dashboard = () => {
                 </AlertDescription>
               </Alert>
             )}
-            <div className="h-[200px] flex items-center justify-center">
+            <div className="h-[180px] flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={estoqueData.filter(item => item.value > 0)}
                     cx="50%"
                     cy="50%"
-                    outerRadius={70}
+                    outerRadius={60}
                     dataKey="value"
                     label={({name, percent, value}) => 
                       value > 0 ? `${name}: ${value} (${(percent * 100).toFixed(0)}%)` : ''
@@ -215,6 +214,9 @@ const Dashboard = () => {
                 </PieChart>
               </ResponsiveContainer>
             </div>
+            <div className="text-center mt-3">
+              <p className="text-sm text-red-600 font-medium">Estoque crítico</p>
+            </div>
           </CardContent>
         </Card>
 
@@ -229,21 +231,21 @@ const Dashboard = () => {
                   data={dashboardStats.produtosMaisVendidos}
                   layout="vertical"
                   margin={{
-                    top: 20,
-                    right: 30,
-                    left: 100,
-                    bottom: 20,
+                    top: 10,
+                    right: 20,
+                    left: 80,
+                    bottom: 10,
                   }}
                 >
                   <XAxis 
                     type="number" 
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 10 }}
                   />
                   <YAxis
                     type="category"
                     dataKey="nome"
-                    width={90}
-                    tick={{ fontSize: 10 }}
+                    width={70}
+                    tick={{ fontSize: 9 }}
                     interval={0}
                   />
                   <Tooltip
@@ -253,8 +255,8 @@ const Dashboard = () => {
                   <Bar 
                     dataKey="quantidade" 
                     fill="#9b87f5" 
-                    barSize={20}
-                    radius={[0, 4, 4, 0]}
+                    barSize={18}
+                    radius={[0, 3, 3, 0]}
                   />
                 </BarChart>
               </ResponsiveContainer>

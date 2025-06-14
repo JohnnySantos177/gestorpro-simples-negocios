@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { CATEGORIAS_PRODUTOS } from "@/data/constants";
 import { Package, Edit, Trash2 } from "lucide-react";
 import { ProdutoDialogs } from "@/components/produtos/ProdutoDialogs";
-import { useProdutoForm } from "@/hooks/useProdutoForm";
+import { useForm } from "react-hook-form";
 
 const ProdutosPage = () => {
   const { filterProdutos, fornecedores } = useData();
@@ -22,7 +22,18 @@ const ProdutosPage = () => {
     categoria: "Todas"
   });
 
-  const form = useProdutoForm();
+  const form = useForm({
+    defaultValues: {
+      nome: "",
+      descricao: "",
+      categoria: "",
+      precoCompra: 0,
+      precoVenda: 0,
+      quantidade: 0,
+      fornecedorId: "",
+    },
+  });
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<'add' | 'edit' | 'delete'>('add');
   const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null);
