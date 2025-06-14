@@ -64,7 +64,7 @@ serve(async (req) => {
       periodDescription = "Assinatura Semestral (6 meses)";
     }
 
-    // Create payment preference - using test configuration with better error handling
+    // Create payment preference - URL correta da API
     const preferenceData = {
       items: [
         {
@@ -85,7 +85,6 @@ serve(async (req) => {
       expires: true,
       expiration_date_from: new Date().toISOString(),
       expiration_date_to: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
-      // Test configuration with additional settings
       payment_methods: {
         excluded_payment_methods: [],
         excluded_payment_types: [],
@@ -93,15 +92,19 @@ serve(async (req) => {
         default_installments: 1
       },
       notification_url: `${origin}/api/webhooks/mercadopago`,
-      // Additional test settings
       statement_descriptor: "TOTALGESTOR",
-      binary_mode: false,
-      marketplace: "NONE"
+      binary_mode: false
     };
 
     console.log("Creating preference with data:", JSON.stringify(preferenceData, null, 2));
 
-    const preferenceResponse = await fetch('https://api.mercadopago.com/checkout/preferences', {
+    // URL correta da API do Mercado Pago para criar preferências
+    const apiUrl = 'https://api.mercadopago.com/checkout/preferences';
+    
+    console.log("Making request to:", apiUrl);
+    console.log("Using token (first 20 chars):", mercadoPagoToken.substring(0, 20) + "...");
+
+    const preferenceResponse = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${mercadoPagoToken}`,
