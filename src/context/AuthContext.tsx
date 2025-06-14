@@ -40,7 +40,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   React.useEffect(() => {
     if (isVisitorMode && targetUserId && (!visitorProfile || visitorProfile.id !== targetUserId)) {
       setVisitorLoading(true);
-      // Fetch profile via supabase for the selected user
       import("@/integrations/supabase/client").then(({ supabase }) => {
         supabase
           .from("profiles")
@@ -50,7 +49,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           .then(({ data }) => {
             setVisitorProfile(data as UserProfile);
           })
-          .finally(() => setVisitorLoading(false));
+          .then(() => setVisitorLoading(false)); // Corrigido: usar .then ao invés de .finally
       });
     } else if (!isVisitorMode) {
       setVisitorProfile(null);
@@ -83,10 +82,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signUp = async (email: string, password: string, nome?: string) => {
+  // Adiciona telefone ao signUp
+  const signUp = async (email: string, password: string, nome?: string, telefone?: string) => {
     try {
       console.log("AuthContext: Sign up attempt");
-      await authService.signUp(email, password, nome);
+      await authService.signUp(email, password, nome, telefone);
     } catch (error: any) {
       throw error;
     }

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserProfile } from "@/types";
@@ -23,27 +22,30 @@ export const authService = {
   },
 
   // Sign up with email and password
-  signUp: async (email: string, password: string, nome?: string) => {
-    console.log("authService: Attempting to sign up with:", email);
-    
-    const { error } = await supabase.auth.signUp({ 
-      email: email.trim().toLowerCase(), 
+  signUp: async (email: string, password: string, nome?: string, telefone?: string) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/confirmation-success`,
         data: {
-          nome: nome || ''
-        }
-      }
+          nome: nome || "",
+          telefone: telefone || "",
+        },
+      },
     });
-    
-    if (error) {
-      console.error("authService: Sign up error:", error);
-      throw error;
+    if (error) throw error;
+
+    // Após criar, atualizar o profile (garante que telefone será salvo na tabela profiles)
+    if (data.user && (nome || telefone)) {
+      await supabase
+        .from("profiles")
+        .update({
+          nome,
+          telefone,
+        })
+        .eq("id", data.user.id);
     }
-    
-    console.log("authService: Sign up successful");
-    toast.success("Cadastro realizado com sucesso! Verifique seu e-mail para confirmar.");
+    return data;
   },
 
   // Sign out

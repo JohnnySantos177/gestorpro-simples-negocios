@@ -361,6 +361,7 @@ export type Database = {
           is_super_admin: boolean | null
           nome: string | null
           status: string | null
+          telefone: string | null
           tipo_plano: string | null
           tipo_usuario: string | null
           updated_at: string
@@ -372,6 +373,7 @@ export type Database = {
           is_super_admin?: boolean | null
           nome?: string | null
           status?: string | null
+          telefone?: string | null
           tipo_plano?: string | null
           tipo_usuario?: string | null
           updated_at?: string
@@ -383,6 +385,7 @@ export type Database = {
           is_super_admin?: boolean | null
           nome?: string | null
           status?: string | null
+          telefone?: string | null
           tipo_plano?: string | null
           tipo_usuario?: string | null
           updated_at?: string

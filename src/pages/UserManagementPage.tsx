@@ -38,6 +38,7 @@ interface ProfileData {
   nome: string | null;
   tipo_plano: string | null;
   tipo_usuario: string | null;
+  telefone?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -113,7 +114,8 @@ const UserManagementPage = () => {
             tipo_usuario: (profile.tipo_usuario as 'usuario' | 'admin_mestre') || 'usuario',
             created_at: profile.created_at,
             updated_at: profile.updated_at,
-            email: authUser?.email
+            email: authUser?.email,
+            telefone: profile.telefone || '',
           });
         });
       }
@@ -341,6 +343,9 @@ const UserManagementPage = () => {
                     )}
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">{userProfile.email}</p>
+                  {userProfile.telefone && (
+                    <p className="text-sm text-muted-foreground">Tel: {userProfile.telefone}</p>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <Badge variant={userProfile.tipo_plano === 'premium' ? 'default' : 'secondary'}>

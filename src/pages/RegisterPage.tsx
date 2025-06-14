@@ -13,6 +13,7 @@ import { useAuth } from "@/context/AuthContext";
 const registerSchema = z.object({
   nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
   email: z.string().email("E-mail inválido").min(1, "E-mail é obrigatório"),
+  telefone: z.string().min(8, "Telefone deve ter pelo menos 8 dígitos"),
   password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
   confirmPassword: z.string().min(6, "Confirme sua senha"),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -39,6 +40,7 @@ const RegisterPage = () => {
     defaultValues: {
       nome: "",
       email: "",
+      telefone: "",
       password: "",
       confirmPassword: "",
     },
@@ -47,10 +49,10 @@ const RegisterPage = () => {
   const onSubmit = async (data: RegisterFormValues) => {
     setIsLoading(true);
     try {
-      await signUp(data.email, data.password, data.nome);
+      await signUp(data.email, data.password, data.nome, data.telefone);
       navigate("/login");
     } catch (error) {
-      // Error is handled in AuthContext
+      // Error handled in AuthContext
     } finally {
       setIsLoading(false);
     }
@@ -87,6 +89,20 @@ const RegisterPage = () => {
                     <FormLabel>E-mail</FormLabel>
                     <FormControl>
                       <Input placeholder="seu@email.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {/* Campo de telefone */}
+              <FormField
+                control={form.control}
+                name="telefone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Telefone</FormLabel>
+                    <FormControl>
+                      <Input placeholder="(99) 99999-9999" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
