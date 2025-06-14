@@ -288,6 +288,65 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          currency: string
+          external_reference: string
+          id: string
+          installments: number
+          last_status_update: string | null
+          metadata: Json | null
+          payment_method: string
+          status: string
+          status_history: Json | null
+          subscription_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          currency: string
+          external_reference: string
+          id?: string
+          installments: number
+          last_status_update?: string | null
+          metadata?: Json | null
+          payment_method: string
+          status: string
+          status_history?: Json | null
+          subscription_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          currency?: string
+          external_reference?: string
+          id?: string
+          installments?: number
+          last_status_update?: string | null
+          metadata?: Json | null
+          payment_method?: string
+          status?: string
+          status_history?: Json | null
+          subscription_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produtos: {
         Row: {
           categoria: string | null

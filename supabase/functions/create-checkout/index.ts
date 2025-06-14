@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -41,17 +42,17 @@ serve(async (req) => {
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
-    // Use PRODUCTION token instead of TEST token
-    const mercadoPagoToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
+    // Use TEST token for testing
+    const mercadoPagoToken = Deno.env.get("MERCADO_PAGO_TEST_ACCESS_TOKEN");
     
     if (!mercadoPagoToken) {
-      console.error("MERCADO_PAGO_ACCESS_TOKEN not configured");
+      console.error("MERCADO_PAGO_TEST_ACCESS_TOKEN not configured");
       throw new Error("Payment service not configured");
     }
 
     console.log("Creating checkout for user:", user.email);
     console.log("Plan type:", planType, "Price:", price);
-    console.log("Using PRODUCTION token");
+    console.log("Using TEST token");
 
     // Use domínio fixo para URLs de retorno
     const origin = "https://gestorpro-simples-negocios.lovable.app";
@@ -64,7 +65,7 @@ serve(async (req) => {
       periodDescription = "Assinatura Semestral (6 meses)";
     }
 
-    // Create payment preference - using production configuration
+    // Create payment preference - using test configuration
     const preferenceData = {
       items: [
         {
@@ -85,7 +86,7 @@ serve(async (req) => {
       expires: true,
       expiration_date_from: new Date().toISOString(),
       expiration_date_to: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
-      // Production configuration
+      // Test configuration
       payment_methods: {
         excluded_payment_methods: [],
         excluded_payment_types: [],
@@ -133,17 +134,17 @@ serve(async (req) => {
     const preference = await preferenceResponse.json();
     console.log("Preference created successfully:", {
       id: preference.id,
-      init_point: preference.init_point
+      sandbox_init_point: preference.sandbox_init_point
     });
 
-    if (!preference.init_point) {
+    if (!preference.sandbox_init_point) {
       throw new Error('Failed to create preference - no payment URL returned');
     }
 
-    // Use production URL (init_point) instead of sandbox
-    const redirectUrl = preference.init_point;
+    // Use sandbox URL for test environment
+    const redirectUrl = preference.sandbox_init_point;
 
-    console.log("Using PRODUCTION redirect URL:", redirectUrl);
+    console.log("Using TEST redirect URL:", redirectUrl);
 
     // Use the service role key to perform writes in Supabase
     const serviceClient = createClient(
