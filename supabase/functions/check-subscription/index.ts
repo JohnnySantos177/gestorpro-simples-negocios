@@ -21,16 +21,44 @@ serve(async (req) => {
   );
 
   try {
-    const authHeader = req.headers.get("Authorization")!;
+    // Verify user authentication
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      throw new Error("Authentication required");
+    }
+    
     const token = authHeader.replace("Bearer ", "");
     const { data: userData } = await supabaseClient.auth.getUser(token);
     const user = userData.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
+    
+    if (!user?.id || !user?.email) {
+      throw new Error("User not authenticated or email not available");
+    }
 
-    // Get Stripe secret key from environment variables (security fix)
+    // Get Stripe secret key from environment variables
     const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeSecretKey) {
-      throw new Error("Stripe secret key not configured");
+      console.error("Stripe secret key not configured");
+      
+      // Log failed action for security monitoring
+      await supabaseClient.from('security_audit_logs').insert({
+        user_id: user.id,
+        action: 'check_subscription',
+        resource_type: 'subscription',
+        success: false,
+        error_message: 'Stripe secret key not configured',
+      });
+
+      // Return false subscription status instead of error when key is missing
+      return new Response(JSON.stringify({
+        subscribed: false,
+        subscription_id: null,
+        subscription_end: null,
+        error: "Subscription service temporarily unavailable"
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
     }
 
     // Initialize Stripe with secret key from environment
@@ -141,14 +169,26 @@ serve(async (req) => {
       }
     }
     
-    // Generic error message for security (don't expose internal details)
-    const userMessage = error.message.includes("not configured") 
-      ? "Service temporarily unavailable" 
-      : "Unable to process request";
+    // Return appropriate error based on the error type
+    if (error.message.includes("Authentication")) {
+      return new Response(JSON.stringify({ 
+        error: "Authentication required",
+        subscribed: false 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
     
-    return new Response(JSON.stringify({ error: userMessage }), {
+    // For other errors, return a generic message but still allow the app to function
+    return new Response(JSON.stringify({ 
+      error: "Unable to verify subscription status",
+      subscribed: false,
+      subscription_id: null,
+      subscription_end: null
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
+      status: 200, // Changed to 200 to prevent blocking the UI
     });
   }
 });

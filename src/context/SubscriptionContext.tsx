@@ -93,11 +93,24 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
       
       if (error) {
         console.error("Error checking subscription status:", error);
-        toast.error("Erro ao verificar status da assinatura");
+        // Don't show error toast for missing Stripe key - just silently fail
+        if (!error.message?.includes("temporarily unavailable")) {
+          toast.error("Erro ao verificar status da assinatura");
+        }
+        setIsSubscribed(false);
+        setSubscriptionStatus("inactive");
         return;
       }
       
-      setIsSubscribed(data.subscribed);
+      // Handle the case where subscription service is unavailable
+      if (data?.error) {
+        console.warn("Subscription service issue:", data.error);
+        setIsSubscribed(false);
+        setSubscriptionStatus("inactive");
+        return;
+      }
+      
+      setIsSubscribed(data.subscribed || false);
       setSubscriptionStatus(data.subscribed ? "active" : "inactive");
       
       // If subscribed, store the info in localStorage as well for offline access
@@ -113,6 +126,8 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
       }
     } catch (error) {
       console.error("Error in checkSubscriptionStatus:", error);
+      setIsSubscribed(false);
+      setSubscriptionStatus("inactive");
     }
   };
   
@@ -131,7 +146,13 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
       
       if (error) {
         console.error("Error initiating checkout:", error);
-        toast.error("Erro ao iniciar o checkout");
+        
+        // Handle specific error cases
+        if (error.message?.includes("temporarily unavailable")) {
+          toast.error("Serviço de pagamento temporariamente indisponível. Tente novamente mais tarde.");
+        } else {
+          toast.error("Erro ao iniciar o checkout");
+        }
         return;
       }
       
