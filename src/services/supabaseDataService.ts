@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Cliente, Produto, Fornecedor, Compra, Transacao, 
-  Feedback, Promocao
+  Feedback, Promocao, ItemCompra
 } from "@/types";
 
 export const supabaseDataService = {
@@ -315,7 +315,7 @@ export const supabaseDataService = {
       clienteId: item.cliente_id || '',
       clienteNome: item.cliente_nome || '',
       data: item.data,
-      produtos: Array.isArray(item.produtos) ? item.produtos : [],
+      produtos: Array.isArray(item.produtos) ? item.produtos as ItemCompra[] : [],
       valorTotal: Number(item.valor_total),
       formaPagamento: item.forma_pagamento,
       status: item.status
@@ -332,7 +332,7 @@ export const supabaseDataService = {
         cliente_id: compra.clienteId,
         cliente_nome: compra.clienteNome,
         data: compra.data,
-        produtos: compra.produtos,
+        produtos: compra.produtos as any,
         valor_total: compra.valorTotal,
         forma_pagamento: compra.formaPagamento,
         status: compra.status,
@@ -348,7 +348,7 @@ export const supabaseDataService = {
       clienteId: data.cliente_id || '',
       clienteNome: data.cliente_nome || '',
       data: data.data,
-      produtos: Array.isArray(data.produtos) ? data.produtos : [],
+      produtos: Array.isArray(data.produtos) ? data.produtos as ItemCompra[] : [],
       valorTotal: Number(data.valor_total),
       formaPagamento: data.forma_pagamento,
       status: data.status

@@ -31,12 +31,12 @@ import {
 
 const produtoSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
-  descricao: z.string().min(1, "Descrição é obrigatória"),
+  descricao: z.string().optional(), // Descrição não é mais obrigatória
   categoria: z.string().min(1, "Categoria é obrigatória"),
   precoCompra: z.coerce.number().min(0, "Preço de compra deve ser maior que 0"),
   precoVenda: z.coerce.number().min(0, "Preço de venda deve ser maior que 0"),
   quantidade: z.coerce.number().min(0, "Quantidade deve ser maior que 0"),
-  fornecedorId: z.string().min(1, "Fornecedor é obrigatório"),
+  fornecedorId: z.string().optional(), // Fornecedor não é mais obrigatório
 });
 
 type ProdutoFormData = z.infer<typeof produtoSchema>;

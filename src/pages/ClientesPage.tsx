@@ -33,6 +33,19 @@ import { Cliente, FilterOptions } from "@/types";
 import { GRUPOS_CLIENTES, ESTADOS_BRASILEIROS } from "@/data/constants";
 import { formatDate } from "@/utils/format";
 import { toast } from "sonner";
+import { z } from "zod";
+
+const clienteSchema = z.object({
+  nome: z.string().min(1, "Nome é obrigatório"),
+  email: z.string().optional(), // Email não é mais obrigatório
+  telefone: z.string().min(1, "Telefone é obrigatório"),
+  endereco: z.string().min(1, "Endereço é obrigatório"),
+  cidade: z.string().min(1, "Cidade é obrigatória"),
+  estado: z.string().min(1, "Estado é obrigatório"),
+  cep: z.string().min(1, "CEP é obrigatório"),
+  grupo: z.string().min(1, "Grupo é obrigatório"),
+  observacoes: z.string().optional(),
+});
 
 const ClientesPage = () => {
   const { clientes, addCliente, updateCliente, deleteCliente, filterClientes } = useData();
@@ -70,8 +83,8 @@ const ClientesPage = () => {
   };
   
   const handleSaveCliente = () => {
-    if (!newCliente.nome || !newCliente.email || !newCliente.telefone) {
-      toast.error("Por favor, preencha os campos obrigatórios: nome, email e telefone.");
+    if (!newCliente.nome || !newCliente.telefone) {
+      toast.error("Por favor, preencha os campos obrigatórios: nome e telefone.");
       return;
     }
     
@@ -92,8 +105,8 @@ const ClientesPage = () => {
   
   const handleUpdateCliente = () => {
     if (editingCliente) {
-      if (!editingCliente.nome || !editingCliente.email || !editingCliente.telefone) {
-        toast.error("Por favor, preencha os campos obrigatórios: nome, email e telefone.");
+      if (!editingCliente.nome || !editingCliente.telefone) {
+        toast.error("Por favor, preencha os campos obrigatórios: nome e telefone.");
         return;
       }
       

@@ -25,16 +25,16 @@ import * as z from "zod";
 import { toast } from "sonner";
 
 const fornecedorSchema = z.object({
-  nome: z.string().min(1, "Nome é obrigatório"),
-  contato: z.string().min(1, "Nome do contato é obrigatório"),
-  telefone: z.string().min(1, "Telefone é obrigatório"),
-  email: z.string().email("Email inválido"),
-  endereco: z.string().min(1, "Endereço é obrigatório"),
-  cidade: z.string().min(1, "Cidade é obrigatória"),
-  estado: z.string().min(1, "Estado é obrigatório"),
-  cep: z.string().min(1, "CEP é obrigatório"),
-  cnpj: z.string().min(1, "CNPJ é obrigatório"),
-  prazoEntrega: z.coerce.number().min(1, "Prazo de entrega deve ser maior que 0"),
+  nome: z.string().min(1, "Nome é obrigatório"), // Apenas nome obrigatório
+  contato: z.string().optional(), // Não obrigatório
+  telefone: z.string().optional(), // Não obrigatório
+  email: z.string().optional(), // Não obrigatório
+  endereco: z.string().optional(), // Não obrigatório
+  cidade: z.string().optional(), // Não obrigatório
+  estado: z.string().optional(), // Não obrigatório
+  cep: z.string().optional(), // Não obrigatório
+  cnpj: z.string().optional(), // Não obrigatório
+  prazoEntrega: z.coerce.number().min(1, "Prazo de entrega deve ser maior que 0").optional().default(1),
   observacoes: z.string().optional(),
 });
 
