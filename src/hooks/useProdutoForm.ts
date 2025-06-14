@@ -1,34 +1,22 @@
 
-import { useState } from "react";
-import { useForm, UseFormReturn } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { Produto, Fornecedor } from "@/types";
-import { useData } from "@/context/DataContext";
+import { z } from "zod";
 
-// Match ProdutoFormData in ProdutoForm.tsx!
-// fornecedorId é opcional!
-export const produtoSchema = z.object({
+const produtoSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
   descricao: z.string().optional(),
-  categoria: z.string().min(1, "Categoria é obrigatória"),
-  precoCompra: z.coerce.number().min(0, "Preço de compra deve ser maior que 0"),
-  precoVenda: z.coerce.number().min(0, "Preço de venda deve ser maior que 0"),
-  quantidade: z.coerce.number().min(0, "Quantidade deve ser maior que 0"),
-  fornecedorId: z.string().optional().or(z.literal("")), // permite string vazia ou undefined
+  categoria: z.string().optional(),
+  precoCompra: z.number().min(0, "Preço deve ser positivo").optional(),
+  precoVenda: z.number().min(0, "Preço deve ser positivo").optional(),
+  quantidade: z.number().min(0, "Quantidade deve ser positiva").optional(),
+  fornecedorId: z.string().optional(),
 });
 
 export type ProdutoFormData = z.infer<typeof produtoSchema>;
 
-export const useProdutoForm = (fornecedores: Fornecedor[]) => {
-  const { addProduto, updateProduto, deleteProduto } = useData();
-
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogType, setDialogType] = useState<"add" | "edit" | "delete">("add");
-  const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null);
-
-  // ProdutoFormData já possui definição correta
-  const form = useForm<ProdutoFormData>({
+export const useProdutoForm = (defaultValues?: Partial<ProdutoFormData>) => {
+  return useForm<ProdutoFormData>({
     resolver: zodResolver(produtoSchema),
     defaultValues: {
       nome: "",
@@ -37,95 +25,8 @@ export const useProdutoForm = (fornecedores: Fornecedor[]) => {
       precoCompra: 0,
       precoVenda: 0,
       quantidade: 0,
-      fornecedorId: "", // valor padrão é string vazia
+      fornecedorId: "",
+      ...defaultValues,
     },
   });
-
-  const openAddDialog = () => {
-    form.reset({
-      nome: "",
-      descricao: "",
-      categoria: "",
-      precoCompra: 0,
-      precoVenda: 0,
-      quantidade: 0,
-      fornecedorId: "", // string vazia ao adicionar
-    });
-    setDialogType("add");
-    setDialogOpen(true);
-    setSelectedProduto(null);
-  };
-
-  const openEditDialog = (produto: Produto) => {
-    setSelectedProduto(produto);
-    form.reset({
-      nome: produto.nome ?? "",
-      descricao: produto.descricao ?? "",
-      categoria: produto.categoria ?? "",
-      precoCompra: produto.precoCompra ?? 0,
-      precoVenda: produto.precoVenda ?? 0,
-      quantidade: produto.quantidade ?? 0,
-      fornecedorId: produto.fornecedorId ?? "",
-    });
-    setDialogType("edit");
-    setDialogOpen(true);
-  };
-
-  const openDeleteDialog = (produto: Produto) => {
-    setSelectedProduto(produto);
-    setDialogType("delete");
-    setDialogOpen(true);
-  };
-
-  const handleAddEditSubmit = (data: ProdutoFormData) => {
-    // Apenas associe se houver fornecedorId
-    const fornecedor = data.fornecedorId
-      ? fornecedores.find((f) => f.id === data.fornecedorId)
-      : undefined;
-
-    if (dialogType === "add") {
-      addProduto({
-        nome: data.nome,
-        descricao: data.descricao,
-        categoria: data.categoria,
-        precoCompra: data.precoCompra,
-        precoVenda: data.precoVenda,
-        quantidade: data.quantidade,
-        fornecedorId: data.fornecedorId || "",
-        fornecedorNome: fornecedor?.nome || "",
-      });
-    } else if (dialogType === "edit" && selectedProduto) {
-      updateProduto(selectedProduto.id, {
-        nome: data.nome,
-        descricao: data.descricao,
-        categoria: data.categoria,
-        precoCompra: data.precoCompra,
-        precoVenda: data.precoVenda,
-        quantidade: data.quantidade,
-        fornecedorId: data.fornecedorId || "",
-        fornecedorNome: fornecedor?.nome || "",
-      });
-    }
-    setDialogOpen(false);
-  };
-
-  const handleDeleteConfirm = () => {
-    if (selectedProduto) {
-      deleteProduto(selectedProduto.id);
-    }
-    setDialogOpen(false);
-  };
-
-  return {
-    form,
-    dialogOpen,
-    dialogType,
-    selectedProduto,
-    setDialogOpen,
-    openAddDialog,
-    openEditDialog,
-    openDeleteDialog,
-    handleAddEditSubmit,
-    handleDeleteConfirm,
-  };
 };
