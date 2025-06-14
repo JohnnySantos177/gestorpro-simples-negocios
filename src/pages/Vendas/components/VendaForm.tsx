@@ -91,8 +91,12 @@ export function VendaForm({ compra, onClose, readOnly = false }: VendaFormProps)
   const onSubmit = (data: VendaFormData) => {
     if (readOnly) return;
 
-    const vendaData = {
-      ...data,
+    const vendaData: Omit<Compra, "id"> = {
+      clienteId: data.clienteId,
+      clienteNome: data.clienteNome,
+      data: data.data,
+      formaPagamento: data.formaPagamento,
+      status: data.status,
       produtos: itensPedido,
       valorTotal: calcularTotal(),
     };

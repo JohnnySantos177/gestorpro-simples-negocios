@@ -139,6 +139,7 @@ const VendasPage = () => {
           }
           open={dialogOpen}
           onOpenChange={setDialogOpen}
+          onConfirm={() => {}}
           type={dialogType}
         >
           <VendaForm 

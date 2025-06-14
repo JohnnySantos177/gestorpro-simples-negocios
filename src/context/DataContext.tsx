@@ -110,7 +110,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     estoqueStatus: { baixo: 0, normal: 0, alto: 0 }
   });
   
-  // Função para verificar limites de plano gratuito
+  // Função para verificar limites de plano gratuito - removido para vendas
   const checkFreeLimit = (collection: any[], entity: string): boolean => {
     if (!isSubscribed && collection.length >= 5) {
       toast.error(`Limite atingido! Você pode cadastrar apenas 5 ${entity} no plano gratuito. Faça upgrade para adicionar mais.`);
@@ -396,10 +396,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     }
   };
   
-  // Compras
+  // Compras - removida verificação de limite
   const addCompra = async (compra: Omit<Compra, "id">) => {
-    if (!checkFreeLimit(compras, "compras")) return false;
-    
     try {
       const newCompra = await supabaseDataService.createCompra(compra);
       setCompras([newCompra, ...compras]);

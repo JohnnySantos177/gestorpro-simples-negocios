@@ -10,9 +10,9 @@ const produtoSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
   descricao: z.string().optional(),
   categoria: z.string().optional(),
-  precoCompra: z.number().min(0, "Preço deve ser positivo").optional(),
-  precoVenda: z.number().min(0, "Preço deve ser positivo").optional(),
-  quantidade: z.number().min(0, "Quantidade deve ser positiva").optional(),
+  precoCompra: z.number().min(0, "Preço deve ser positivo"),
+  precoVenda: z.number().min(0, "Preço deve ser positivo"),
+  quantidade: z.number().min(0, "Quantidade deve ser positiva"),
   fornecedorId: z.string().optional(),
 });
 
@@ -76,7 +76,7 @@ export const useProdutoForm = (fornecedores: Fornecedor[]) => {
   const handleAddEditSubmit = (data: ProdutoFormData) => {
     if (dialogType === "add") {
       const newProduto = {
-        nome: data.nome || "", // Ensure nome is always a string
+        nome: data.nome,
         descricao: data.descricao || "",
         categoria: data.categoria || "",
         precoCompra: data.precoCompra || 0,
@@ -88,7 +88,7 @@ export const useProdutoForm = (fornecedores: Fornecedor[]) => {
       addProduto(newProduto);
     } else if (dialogType === "edit" && selectedProduto) {
       const updatedProduto = {
-        nome: data.nome || "", // Ensure nome is always a string
+        nome: data.nome,
         descricao: data.descricao || "",
         categoria: data.categoria || "",
         precoCompra: data.precoCompra || 0,
