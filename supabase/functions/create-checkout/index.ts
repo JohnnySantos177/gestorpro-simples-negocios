@@ -66,75 +66,128 @@ serve(async (req) => {
     if (!customerId) {
       console.log("No customer ID found in database, searching for existing customer in Mercado Pago");
       
-      // First, try to find existing customer by email
+      // First, try to find existing customer by email with better error handling
       const customerSearchUrl = `https://api.mercadopago.com/v1/customers/search?email=${encodeURIComponent(user.email)}`;
       
-      const searchResponse = await fetch(customerSearchUrl, {
-        method: 'GET',
+      try {
+        const searchResponse = await fetch(customerSearchUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${mercadoPagoToken}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (searchResponse.ok) {
+          const searchData = await searchResponse.json();
+          console.log("Search response:", JSON.stringify(searchData));
+          
+          if (searchData.results && searchData.results.length > 0) {
+            // Customer already exists, use the existing one
+            customerId = searchData.results[0].id;
+            console.log("Found existing customer in Mercado Pago:", customerId);
+            
+            // Save to database for future use
+            await serviceClient.from('subscribers').upsert({
+              user_id: user.id,
+              email: user.email,
+              mercado_pago_customer_id: customerId,
+              created_at: new Date().toISOString(),
+            });
+          }
+        } else {
+          const searchErrorText = await searchResponse.text();
+          console.error("Error searching for customer:", searchErrorText);
+        }
+      } catch (searchError) {
+        console.error("Error in customer search:", searchError);
+      }
+    }
+
+    // Only create customer if we still don't have one
+    if (!customerId) {
+      console.log("Creating new customer for email:", user.email);
+      
+      const customerPayload = {
+        email: user.email,
+        description: `TotalGestor customer - ${user.id}`,
+      };
+      
+      console.log("Customer payload:", JSON.stringify(customerPayload));
+
+      const newCustomerResponse = await fetch('https://api.mercadopago.com/v1/customers', {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${mercadoPagoToken}`,
           'Content-Type': 'application/json',
+          'X-Idempotency-Key': user.id,
         },
+        body: JSON.stringify(customerPayload),
       });
 
-      if (searchResponse.ok) {
-        const searchData = await searchResponse.json();
+      console.log("Customer response status:", newCustomerResponse.status);
+      
+      if (!newCustomerResponse.ok) {
+        const errorText = await newCustomerResponse.text();
+        console.error("Error creating customer:", {
+          status: newCustomerResponse.status,
+          response: errorText,
+          headers: Object.fromEntries(newCustomerResponse.headers.entries())
+        });
         
-        if (searchData.results && searchData.results.length > 0) {
-          // Customer already exists, use the existing one
-          customerId = searchData.results[0].id;
-          console.log("Found existing customer in Mercado Pago:", customerId);
-        } else {
-          // Customer doesn't exist, create new one
-          console.log("Creating new customer for email:", user.email);
-          
-          const customerPayload = {
-            email: user.email,
-            description: `TotalGestor customer - ${user.id}`,
-          };
-          
-          console.log("Customer payload:", JSON.stringify(customerPayload));
-
-          const newCustomerResponse = await fetch('https://api.mercadopago.com/v1/customers', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${mercadoPagoToken}`,
-              'Content-Type': 'application/json',
-              'X-Idempotency-Key': user.id,
-            },
-            body: JSON.stringify(customerPayload),
-          });
-
-          console.log("Customer response status:", newCustomerResponse.status);
-          
-          if (!newCustomerResponse.ok) {
-            const errorText = await newCustomerResponse.text();
-            console.error("Error creating customer:", {
-              status: newCustomerResponse.status,
-              response: errorText,
-              headers: Object.fromEntries(newCustomerResponse.headers.entries())
-            });
+        // Try to parse error and see if customer already exists
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.message && errorData.message.includes("already exists")) {
+            console.log("Customer already exists error, trying to find existing customer again");
             
-            throw new Error(`Failed to create customer: ${errorText}`);
-          }
+            // Retry the search with a small delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            const retrySearchResponse = await fetch(customerSearchUrl, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${mercadoPagoToken}`,
+                'Content-Type': 'application/json',
+              },
+            });
 
-          const newCustomer = await newCustomerResponse.json();
-          console.log("Customer created successfully:", newCustomer.id);
-          customerId = newCustomer.id;
+            if (retrySearchResponse.ok) {
+              const retrySearchData = await retrySearchResponse.json();
+              if (retrySearchData.results && retrySearchData.results.length > 0) {
+                customerId = retrySearchData.results[0].id;
+                console.log("Found existing customer on retry:", customerId);
+                
+                // Save to database
+                await serviceClient.from('subscribers').upsert({
+                  user_id: user.id,
+                  email: user.email,
+                  mercado_pago_customer_id: customerId,
+                  created_at: new Date().toISOString(),
+                });
+              }
+            }
+          }
+        } catch (parseError) {
+          console.error("Error parsing customer creation error:", parseError);
+        }
+        
+        if (!customerId) {
+          throw new Error(`Failed to create customer: ${errorText}`);
         }
       } else {
-        const searchErrorText = await searchResponse.text();
-        console.error("Error searching for customer:", searchErrorText);
-        throw new Error(`Failed to search for customer: ${searchErrorText}`);
+        const newCustomer = await newCustomerResponse.json();
+        console.log("Customer created successfully:", newCustomer.id);
+        customerId = newCustomer.id;
+        
+        // Save the customer ID in Supabase
+        await serviceClient.from('subscribers').upsert({
+          user_id: user.id,
+          email: user.email,
+          mercado_pago_customer_id: customerId,
+          created_at: new Date().toISOString(),
+        });
       }
-
-      // Save the customer ID in Supabase
-      await serviceClient.from('subscribers').upsert({
-        user_id: user.id,
-        email: user.email,
-        mercado_pago_customer_id: customerId,
-        created_at: new Date().toISOString(),
-      });
     }
 
     console.log("Using customer ID:", customerId);
