@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Camera, Save } from "lucide-react";
+import { Save } from "lucide-react";
 import { formatCurrency } from "@/utils/format";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -24,11 +24,8 @@ const profileSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 const ProfilePage = () => {
-  const { user, profile, loading, uploadAvatar, updateProfile } = useAuth();
+  const { user, profile, loading, updateProfile } = useAuth();
   const { isSubscribed } = useSubscription();
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
   const [updating, setUpdating] = useState(false);
 
   const form = useForm<ProfileFormValues>({
@@ -45,12 +42,6 @@ const ProfilePage = () => {
     }
   }, [profile, form]);
 
-  // Get user avatar URL
-  const getUserAvatar = () => {
-    if (!user?.user_metadata) return null;
-    return user.user_metadata.avatar_url || null;
-  };
-
   // Get user initials for the avatar fallback
   const getUserInitials = () => {
     if (profile?.nome) {
@@ -58,35 +49,6 @@ const ProfilePage = () => {
     }
     if (!user || !user.email) return "U";
     return user.email.charAt(0).toUpperCase();
-  };
-
-  // Handle file selection
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setSelectedFile(file);
-      
-      // Create a preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Handle upload button click
-  const handleUpload = async () => {
-    if (!selectedFile) return;
-    
-    setUploading(true);
-    try {
-      await uploadAvatar(selectedFile);
-      setSelectedFile(null);
-      setPreviewUrl(null);
-    } finally {
-      setUploading(false);
-    }
   };
 
   // Handle profile update
@@ -98,10 +60,6 @@ const ProfilePage = () => {
       setUpdating(false);
     }
   };
-
-  React.useEffect(() => {
-    setPreviewUrl(getUserAvatar());
-  }, [user]);
 
   if (loading) {
     return (
@@ -127,42 +85,9 @@ const ProfilePage = () => {
           </CardHeader>
           <CardContent>
             <div className="flex flex-col items-center mb-6">
-              <div className="relative mb-4">
-                <Avatar className="h-24 w-24 border-2 border-muted">
-                  {previewUrl ? (
-                    <AvatarImage src={previewUrl} alt={user?.email || "Perfil"} />
-                  ) : (
-                    <>
-                      <AvatarImage src={getUserAvatar() || undefined} alt={user?.email || "Perfil"} />
-                      <AvatarFallback className="text-2xl">{getUserInitials()}</AvatarFallback>
-                    </>
-                  )}
-                </Avatar>
-                <label 
-                  htmlFor="avatar-upload"
-                  className="absolute bottom-0 right-0 bg-primary text-white p-1 rounded-full cursor-pointer hover:bg-primary/90 transition-colors"
-                >
-                  <Camera className="h-4 w-4" />
-                  <input 
-                    id="avatar-upload" 
-                    type="file" 
-                    className="hidden"
-                    accept="image/*" 
-                    onChange={handleFileChange}
-                  />
-                </label>
-              </div>
-
-              {selectedFile && (
-                <Button 
-                  onClick={handleUpload}
-                  disabled={uploading}
-                  size="sm"
-                  className="mt-2"
-                >
-                  {uploading ? "Enviando..." : "Salvar Foto"}
-                </Button>
-              )}
+              <Avatar className="h-24 w-24 border-2 border-muted">
+                <AvatarFallback className="text-2xl">{getUserInitials()}</AvatarFallback>
+              </Avatar>
             </div>
 
             <Form {...form}>
@@ -229,8 +154,21 @@ const ProfilePage = () => {
                   <p className="font-medium">TotalGestor Pro</p>
                 </div>
                 <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">Valor</h3>
+                  <p className="font-medium">{formatCurrency(59.99)}/mês</p>
+                </div>
+                <div>
                   <h3 className="text-sm font-medium text-muted-foreground">Status</h3>
                   <p className="font-medium text-green-600">Ativo</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">Próxima Cobrança</h3>
+                  <p className="font-medium">
+                    {format(new Date(new Date().setMonth(new Date().getMonth() + 1)), "PPP", { locale: ptBR })}
+                  </p>
+                </div>
+                <div className="pt-2">
+                  <Button variant="outline">Gerenciar Assinatura</Button>
                 </div>
               </div>
             ) : (

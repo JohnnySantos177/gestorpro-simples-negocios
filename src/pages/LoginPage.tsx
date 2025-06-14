@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -8,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { SocialLogin } from "@/components/SocialLogin";
 import { AdminNavigation } from "@/components/AdminNavigation";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -134,8 +132,6 @@ const LoginPage = () => {
                 </Button>
               </form>
             </Form>
-            
-            <SocialLogin />
           </CardContent>
           <CardFooter className="flex flex-col space-y-2">
             <div className="text-sm text-center">

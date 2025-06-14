@@ -277,7 +277,7 @@ const AdminPanel = () => {
                   <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
                 </div>
               ) : (
-                <div className="border rounded-md">
+                <div className="border rounded-md overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -375,7 +375,7 @@ const AdminPanel = () => {
               <div className="grid gap-4 max-w-lg">
                 <div className="grid gap-2">
                   <Label htmlFor="subscription-price">Preço da Assinatura Mensal (R$)</Label>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 w-full">
                     <Input 
                       id="subscription-price" 
                       type="number" 
@@ -384,10 +384,12 @@ const AdminPanel = () => {
                       placeholder="59.99"
                       defaultValue={(subscriptionPrice / 100).toFixed(2)}
                       onChange={handlePriceChange}
+                      className="w-full"
                     />
                     <Button 
                       onClick={handleUpdatePrice}
                       disabled={isUpdating}
+                      className="w-full sm:w-auto"
                     >
                       {isUpdating ? "Atualizando..." : "Atualizar"}
                     </Button>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { UserProfile } from "@/types";
@@ -13,24 +13,11 @@ export const useAuthState = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [profileLoading, setProfileLoading] = useState(false);
 
-  console.log("useAuthState: Hook rendered, loading:", loading);
-
-  // Simplified profile loading function
-  const loadUserProfile = async (currentUser: User) => {
-    if (profileLoading) {
-      console.log("useAuthState: Profile already loading, skipping");
-      return;
-    }
-
-    console.log("useAuthState: Loading profile for user:", currentUser.id);
-    setProfileLoading(true);
-    
+  const loadUserProfile = useCallback(async (currentUser: User) => {
     const isMasterAdmin = currentUser.email === MASTER_ADMIN_EMAIL;
 
     try {
-      // Get existing profile
       const { data: existingProfile, error: selectError } = await supabase
         .from("profiles")
         .select("*")
@@ -45,7 +32,6 @@ export const useAuthState = () => {
       let profileData: UserProfile;
 
       if (existingProfile) {
-        // Use existing profile, update if master admin
         if (isMasterAdmin && (!existingProfile.is_super_admin || existingProfile.tipo_usuario !== 'admin_mestre')) {
           const { data: updatedProfile } = await supabase
             .from("profiles")
@@ -80,7 +66,6 @@ export const useAuthState = () => {
           };
         }
       } else {
-        // Create new profile
         const { data: newProfile } = await supabase
           .from("profiles")
           .insert({
@@ -105,7 +90,6 @@ export const useAuthState = () => {
             is_super_admin: newProfile.is_super_admin || false
           };
         } else {
-          // Fallback profile
           profileData = {
             id: currentUser.id,
             nome: currentUser.user_metadata?.full_name || currentUser.user_metadata?.nome || '',
@@ -118,17 +102,13 @@ export const useAuthState = () => {
         }
       }
 
-      console.log("useAuthState: Profile loaded:", profileData);
       setProfile(profileData);
       
-      // Set admin status
       const adminStatus = profileData.is_super_admin || profileData.tipo_usuario === 'admin_mestre' || isMasterAdmin;
       setIsAdmin(adminStatus);
-      console.log("useAuthState: Admin status set to:", adminStatus);
       
     } catch (error) {
       console.error("useAuthState: Error loading profile:", error);
-      // Fallback profile on error
       const fallbackProfile = {
         id: currentUser.id,
         nome: currentUser.user_metadata?.full_name || currentUser.user_metadata?.nome || '',
@@ -140,20 +120,38 @@ export const useAuthState = () => {
       };
       setProfile(fallbackProfile);
       setIsAdmin(isMasterAdmin);
-    } finally {
-      setProfileLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
-    let sessionChecked = false;
-    
-    console.log("useAuthState: Initializing auth");
 
-    const initializeAuth = async () => {
+    const handleAuthChange = async (currentSession: Session | null) => {
+      if (!mounted) return;
+
+      setSession(currentSession);
+      setUser(currentSession?.user || null);
+
+      if (currentSession?.user) {
+        setLoading(true);
+        try {
+          await loadUserProfile(currentSession.user);
+        } catch (error) {
+          console.error("useAuthState: Error loading profile after auth change:", error);
+        } finally {
+          if (mounted) {
+            setLoading(false);
+          }
+        }
+      } else {
+        setProfile(null);
+        setIsAdmin(false);
+        setLoading(false);
+      }
+    };
+    
+    const initializeAuthAndListen = async () => {
       try {
-        // Handle email confirmation from URL hash
         if (typeof window !== 'undefined') {
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
           const accessToken = hashParams.get("access_token");
@@ -161,74 +159,48 @@ export const useAuthState = () => {
           const type = hashParams.get("type");
           
           if (accessToken) {
-            console.log("useAuthState: Setting session from URL hash");
             await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken || "",
             });
-            
             if (type === "recovery") {
               toast.success("Você pode redefinir sua senha agora.");
             }
-            return; // Let the auth state change handler deal with the rest
+            await handleAuthChange(null); // Force re-evaluation of auth state after setting session
+            return; // onAuthStateChange will be triggered and handle the rest
           }
         }
 
-        // Get initial session only if not already checked
-        if (!sessionChecked && mounted) {
-          console.log("useAuthState: Getting initial session");
-          const { data: { session: initialSession } } = await supabase.auth.getSession();
-          sessionChecked = true;
-          
-          if (mounted && initialSession) {
-            console.log("useAuthState: Initial session found");
-            setSession(initialSession);
-            setUser(initialSession.user);
-            await loadUserProfile(initialSession.user);
-            if (mounted) setLoading(false);
-          } else if (mounted) {
-            setLoading(false);
-          }
-        }
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        await handleAuthChange(initialSession);
+
       } catch (error) {
-        console.error('useAuthState: Error initializing auth:', error);
+        console.error('useAuthState: Error during initial auth or hash handling:', error);
         if (mounted) {
           setLoading(false);
         }
       }
     };
 
-    // Set up auth state listener
-    console.log("useAuthState: Setting up auth state listener");
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, currentSession) => {
+      // Use an IIFE to ensure the outer callback does not return a promise
+      (async () => {
         if (!mounted) return;
-        
-        console.log('useAuthState: Auth state changed:', event, session?.user?.email);
-        
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user && event !== 'TOKEN_REFRESHED') {
-          // Load profile only for significant auth events, not token refresh
-          await loadUserProfile(session.user);
-          if (mounted) setLoading(false);
-        } else if (!session) {
-          setProfile(null);
-          setIsAdmin(false);
-          if (mounted) setLoading(false);
-        }
-      }
-    );
 
-    initializeAuth();
+        // Only react to SIGNED_IN or SIGNED_OUT for changes, TOKEN_REFRESHED is handled by session update itself
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+          await handleAuthChange(currentSession);
+        }
+      })();
+    });
+
+    initializeAuthAndListen();
 
     return () => {
-      console.log("useAuthState: Cleanup");
       mounted = false;
-      subscription.unsubscribe();
+      authListener?.subscription.unsubscribe();
     };
-  }, []); // Empty dependency array to prevent loops
+  }, [loadUserProfile]); // Only re-run if loadUserProfile changes (which it won't due to useCallback)
 
   return {
     session,
@@ -238,7 +210,6 @@ export const useAuthState = () => {
     isAdmin,
     setProfile,
     setIsAdmin,
-    setLoading,
-    loadUserProfile
+    loadUserProfile,
   };
 };

@@ -1,4 +1,3 @@
-
 import { Session, User } from "@supabase/supabase-js";
 import { UserProfile } from "@/types";
 
@@ -14,5 +13,4 @@ export type AuthContextType = {
   resetPassword: (email: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
-  uploadAvatar: (file: File) => Promise<string | null>;
 };

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, ReactNode } from "react";
 import { AuthContextType } from "@/types/auth";
 import { useAuthState } from "@/hooks/useAuthState";
@@ -94,17 +93,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const uploadAvatar = async (file: File): Promise<string | null> => {
-    try {
-      if (!user) throw new Error("User not authenticated");
-
-      console.log("AuthContext: Upload avatar attempt");
-      return await authService.uploadAvatar(user.id, file);
-    } catch (error: any) {
-      return null;
-    }
-  };
-
   const value = {
     session,
     user,
@@ -117,7 +105,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     resetPassword,
     updatePassword,
     updateProfile,
-    uploadAvatar,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

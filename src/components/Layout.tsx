@@ -30,7 +30,6 @@ import {
   AvatarImage 
 } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 // Importar o ícone ChartBar corretamente
 import { BarChart as ChartBarIcon } from "lucide-react";
@@ -45,11 +44,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const { isSubscribed } = useSubscription();
-  const { user, signOut, isAdmin, uploadAvatar } = useAuth();
-  const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
+  const { user, signOut, isAdmin, profile } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -57,43 +52,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       navigate('/login');
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
-    }
-  };
-
-  const handlePhotoRegistration = () => {
-    setPhotoDialogOpen(true);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setSelectedFile(file);
-      
-      // Create a preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handlePhotoUpload = async () => {
-    if (!selectedFile) {
-      toast.error("Selecione uma foto para enviar");
-      return;
-    }
-
-    setUploading(true);
-    try {
-      const url = await uploadAvatar(selectedFile);
-      if (url) {
-        setPhotoDialogOpen(false);
-        setSelectedFile(null);
-        setPreviewUrl(null);
-      }
-    } finally {
-      setUploading(false);
     }
   };
 
@@ -107,7 +65,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { path: "/fornecedores", label: "Fornecedores", icon: <Truck className="h-5 w-5" /> },
     { path: "/avaliacoes", label: "Avaliações", icon: <MessageSquare className="h-5 w-5" /> },
     { path: "/promocoes", label: "Promoções", icon: <BadgePercent className="h-5 w-5" /> },
-    { path: "/assinatura", label: "Assinatura", icon: <DollarSign className="h-5 w-5" /> }
+    ...(profile?.tipo_plano === 'premium' ? [] : [{ path: "/assinatura", label: "Assinatura", icon: <DollarSign className="h-5 w-5" /> }])
   ];
   
   // Adicionar item de admin se o usuário for administrador
@@ -162,7 +120,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   className={cn(
                     "flex items-center gap-3 rounded-md px-3 py-2 transition-colors",
                     location.pathname === item.path
-                      ? "bg-primary/20 text-primary font-medium"
+                      ? "bg-primary text-primary-foreground font-bold"
                       : "text-sidebar-foreground hover:bg-primary/10"
                   )}
                 >
@@ -182,9 +140,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="border-t p-4">
           <div className="rounded-md bg-primary/10 p-4">
             <p className="text-sm text-primary mb-4">
-              <span className="font-medium">{isSubscribed ? "Assinatura Ativa" : "Versão Gratuita"}</span>
+              <span className="font-medium">{profile?.tipo_plano === 'premium' ? "Plano Premium" : "Plano Padrão"}</span>
             </p>
-            {!isSubscribed && (
+            {profile?.tipo_plano !== 'premium' && !isAdmin && (
               <Button 
                 size="sm"
                 variant="default" 
@@ -209,25 +167,27 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       >
         {/* Header */}
         <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
-          <button
-            onClick={toggleSidebar}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-sm font-medium hover:bg-gray-100"
-            aria-label="Toggle Menu"
-          >
-            <svg
-              width="15"
-              height="15"
-              viewBox="0 0 15 15"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
+          {isMobile && (
+            <button
+              onClick={toggleSidebar}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-sm font-medium hover:bg-gray-100"
+              aria-label="Toggle Menu"
             >
-              <path
-                d="M1.5 3C1.22386 3 1 3.22386 1 3.5C1 3.77614 1.22386 4 1.5 4H13.5C13.7761 4 14 3.77614 14 3.5C14 3.22386 13.7761 3 13.5 3H1.5ZM1 7.5C1 7.22386 1.22386 7 1.5 7H13.5C13.7761 7 14 7.22386 14 7.5C14 7.77614 13.7761 8 13.5 8H1.5C1.22386 8 1 7.77614 1 7.5ZM1 11.5C1 11.2239 1.22386 11 1.5 11H13.5C13.7761 11 14 11.2239 14 11.5C14 11.7761 13.7761 12 13.5 12H1.5C1.22386 12 1 11.7761 1 11.5Z"
-                fill="currentColor"
-              />
-            </svg>
-          </button>
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 15 15"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+              >
+                <path
+                  d="M1.5 3C1.22386 3 1 3.22386 1 3.5C1 3.77614 1.22386 4 1.5 4H13.5C13.7761 4 14 3.77614 14 3.5C14 3.22386 13.7761 3 13.5 3H1.5ZM1 7.5C1 7.22386 1.22386 7 1.5 7H13.5C13.7761 7 14 7.22386 14 7.5C14 7.77614 13.7761 8 13.5 8H1.5C1.22386 8 1 7.77614 1 7.5ZM1 11.5C1 11.2239 1.22386 11 1.5 11H13.5C13.7761 11 14 11.2239 14 11.5C14 11.7761 13.7761 12 13.5 12H1.5C1.22386 12 1 11.7761 1 11.5Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </button>
+          )}
           
           <div className="ml-auto flex items-center gap-4">
             {isAdmin && (
@@ -238,7 +198,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
             )}
             
-            {!isSubscribed && !user?.tipo_plano === 'premium' && (
+            {profile?.tipo_plano !== 'premium' && !isAdmin && (
               <div className="hidden md:block">
                 <Button asChild variant="default" size="sm">
                   <Link to="/assinatura">
@@ -248,112 +208,55 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
             )}
             
-            <div className="relative">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border bg-muted/50 hover:bg-muted/80 transition-colors">
-                    <Avatar>
-                      <AvatarImage src={getUserAvatar() || undefined} alt={user?.email || "User"} />
-                      <AvatarFallback>{getUserInitials()}</AvatarFallback>
-                    </Avatar>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <div className="px-2 py-1.5 text-sm font-medium text-muted-foreground">
-                    {user?.email}
-                    {isAdmin && (
-                      <span className="ml-2 bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                        Admin
-                      </span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={getUserAvatar() || undefined} alt={user?.email || ""} />
+                    <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <div className="flex items-center justify-start gap-2 p-2">
+                  <div className="flex flex-col space-y-1 leading-none">
+                    {user?.email && (
+                      <p className="font-medium">{user.email}</p>
+                    )}
+                    {user?.user_metadata?.full_name && (
+                      <p className="w-[200px] truncate text-sm text-muted-foreground">
+                        {user.user_metadata.full_name}
+                      </p>
                     )}
                   </div>
-                  <DropdownMenuItem className="cursor-pointer" onClick={handlePhotoRegistration}>
-                    <Camera className="mr-2 h-4 w-4" />
-                    <span>Registrar Foto</span>
-                  </DropdownMenuItem>
+                </div>
+                <DropdownMenuItem className="cursor-pointer" asChild>
+                  <Link to={`/perfil/${user?.id}`}>
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Meu Perfil</span>
+                  </Link>
+                </DropdownMenuItem>
+                {isAdmin && (
                   <DropdownMenuItem className="cursor-pointer" asChild>
-                    <Link to={`/perfil/${user?.id}`}>
-                      <User className="mr-2 h-4 w-4" />
-                      <span>Meu Perfil</span>
+                    <Link to="/admin">
+                      <ShieldAlert className="mr-2 h-4 w-4 text-red-500" />
+                      <span>Painel Admin</span>
                     </Link>
                   </DropdownMenuItem>
-                  {isAdmin && (
-                    <DropdownMenuItem className="cursor-pointer" asChild>
-                      <Link to="/admin">
-                        <ShieldAlert className="mr-2 h-4 w-4 text-red-500" />
-                        <span>Painel Admin</span>
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Sair</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+                )}
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sair</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
-
-        {/* Page content */}
-        <div className="container mx-auto p-4 sm:p-6">
+        
+        <div className="p-6">
           {children}
         </div>
       </main>
-
-      {/* Photo Upload Dialog */}
-      <Dialog open={photoDialogOpen} onOpenChange={setPhotoDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Registrar Foto</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col items-center space-y-4">
-            <div className="w-full">
-              {previewUrl ? (
-                <div className="flex justify-center">
-                  <img 
-                    src={previewUrl} 
-                    alt="Preview" 
-                    className="w-32 h-32 object-cover rounded-full border-2 border-gray-300" 
-                  />
-                </div>
-              ) : (
-                <div className="flex items-center justify-center w-32 h-32 mx-auto rounded-full bg-gray-100 border-2 border-dashed border-gray-300">
-                  <Camera className="text-gray-400" />
-                </div>
-              )}
-            </div>
-            <div className="w-full">
-              <label htmlFor="photo-upload" className="block text-sm font-medium text-gray-700 mb-2">
-                Selecione uma foto
-              </label>
-              <input 
-                type="file" 
-                id="photo-upload"
-                accept="image/*" 
-                onChange={handleFileChange}
-                className="block w-full text-sm text-gray-500
-                  file:mr-4 file:py-2 file:px-4 file:rounded-md
-                  file:border-0 file:text-sm file:font-medium
-                  file:bg-primary file:text-white
-                  hover:file:cursor-pointer"
-              />
-            </div>
-            <div className="flex justify-end w-full space-x-2">
-              <Button 
-                variant="outline" 
-                onClick={() => setPhotoDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button 
-                onClick={handlePhotoUpload} 
-                disabled={!selectedFile || uploading}>
-                {uploading ? "Enviando..." : "Salvar"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
