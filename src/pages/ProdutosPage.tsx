@@ -8,41 +8,11 @@ import { FilterOptions, Produto } from "@/types";
 import { Button } from "@/components/ui/button";
 import { CATEGORIAS_PRODUTOS } from "@/data/constants";
 import { Package, Edit, Trash2 } from "lucide-react";
-import { CrudDialog } from "@/components/CrudDialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-const produtoSchema = z.object({
-  nome: z.string().min(1, "Nome é obrigatório"),
-  descricao: z.string().optional(), // Descrição não é mais obrigatória
-  categoria: z.string().min(1, "Categoria é obrigatória"),
-  precoCompra: z.coerce.number().min(0, "Preço de compra deve ser maior que 0"),
-  precoVenda: z.coerce.number().min(0, "Preço de venda deve ser maior que 0"),
-  quantidade: z.coerce.number().min(0, "Quantidade deve ser maior que 0"),
-  fornecedorId: z.string().optional(), // Fornecedor não é mais obrigatório
-});
-
-type ProdutoFormData = z.infer<typeof produtoSchema>;
+import { ProdutoDialogs } from "@/components/produtos/ProdutoDialogs";
+import { useProdutoForm } from "@/hooks/useProdutoForm";
 
 const ProdutosPage = () => {
-  const { filterProdutos, addProduto, updateProduto, deleteProduto, fornecedores } = useData();
+  const { filterProdutos, fornecedores } = useData();
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     search: "",
     sortBy: "nome",
@@ -51,97 +21,21 @@ const ProdutosPage = () => {
     itemsPerPage: 10,
     categoria: "Todas"
   });
-  
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogType, setDialogType] = useState<"add" | "edit" | "delete">("add");
-  const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null);
 
-  const form = useForm<ProdutoFormData>({
-    resolver: zodResolver(produtoSchema),
-    defaultValues: {
-      nome: "",
-      descricao: "",
-      categoria: "",
-      precoCompra: 0,
-      precoVenda: 0,
-      quantidade: 0,
-      fornecedorId: "",
-    },
-  });
+  const {
+    form,
+    dialogOpen,
+    dialogType,
+    selectedProduto,
+    setDialogOpen,
+    openAddDialog,
+    openEditDialog,
+    openDeleteDialog,
+    handleAddEditSubmit,
+    handleDeleteConfirm,
+  } = useProdutoForm(fornecedores);
 
   const produtos = filterProdutos(filterOptions);
-
-  const openAddDialog = () => {
-    form.reset({
-      nome: "",
-      descricao: "",
-      categoria: "",
-      precoCompra: 0,
-      precoVenda: 0,
-      quantidade: 0,
-      fornecedorId: "",
-    });
-    setDialogType("add");
-    setDialogOpen(true);
-  };
-
-  const openEditDialog = (produto: Produto) => {
-    setSelectedProduto(produto);
-    form.reset({
-      nome: produto.nome,
-      descricao: produto.descricao,
-      categoria: produto.categoria,
-      precoCompra: produto.precoCompra,
-      precoVenda: produto.precoVenda,
-      quantidade: produto.quantidade,
-      fornecedorId: produto.fornecedorId,
-    });
-    setDialogType("edit");
-    setDialogOpen(true);
-  };
-
-  const openDeleteDialog = (produto: Produto) => {
-    setSelectedProduto(produto);
-    setDialogType("delete");
-    setDialogOpen(true);
-  };
-
-  const handleAddEditSubmit = (data: ProdutoFormData) => {
-    const fornecedor = fornecedores.find((f) => f.id === data.fornecedorId);
-    
-    if (dialogType === "add") {
-      addProduto({
-        nome: data.nome,
-        descricao: data.descricao,
-        categoria: data.categoria,
-        precoCompra: data.precoCompra,
-        precoVenda: data.precoVenda,
-        quantidade: data.quantidade,
-        fornecedorId: data.fornecedorId,
-        fornecedorNome: fornecedor?.nome || "",
-      });
-    } else if (dialogType === "edit" && selectedProduto) {
-      updateProduto(selectedProduto.id, {
-        nome: data.nome,
-        descricao: data.descricao,
-        categoria: data.categoria,
-        precoCompra: data.precoCompra,
-        precoVenda: data.precoVenda,
-        quantidade: data.quantidade,
-        fornecedorId: data.fornecedorId,
-        fornecedorNome: fornecedor?.nome || "",
-      });
-    }
-    
-    setDialogOpen(false);
-  };
-
-  const handleDeleteConfirm = () => {
-    if (selectedProduto) {
-      deleteProduto(selectedProduto.id);
-    }
-    setDialogOpen(false);
-  };
 
   const columns = [
     { key: "nome", header: "Nome" },
@@ -201,162 +95,16 @@ const ProdutosPage = () => {
         />
       </div>
 
-      {/* Add/Edit Dialog */}
-      {dialogType !== "delete" ? (
-        <CrudDialog
-          title={dialogType === "add" ? "Adicionar Produto" : "Editar Produto"}
-          description={dialogType === "add" ? "Adicione um novo produto ao catálogo" : "Edite os detalhes do produto"}
-          open={dialogOpen}
-          onOpenChange={setDialogOpen}
-          onConfirm={form.handleSubmit(handleAddEditSubmit)}
-          type={dialogType}
-        >
-          <Form {...form}>
-            <form className="space-y-4" onSubmit={form.handleSubmit(handleAddEditSubmit)}>
-              <FormField
-                control={form.control}
-                name="nome"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nome do produto" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="descricao"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Descrição</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Descrição do produto" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="categoria"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Categoria</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione uma categoria" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {CATEGORIAS_PRODUTOS.filter(cat => cat !== "Todas").map((categoria) => (
-                          <SelectItem key={categoria} value={categoria}>
-                            {categoria}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="precoCompra"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Preço de Compra</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="precoVenda"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Preço de Venda</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <FormField
-                control={form.control}
-                name="quantidade"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Quantidade em Estoque</FormLabel>
-                    <FormControl>
-                      <Input type="number" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="fornecedorId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fornecedor</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um fornecedor" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {fornecedores.map((fornecedor) => (
-                          <SelectItem key={fornecedor.id} value={fornecedor.id}>
-                            {fornecedor.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </form>
-          </Form>
-        </CrudDialog>
-      ) : (
-        <CrudDialog
-          title="Excluir Produto"
-          description={`Tem certeza que deseja excluir o produto ${selectedProduto?.nome}? Esta ação não pode ser desfeita.`}
-          open={dialogOpen}
-          onOpenChange={setDialogOpen}
-          onConfirm={handleDeleteConfirm}
-          type="delete"
-        >
-          <div className="text-center py-4">
-            <p>Todos os dados relacionados a este produto serão perdidos.</p>
-          </div>
-        </CrudDialog>
-      )}
+      <ProdutoDialogs
+        dialogOpen={dialogOpen}
+        dialogType={dialogType}
+        selectedProduto={selectedProduto}
+        form={form}
+        fornecedores={fornecedores}
+        onOpenChange={setDialogOpen}
+        onAddEditSubmit={handleAddEditSubmit}
+        onDeleteConfirm={handleDeleteConfirm}
+      />
     </Layout>
   );
 };
