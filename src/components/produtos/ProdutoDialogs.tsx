@@ -1,9 +1,10 @@
 
 import React from "react";
 import { CrudDialog } from "@/components/CrudDialog";
-import { ProdutoForm, ProdutoFormData } from "./ProdutoForm";
+import { ProdutoForm } from "./ProdutoForm";
 import { UseFormReturn } from "react-hook-form";
 import { Produto, Fornecedor } from "@/types";
+import { ProdutoFormData } from "@/hooks/useProdutoForm";
 
 interface ProdutoDialogsProps {
   dialogOpen: boolean;

@@ -9,10 +9,10 @@ import { Button } from "@/components/ui/button";
 import { CATEGORIAS_PRODUTOS } from "@/data/constants";
 import { Package, Edit, Trash2 } from "lucide-react";
 import { ProdutoDialogs } from "@/components/produtos/ProdutoDialogs";
-import { useForm } from "react-hook-form";
+import { useProdutoForm, ProdutoFormData } from "@/hooks/useProdutoForm";
 
 const ProdutosPage = () => {
-  const { filterProdutos, fornecedores } = useData();
+  const { filterProdutos, fornecedores, addProduto, updateProduto, deleteProduto } = useData();
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     search: "",
     sortBy: "nome",
@@ -22,21 +22,11 @@ const ProdutosPage = () => {
     categoria: "Todas"
   });
 
-  const form = useForm({
-    defaultValues: {
-      nome: "",
-      descricao: "",
-      categoria: "",
-      precoCompra: 0,
-      precoVenda: 0,
-      quantidade: 0,
-      fornecedorId: "",
-    },
-  });
-
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<'add' | 'edit' | 'delete'>('add');
   const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null);
+
+  const form = useProdutoForm();
 
   const openAddDialog = () => {
     setDialogType('add');
@@ -50,12 +40,12 @@ const ProdutosPage = () => {
     setSelectedProduto(produto);
     form.reset({
       nome: produto.nome,
-      descricao: produto.descricao,
+      descricao: produto.descricao || "",
       categoria: produto.categoria,
       precoCompra: produto.precoCompra,
       precoVenda: produto.precoVenda,
       quantidade: produto.quantidade,
-      fornecedorId: produto.fornecedorId,
+      fornecedorId: produto.fornecedorId || "",
     });
     setDialogOpen(true);
   };
@@ -66,16 +56,36 @@ const ProdutosPage = () => {
     setDialogOpen(true);
   };
 
-  const handleAddEditSubmit = async (data: any) => {
-    // Handle form submission logic here
+  const handleAddEditSubmit = async (data: ProdutoFormData) => {
     console.log('Form submitted:', data);
-    setDialogOpen(false);
+    
+    // Buscar nome do fornecedor se fornecedorId estiver definido
+    const fornecedorNome = data.fornecedorId 
+      ? fornecedores.find(f => f.id === data.fornecedorId)?.nome || ""
+      : "";
+
+    if (dialogType === 'add') {
+      const success = await addProduto({
+        ...data,
+        fornecedorNome
+      });
+      if (success) {
+        setDialogOpen(false);
+      }
+    } else if (dialogType === 'edit' && selectedProduto) {
+      await updateProduto(selectedProduto.id, {
+        ...data,
+        fornecedorNome
+      });
+      setDialogOpen(false);
+    }
   };
 
   const handleDeleteConfirm = async () => {
-    // Handle delete logic here
-    console.log('Delete confirmed');
-    setDialogOpen(false);
+    if (selectedProduto) {
+      await deleteProduto(selectedProduto.id);
+      setDialogOpen(false);
+    }
   };
 
   const produtos = filterProdutos(filterOptions);

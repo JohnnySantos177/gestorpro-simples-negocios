@@ -19,16 +19,7 @@ import {
 } from "@/components/ui/select";
 import { CATEGORIAS_PRODUTOS } from "@/data/constants";
 import { Fornecedor } from "@/types";
-
-export interface ProdutoFormData {
-  nome: string;
-  descricao?: string;
-  categoria: string;
-  precoCompra: number;
-  precoVenda: number;
-  quantidade: number;
-  fornecedorId?: string;
-}
+import { ProdutoFormData } from "@/hooks/useProdutoForm";
 
 interface ProdutoFormProps {
   form: UseFormReturn<ProdutoFormData>;
@@ -108,7 +99,12 @@ export const ProdutoForm: React.FC<ProdutoFormProps> = ({
               <FormItem>
                 <FormLabel>Preço de Compra</FormLabel>
                 <FormControl>
-                  <Input type="number" step="0.01" {...field} />
+                  <Input 
+                    type="number" 
+                    step="0.01" 
+                    {...field}
+                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -122,7 +118,12 @@ export const ProdutoForm: React.FC<ProdutoFormProps> = ({
               <FormItem>
                 <FormLabel>Preço de Venda</FormLabel>
                 <FormControl>
-                  <Input type="number" step="0.01" {...field} />
+                  <Input 
+                    type="number" 
+                    step="0.01" 
+                    {...field}
+                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -137,7 +138,11 @@ export const ProdutoForm: React.FC<ProdutoFormProps> = ({
             <FormItem>
               <FormLabel>Quantidade em Estoque</FormLabel>
               <FormControl>
-                <Input type="number" {...field} />
+                <Input 
+                  type="number" 
+                  {...field}
+                  onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -160,6 +165,7 @@ export const ProdutoForm: React.FC<ProdutoFormProps> = ({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
+                  <SelectItem value="">Sem fornecedor</SelectItem>
                   {fornecedores.map((fornecedor) => (
                     <SelectItem key={fornecedor.id} value={fornecedor.id}>
                       {fornecedor.nome}
