@@ -56,7 +56,10 @@ serve(async (req) => {
       periodDescription = "Assinatura Semestral (6 meses)";
     }
 
-    // Create payment preference (one-time payment approach)
+    // Get the origin for redirect URLs
+    const origin = req.headers.get("origin") || "https://preview--gestorpro-simples-negocios.lovable.app";
+
+    // Create payment preference - simplified version
     const preferenceData = {
       items: [
         {
@@ -67,17 +70,13 @@ serve(async (req) => {
           currency_id: 'BRL'
         }
       ],
-      payer: {
-        email: user.email
-      },
       back_urls: {
-        success: `${req.headers.get("origin")}/confirmation-success`,
-        failure: `${req.headers.get("origin")}/assinatura`,
-        pending: `${req.headers.get("origin")}/confirmation-success`
+        success: `${origin}/confirmation-success`,
+        failure: `${origin}/assinatura`,
+        pending: `${origin}/confirmation-success`
       },
       auto_return: 'approved',
       external_reference: `payment_${user.id}_${planType}_${Date.now()}`,
-      notification_url: `${req.headers.get("origin")}/api/webhook/mercadopago`,
       expires: true,
       expiration_date_from: new Date().toISOString(),
       expiration_date_to: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
