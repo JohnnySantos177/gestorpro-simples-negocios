@@ -8,12 +8,12 @@ import { Produto, Fornecedor } from "@/types";
 
 const produtoSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
-  descricao: z.string().optional(),
-  categoria: z.string().optional(),
+  descricao: z.string(),
+  categoria: z.string(),
   precoCompra: z.number().min(0, "Preço deve ser positivo"),
   precoVenda: z.number().min(0, "Preço deve ser positivo"),
   quantidade: z.number().min(0, "Quantidade deve ser positiva"),
-  fornecedorId: z.string().optional(),
+  fornecedorId: z.string(),
 });
 
 export type ProdutoFormData = z.infer<typeof produtoSchema>;

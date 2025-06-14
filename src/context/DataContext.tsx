@@ -72,7 +72,7 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-export const useData = () => {
+export const useData = (): DataContextType => {
   const context = useContext(DataContext);
   if (!context) {
     throw new Error("useData must be used within a DataProvider");
@@ -779,7 +779,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     await loadData();
   };
   
-  const value = {
+  const value: DataContextType = {
     clientes,
     produtos,
     fornecedores,
