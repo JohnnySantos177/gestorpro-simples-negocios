@@ -15,12 +15,20 @@ interface ExportData {
 export const exportToPDF = (data: ExportData, type: 'vendas' | 'transacoes' | 'clientes' | 'produtos' | 'fornecedores') => {
   const doc = new jsPDF();
   
-  // Configurações gerais
-  doc.setFontSize(16);
-  doc.text(`Relatório de ${type.charAt(0).toUpperCase() + type.slice(1)}`, 20, 20);
+  // Configurar cabeçalho da empresa
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('TotalGestor - Sistema de Gestão', 105, 15, { align: 'center' });
   
+  // Configurar título do relatório
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Relatório de ${type.charAt(0).toUpperCase() + type.slice(1)}`, 105, 25, { align: 'center' });
+  
+  // Configurar data de geração
   doc.setFontSize(10);
-  doc.text(`Data de geração: ${new Date().toLocaleDateString('pt-BR')}`, 20, 30);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Data de geração: ${new Date().toLocaleDateString('pt-BR')}`, 105, 32, { align: 'center' });
 
   let tableData: any[] = [];
   let headers: string[] = [];
@@ -86,7 +94,7 @@ export const exportToPDF = (data: ExportData, type: 'vendas' | 'transacoes' | 'c
   autoTable(doc, {
     head: [headers],
     body: tableData,
-    startY: 40,
+    startY: 45, // Aumentar o startY para dar espaço ao cabeçalho
     styles: {
       fontSize: 8,
       cellPadding: 3,
