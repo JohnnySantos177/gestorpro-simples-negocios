@@ -32,6 +32,10 @@ export const produtoService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("User not authenticated");
 
+    // Corrigir fornecedorId para usar null se vier "" ou undefined
+    const fornecedorIdFinal = produto.fornecedorId && produto.fornecedorId !== "" ? produto.fornecedorId : null;
+    const fornecedorNomeFinal = produto.fornecedorNome ?? "";
+
     const { data, error } = await supabase
       .from('produtos')
       .insert({
@@ -41,8 +45,8 @@ export const produtoService = {
         preco_compra: produto.precoCompra,
         preco_venda: produto.precoVenda,
         quantidade: produto.quantidade,
-        fornecedor_id: produto.fornecedorId,
-        fornecedor_nome: produto.fornecedorNome,
+        fornecedor_id: fornecedorIdFinal,
+        fornecedor_nome: fornecedorNomeFinal,
         data_validade: produto.dataValidade,
         codigo_barra: produto.codigoBarra,
         localizacao: produto.localizacao,
@@ -72,6 +76,7 @@ export const produtoService = {
   },
 
   async updateProduto(id: string, updates: Partial<Produto>): Promise<void> {
+    // Corrigir fornecedor_id caso updates.fornecedorId seja "", transformar em null
     const dbUpdates: any = {};
     
     if (updates.nome !== undefined) dbUpdates.nome = updates.nome;
@@ -80,7 +85,8 @@ export const produtoService = {
     if (updates.precoCompra !== undefined) dbUpdates.preco_compra = updates.precoCompra;
     if (updates.precoVenda !== undefined) dbUpdates.preco_venda = updates.precoVenda;
     if (updates.quantidade !== undefined) dbUpdates.quantidade = updates.quantidade;
-    if (updates.fornecedorId !== undefined) dbUpdates.fornecedor_id = updates.fornecedorId;
+    if (updates.fornecedorId !== undefined)
+      dbUpdates.fornecedor_id = updates.fornecedorId !== "" ? updates.fornecedorId : null;
     if (updates.fornecedorNome !== undefined) dbUpdates.fornecedor_nome = updates.fornecedorNome;
     if (updates.dataValidade !== undefined) dbUpdates.data_validade = updates.dataValidade;
     if (updates.codigoBarra !== undefined) dbUpdates.codigo_barra = updates.codigoBarra;
@@ -103,3 +109,4 @@ export const produtoService = {
     if (error) throw error;
   }
 };
+
