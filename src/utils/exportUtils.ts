@@ -63,7 +63,7 @@ export const exportToPDF = (data: ExportData, type: 'vendas' | 'transacoes' | 'c
       tableData = data.produtos?.map(produto => [
         produto.nome,
         produto.categoria,
-        `R$ ${produto.preco.toFixed(2)}`,
+        `R$ ${produto.precoVenda.toFixed(2)}`,
         produto.quantidade.toString(),
         produto.fornecedorNome || 'N/A'
       ]) || [];
@@ -138,7 +138,7 @@ export const exportToExcel = (data: ExportData, type: 'vendas' | 'transacoes' | 
         'Nome': produto.nome,
         'Descrição': produto.descricao,
         'Categoria': produto.categoria,
-        'Preço': produto.preco,
+        'Preço': produto.precoVenda,
         'Quantidade': produto.quantidade,
         'Fornecedor': produto.fornecedorNome || 'N/A',
         'Data Cadastro': new Date(produto.dataCadastro).toLocaleDateString('pt-BR')
