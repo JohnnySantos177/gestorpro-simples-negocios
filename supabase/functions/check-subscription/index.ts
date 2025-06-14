@@ -62,15 +62,42 @@ serve(async (req) => {
       });
     }
 
-    // Check for active subscriptions by email instead of customer ID
-    let hasActiveSub = false;
-    let subscriptionEnd = null;
-    let subscriptionId = null;
+    // Check for active subscription in our database first
+    const { data: subscriptionData } = await supabaseClient
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .gte('end_date', new Date().toISOString())
+      .single();
 
-    console.log("Checking subscriptions for email:", user.email);
+    if (subscriptionData) {
+      console.log("Found active subscription in database:", subscriptionData.mercado_pago_subscription_id);
+      
+      // Log successful action for security monitoring
+      await supabaseClient.from('security_audit_logs').insert({
+        user_id: user.id,
+        action: 'check_subscription',
+        resource_type: 'subscription',
+        success: true,
+        metadata: { has_active_subscription: true, source: 'database' },
+      });
+
+      return new Response(JSON.stringify({
+        subscribed: true,
+        subscription_id: subscriptionData.mercado_pago_subscription_id,
+        subscription_end: subscriptionData.end_date
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // If not found in database, check with Mercado Pago
+    console.log("Checking with Mercado Pago for user email:", user.email);
     
-    // Search for subscriptions by payer email
-    const subscriptionsResponse = await fetch(`https://api.mercadopago.com/preapproval/search?payer_email=${encodeURIComponent(user.email)}&status=authorized`, {
+    // Search for approved payments by external reference pattern
+    const paymentsResponse = await fetch(`https://api.mercadopago.com/v1/payments/search?external_reference=payment_${user.id}_*&status=approved`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${mercadoPagoToken}`,
@@ -78,35 +105,59 @@ serve(async (req) => {
       },
     });
 
-    if (subscriptionsResponse.ok) {
-      const subscriptionsData = await subscriptionsResponse.json();
-      hasActiveSub = subscriptionsData.results && subscriptionsData.results.length > 0;
+    let hasActiveSub = false;
+    let subscriptionEnd = null;
+    let subscriptionId = null;
 
-      console.log("Found subscriptions:", subscriptionsData.results?.length || 0);
+    if (paymentsResponse.ok) {
+      const paymentsData = await paymentsResponse.json();
+      const approvedPayments = paymentsData.results || [];
+      
+      console.log("Found approved payments:", approvedPayments.length);
 
-      if (hasActiveSub) {
-        const subscription = subscriptionsData.results[0];
-        subscriptionId = subscription.id;
-        subscriptionEnd = subscription.next_payment_date;
+      if (approvedPayments.length > 0) {
+        // Find the most recent payment
+        const latestPayment = approvedPayments.sort((a, b) => 
+          new Date(b.date_created).getTime() - new Date(a.date_created).getTime()
+        )[0];
 
-        console.log("Active subscription found:", subscriptionId);
+        subscriptionId = latestPayment.id;
+        
+        // Calculate subscription end based on payment date and plan type
+        const paymentDate = new Date(latestPayment.date_created);
+        const externalRef = latestPayment.external_reference || '';
+        
+        if (externalRef.includes('_quarterly_')) {
+          subscriptionEnd = new Date(paymentDate.getTime() + 90 * 24 * 60 * 60 * 1000); // 3 months
+        } else if (externalRef.includes('_semiannual_')) {
+          subscriptionEnd = new Date(paymentDate.getTime() + 180 * 24 * 60 * 60 * 1000); // 6 months
+        } else {
+          subscriptionEnd = new Date(paymentDate.getTime() + 30 * 24 * 60 * 60 * 1000); // 1 month
+        }
 
-        // Update subscription status in the database
-        await supabaseClient.from('subscriptions').upsert({
-          user_id: user.id,
-          mercado_pago_subscription_id: subscriptionId,
-          status: 'active',
-          start_date: subscription.date_created,
-          end_date: subscriptionEnd,
-          payment_provider: 'mercado_pago',
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'user_id',
-        });
+        // Check if subscription is still valid
+        hasActiveSub = new Date() < subscriptionEnd;
+
+        if (hasActiveSub) {
+          console.log("Active subscription found via payment:", subscriptionId);
+
+          // Update subscription status in the database
+          await supabaseClient.from('subscriptions').upsert({
+            user_id: user.id,
+            mercado_pago_subscription_id: subscriptionId,
+            status: 'active',
+            start_date: latestPayment.date_created,
+            end_date: subscriptionEnd.toISOString(),
+            payment_provider: 'mercado_pago',
+            updated_at: new Date().toISOString(),
+          }, {
+            onConflict: 'user_id',
+          });
+        }
       }
     } else {
-      const errorText = await subscriptionsResponse.text();
-      console.error("Error checking subscriptions:", errorText);
+      const errorText = await paymentsResponse.text();
+      console.error("Error checking payments:", errorText);
     }
 
     // Log successful action for security monitoring
@@ -115,7 +166,7 @@ serve(async (req) => {
       action: 'check_subscription',
       resource_type: 'subscription',
       success: true,
-      metadata: { has_active_subscription: hasActiveSub },
+      metadata: { has_active_subscription: hasActiveSub, source: 'mercado_pago' },
     });
 
     console.log("Subscription check completed:", { subscribed: hasActiveSub, subscription_id: subscriptionId });

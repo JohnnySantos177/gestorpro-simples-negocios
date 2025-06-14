@@ -48,59 +48,71 @@ serve(async (req) => {
     console.log("Creating checkout for user:", user.email);
     console.log("Plan type:", planType, "Price:", price);
 
-    // Create subscription preference directly without customer creation
-    // This avoids the "can't pay yourself" error
-    const subscriptionData = {
-      reason: 'Assinatura TotalGestor Pro',
-      auto_recurring: {
-        frequency: 1,
-        frequency_type: planType === 'monthly' ? 'months' : 'months',
-        transaction_amount: price / 100, // Convert from cents to reais
-        currency_id: 'BRL',
-      },
-      payer_email: user.email,
-      back_url: `${req.headers.get("origin")}/confirmation-success`,
-      status: 'pending',
-      external_reference: `subscription_${user.id}_${Date.now()}`,
-    };
-
-    // Adjust frequency based on plan type
+    // Calculate period description based on plan type
+    let periodDescription = "Assinatura Mensal";
     if (planType === 'quarterly') {
-      subscriptionData.auto_recurring.frequency = 3;
+      periodDescription = "Assinatura Trimestral (3 meses)";
     } else if (planType === 'semiannual') {
-      subscriptionData.auto_recurring.frequency = 6;
+      periodDescription = "Assinatura Semestral (6 meses)";
     }
 
-    console.log("Creating subscription with data:", JSON.stringify(subscriptionData));
+    // Create payment preference (one-time payment approach)
+    const preferenceData = {
+      items: [
+        {
+          title: `TotalGestor Pro - ${periodDescription}`,
+          description: `Acesso premium ao TotalGestor por ${planType === 'monthly' ? '1 mês' : planType === 'quarterly' ? '3 meses' : '6 meses'}`,
+          quantity: 1,
+          unit_price: price / 100, // Convert from cents to reais
+          currency_id: 'BRL'
+        }
+      ],
+      payer: {
+        email: user.email
+      },
+      back_urls: {
+        success: `${req.headers.get("origin")}/confirmation-success`,
+        failure: `${req.headers.get("origin")}/assinatura`,
+        pending: `${req.headers.get("origin")}/confirmation-success`
+      },
+      auto_return: 'approved',
+      external_reference: `payment_${user.id}_${planType}_${Date.now()}`,
+      notification_url: `${req.headers.get("origin")}/api/webhook/mercadopago`,
+      expires: true,
+      expiration_date_from: new Date().toISOString(),
+      expiration_date_to: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+    };
 
-    const subscriptionResponse = await fetch('https://api.mercadopago.com/preapproval', {
+    console.log("Creating preference with data:", JSON.stringify(preferenceData));
+
+    const preferenceResponse = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${mercadoPagoToken}`,
         'Content-Type': 'application/json',
-        'X-Idempotency-Key': `${user.id}-${Date.now()}`,
+        'X-Idempotency-Key': `${user.id}-${planType}-${Date.now()}`,
       },
-      body: JSON.stringify(subscriptionData),
+      body: JSON.stringify(preferenceData),
     });
 
-    console.log("Subscription response status:", subscriptionResponse.status);
+    console.log("Preference response status:", preferenceResponse.status);
 
-    if (!subscriptionResponse.ok) {
-      const errorText = await subscriptionResponse.text();
-      console.error("Error creating subscription:", {
-        status: subscriptionResponse.status,
+    if (!preferenceResponse.ok) {
+      const errorText = await preferenceResponse.text();
+      console.error("Error creating preference:", {
+        status: preferenceResponse.status,
         response: errorText,
-        headers: Object.fromEntries(subscriptionResponse.headers.entries())
+        headers: Object.fromEntries(preferenceResponse.headers.entries())
       });
       
-      throw new Error(`Failed to create subscription: ${errorText}`);
+      throw new Error(`Failed to create payment preference: ${errorText}`);
     }
 
-    const subscription = await subscriptionResponse.json();
-    console.log("Subscription created successfully:", subscription.id);
+    const preference = await preferenceResponse.json();
+    console.log("Preference created successfully:", preference.id);
 
-    if (!subscription.init_point) {
-      throw new Error('Failed to create subscription - no payment URL returned');
+    if (!preference.init_point) {
+      throw new Error('Failed to create preference - no payment URL returned');
     }
 
     // Use the service role key to perform writes in Supabase
@@ -113,21 +125,21 @@ serve(async (req) => {
     // Track the checkout session in your database
     await serviceClient.from('checkout_sessions').insert({
       user_id: user.id,
-      session_id: subscription.id,
+      session_id: preference.id,
       amount: price,
       status: 'pending'
     });
 
-    // Save customer info for future reference (without creating in MP)
+    // Save customer info for future reference
     await serviceClient.from('subscribers').upsert({
       user_id: user.id,
       email: user.email,
       created_at: new Date().toISOString(),
     });
 
-    console.log("Checkout session created successfully, redirecting to:", subscription.init_point);
+    console.log("Checkout session created successfully, redirecting to:", preference.init_point);
 
-    return new Response(JSON.stringify({ url: subscription.init_point }), {
+    return new Response(JSON.stringify({ url: preference.init_point }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });

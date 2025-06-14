@@ -20,18 +20,14 @@ serve(async (req) => {
   );
 
   try {
-    // Verify user authentication
+    // Verify user authentication (optional for getting price)
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("Authentication required");
-    }
+    let user = null;
     
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData } = await supabaseClient.auth.getUser(token);
-    const user = userData.user;
-    
-    if (!user?.id) {
-      throw new Error("User not authenticated");
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userData } = await supabaseClient.auth.getUser(token);
+      user = userData.user;
     }
 
     // Get subscription price from settings table
@@ -39,32 +35,55 @@ serve(async (req) => {
       .from('settings')
       .select('value')
       .eq('key', 'subscription_price')
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("Error fetching subscription price:", error);
-      throw new Error("Unable to fetch subscription price");
+      // Return default price if setting not found
+      const defaultPrice = 8990; // R$ 89.90 in cents
+      
+      return new Response(JSON.stringify({ 
+        price: defaultPrice,
+        success: true,
+        source: 'default'
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
     }
 
-    const price = parseInt(setting.value);
+    const price = setting ? parseInt(setting.value) : 8990; // Default if no setting found
     
     // Input validation
     if (isNaN(price) || price <= 0) {
-      throw new Error("Invalid price configuration");
+      console.warn("Invalid price configuration, using default");
+      const defaultPrice = 8990; // R$ 89.90 in cents
+      
+      return new Response(JSON.stringify({ 
+        price: defaultPrice,
+        success: true,
+        source: 'default'
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
     }
 
-    // Log successful action for security monitoring
-    await supabaseClient.from('security_audit_logs').insert({
-      user_id: user.id,
-      action: 'get_subscription_price',
-      resource_type: 'settings',
-      success: true,
-      metadata: { price: price },
-    });
+    // Log successful action for security monitoring (only if user is authenticated)
+    if (user) {
+      await supabaseClient.from('security_audit_logs').insert({
+        user_id: user.id,
+        action: 'get_subscription_price',
+        resource_type: 'settings',
+        success: true,
+        metadata: { price: price },
+      });
+    }
 
     return new Response(JSON.stringify({ 
       price: price,
-      success: true 
+      success: true,
+      source: 'settings'
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
@@ -72,7 +91,7 @@ serve(async (req) => {
   } catch (error: any) {
     console.error("Error in get-subscription-price:", error);
     
-    // Log failed action for security monitoring
+    // Log failed action for security monitoring (only if user is authenticated)
     const authHeader = req.headers.get("Authorization");
     if (authHeader) {
       const token = authHeader.replace("Bearer ", "");
@@ -88,17 +107,17 @@ serve(async (req) => {
       }
     }
     
-    // Generic error message for security
-    const userMessage = error.message.includes("Authentication required") 
-      ? "Authentication required" 
-      : "Unable to process request";
+    // Return default price even on error to prevent UI breaking
+    const defaultPrice = 8990; // R$ 89.90 in cents
     
     return new Response(JSON.stringify({ 
-      error: userMessage,
-      success: false
+      price: defaultPrice,
+      success: true,
+      source: 'fallback',
+      note: 'Using fallback price due to error'
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: error.message.includes("Authentication") ? 401 : 500,
+      status: 200,
     });
   }
 });
