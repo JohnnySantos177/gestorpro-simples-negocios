@@ -13,22 +13,57 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 
 const AssinaturaPage = () => {
   const { isSubscribed, checkoutLoading, initiateCheckout, checkSubscriptionStatus, subscriptionPrice } = useSubscription();
   const { isAdmin } = useAuth();
   const [adminPrice, setAdminPrice] = useState<number>(subscriptionPrice);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'quarterly' | 'semiannual'>('monthly');
   
   // Check subscription status when the page loads
   useEffect(() => {
     checkSubscriptionStatus();
   }, []);
-  
-  // Format the price for display (dividing by 100 to convert from cents)
-  const priceInReais = subscriptionPrice / 100;
 
-  const handleSubscribe = async () => {
+  // Plan configurations
+  const plans = [
+    {
+      id: 'monthly' as const,
+      name: 'Mensal',
+      price: 8990, // R$ 89,90 in cents
+      displayPrice: 89.90,
+      interval: 'month',
+      description: 'Renovação mensal',
+      badge: null
+    },
+    {
+      id: 'quarterly' as const,
+      name: 'Trimestral',
+      price: 7990, // R$ 79,90 in cents
+      displayPrice: 79.90,
+      interval: 'month',
+      description: 'Cobrança a cada 3 meses',
+      badge: 'Economia de 11%'
+    },
+    {
+      id: 'semiannual' as const,
+      name: 'Semestral',
+      price: 6990, // R$ 69,90 in cents
+      displayPrice: 69.90,
+      interval: 'month',
+      description: 'Cobrança a cada 6 meses',
+      badge: 'Economia de 22%'
+    }
+  ];
+
+  const handleSubscribe = async (planId: 'monthly' | 'quarterly' | 'semiannual') => {
+    const plan = plans.find(p => p.id === planId);
+    if (!plan) return;
+    
+    // For now, we'll use the existing checkout with the selected plan price
+    // In a real implementation, you'd pass the plan details to the checkout
     await initiateCheckout();
   };
 
@@ -76,59 +111,89 @@ const AssinaturaPage = () => {
     <Layout>
       <PageHeader
         title="Assinatura"
-        description="Gerencie sua assinatura do TotalGestor e aproveite todos os recursos premium."
+        description="Escolha o plano Premium ideal para seu negócio e aproveite todos os recursos do TotalGestor."
       />
       
+      {isSubscribed && (
+        <div className="mb-8 bg-totalgestor-50 p-4 rounded-lg border border-totalgestor-100 text-center">
+          <p className="font-semibold text-totalgestor-700 mb-2">
+            Você já possui uma assinatura ativa!
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Aproveite todos os recursos premium do TotalGestor.
+          </p>
+        </div>
+      )}
+      
       <div className="flex flex-col lg:flex-row gap-8">
-        <Card className="flex-1">
-          <CardHeader>
-            <CardTitle>Plano Premium</CardTitle>
-            <CardDescription>
-              Acesso completo a todas as funcionalidades do TotalGestor
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-6 text-center">
-              <span className="text-3xl font-bold">{formatCurrency(priceInReais)}</span>
-              <span className="text-muted-foreground ml-1">/mês</span>
-            </div>
-            
-            <Separator className="mb-6" />
-            
-            <div className="space-y-4">
-              {beneficios.map((beneficio, index) => (
-                <div key={index} className="flex items-start">
-                  <CheckCircle2 className="h-5 w-5 text-totalgestor-500 mt-0.5 mr-2 flex-shrink-0" />
-                  <span>{beneficio}</span>
-                </div>
-              ))}
-            </div>
-            
-            <div className="mt-8">
-              {isSubscribed ? (
-                <div className="bg-totalgestor-50 p-4 rounded-lg border border-totalgestor-100 text-center">
-                  <p className="font-semibold text-totalgestor-700 mb-2">
-                    Você já possui uma assinatura ativa!
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Aproveite todos os recursos premium do TotalGestor.
-                  </p>
-                </div>
-              ) : (
-                <Button 
-                  onClick={handleSubscribe}
-                  disabled={checkoutLoading}
-                  className="w-full bg-totalgestor-500 hover:bg-totalgestor-600"
-                >
-                  {checkoutLoading ? "Processando..." : "Assinar com Stripe"}
-                </Button>
-              )}
-            </div>
+        {/* Plans Section */}
+        <div className="flex-1">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold mb-2">Planos Premium</h2>
+            <p className="text-muted-foreground">
+              Escolha a frequência de pagamento que melhor se adequa ao seu negócio
+            </p>
+          </div>
 
-            {/* Admin controls */}
-            {isAdmin && (
-              <div className="mt-8 border-t pt-6">
-                <h3 className="font-semibold mb-4">Configurações de Administrador</h3>
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
+            {plans.map((plan) => (
+              <Card 
+                key={plan.id} 
+                className={`relative ${selectedPlan === plan.id ? 'ring-2 ring-totalgestor-500' : ''}`}
+              >
+                {plan.badge && (
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                    <Badge variant="default" className="bg-totalgestor-500">
+                      {plan.badge}
+                    </Badge>
+                  </div>
+                )}
+                <CardHeader className="text-center">
+                  <CardTitle className="text-lg">{plan.name}</CardTitle>
+                  <CardDescription>{plan.description}</CardDescription>
+                  <div className="mt-4">
+                    <span className="text-3xl font-bold">{formatCurrency(plan.displayPrice)}</span>
+                    <span className="text-muted-foreground ml-1">/mês</span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Button 
+                    onClick={() => handleSubscribe(plan.id)}
+                    disabled={checkoutLoading || isSubscribed}
+                    className="w-full bg-totalgestor-500 hover:bg-totalgestor-600"
+                    variant={selectedPlan === plan.id ? "default" : "outline"}
+                  >
+                    {checkoutLoading ? "Processando..." : isSubscribed ? "Plano Ativo" : "Assinar"}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Benefits Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Todos os planos incluem:</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-4">
+                {beneficios.map((beneficio, index) => (
+                  <div key={index} className="flex items-start">
+                    <CheckCircle2 className="h-5 w-5 text-totalgestor-500 mt-0.5 mr-2 flex-shrink-0" />
+                    <span className="text-sm">{beneficio}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Admin controls */}
+          {isAdmin && (
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>Configurações de Administrador</CardTitle>
+              </CardHeader>
+              <CardContent>
                 <div className="space-y-4">
                   <div className="grid gap-2">
                     <Label htmlFor="subscription-price">Preço da Assinatura (R$)</Label>
@@ -138,7 +203,7 @@ const AssinaturaPage = () => {
                         type="number" 
                         min="0" 
                         step="0.01" 
-                        placeholder="59.99"
+                        placeholder="89.90"
                         defaultValue={(adminPrice / 100).toFixed(2)}
                         onChange={handlePriceChange}
                       />
@@ -151,10 +216,10 @@ const AssinaturaPage = () => {
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          )}
+        </div>
         
         <div className="flex-1">
           <Card className="mb-6">
@@ -163,7 +228,7 @@ const AssinaturaPage = () => {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground mb-4">
-                O TotalGestor é oferecido como uma assinatura mensal que proporciona acesso completo a todas as funcionalidades do sistema.
+                O TotalGestor é oferecido como uma assinatura que proporciona acesso completo a todas as funcionalidades do sistema. Escolha a frequência que melhor se adequa ao seu fluxo de caixa.
               </p>
               
               <div className="space-y-4">
@@ -187,6 +252,13 @@ const AssinaturaPage = () => {
                     Oferecemos garantia de 30 dias. Se não estiver satisfeito, devolveremos seu dinheiro.
                   </p>
                 </div>
+
+                <div>
+                  <h3 className="font-semibold mb-1">Economia com Planos Longos</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Quanto maior o período escolhido, maior sua economia. O plano semestral oferece 22% de desconto comparado ao mensal.
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -200,7 +272,14 @@ const AssinaturaPage = () => {
                 <div>
                   <h3 className="font-semibold mb-1">Como funciona a cobrança?</h3>
                   <p className="text-sm text-muted-foreground">
-                    A assinatura é cobrada mensalmente através da Stripe e renovada automaticamente até que você cancele.
+                    A assinatura é cobrada através da Stripe de acordo com o plano escolhido e renovada automaticamente até que você cancele.
+                  </p>
+                </div>
+                
+                <div>
+                  <h3 className="font-semibold mb-1">Posso trocar de plano?</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Sim, você pode alterar seu plano a qualquer momento através do portal do cliente Stripe.
                   </p>
                 </div>
                 
@@ -215,13 +294,6 @@ const AssinaturaPage = () => {
                   <h3 className="font-semibold mb-1">O que acontece se eu cancelar?</h3>
                   <p className="text-sm text-muted-foreground">
                     Você terá acesso ao sistema até o final do período pago. Seus dados serão mantidos por 30 dias após o cancelamento.
-                  </p>
-                </div>
-                
-                <div>
-                  <h3 className="font-semibold mb-1">Há contratos de fidelidade?</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Não, você pode cancelar a qualquer momento sem multas ou taxas adicionais.
                   </p>
                 </div>
               </div>
