@@ -34,6 +34,8 @@ serve(async (req) => {
       throw new Error("User not authenticated or email not available");
     }
 
+    console.log("Checking subscription for user:", user.email);
+
     // Get Mercado Pago access token from environment variables
     const mercadoPagoToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
     if (!mercadoPagoToken) {
@@ -73,6 +75,8 @@ serve(async (req) => {
       // Look for existing customer in Mercado Pago or create a new one
       const customerSearchUrl = `https://api.mercadopago.com/v1/customers/search?email=${encodeURIComponent(user.email)}`;
       
+      console.log("Searching for existing customer:", user.email);
+
       const customerResponse = await fetch(customerSearchUrl, {
         method: 'GET',
         headers: {
@@ -86,7 +90,10 @@ serve(async (req) => {
 
         if (customerData.results && customerData.results.length > 0) {
           customerId = customerData.results[0].id;
+          console.log("Found existing customer:", customerId);
         } else {
+          console.log("No existing customer found, creating new one");
+          
           // Create new customer in Mercado Pago
           const newCustomerResponse = await fetch('https://api.mercadopago.com/v1/customers', {
             method: 'POST',
@@ -104,6 +111,10 @@ serve(async (req) => {
           if (newCustomerResponse.ok) {
             const newCustomer = await newCustomerResponse.json();
             customerId = newCustomer.id;
+            console.log("Created new customer:", customerId);
+          } else {
+            const errorText = await newCustomerResponse.text();
+            console.error("Failed to create customer:", errorText);
           }
         }
 
@@ -116,6 +127,9 @@ serve(async (req) => {
             created_at: new Date().toISOString(),
           });
         }
+      } else {
+        const errorText = await customerResponse.text();
+        console.error("Error searching for customer:", errorText);
       }
     }
 
@@ -125,6 +139,8 @@ serve(async (req) => {
     let subscriptionId = null;
 
     if (customerId) {
+      console.log("Checking subscriptions for customer:", customerId);
+      
       const subscriptionsResponse = await fetch(`https://api.mercadopago.com/preapproval/search?payer_id=${customerId}&status=authorized`, {
         method: 'GET',
         headers: {
@@ -137,10 +153,14 @@ serve(async (req) => {
         const subscriptionsData = await subscriptionsResponse.json();
         hasActiveSub = subscriptionsData.results && subscriptionsData.results.length > 0;
 
+        console.log("Found subscriptions:", subscriptionsData.results?.length || 0);
+
         if (hasActiveSub) {
           const subscription = subscriptionsData.results[0];
           subscriptionId = subscription.id;
           subscriptionEnd = subscription.next_payment_date;
+
+          console.log("Active subscription found:", subscriptionId);
 
           // Update subscription status in the database
           await supabaseClient.from('subscriptions').upsert({
@@ -149,11 +169,15 @@ serve(async (req) => {
             status: 'active',
             start_date: subscription.date_created,
             end_date: subscriptionEnd,
+            payment_provider: 'mercado_pago',
             updated_at: new Date().toISOString(),
           }, {
             onConflict: 'user_id',
           });
         }
+      } else {
+        const errorText = await subscriptionsResponse.text();
+        console.error("Error checking subscriptions:", errorText);
       }
     }
 
@@ -165,6 +189,8 @@ serve(async (req) => {
       success: true,
       metadata: { has_active_subscription: hasActiveSub },
     });
+
+    console.log("Subscription check completed:", { subscribed: hasActiveSub, subscription_id: subscriptionId });
 
     return new Response(JSON.stringify({
       subscribed: hasActiveSub,

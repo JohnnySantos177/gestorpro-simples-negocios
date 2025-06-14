@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -41,10 +40,12 @@ serve(async (req) => {
     // Get Mercado Pago access token from environment variables
     const mercadoPagoToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
     if (!mercadoPagoToken) {
-      throw new Error("Mercado Pago access token not configured");
+      console.error("Mercado Pago access token not configured");
+      throw new Error("Payment service not configured");
     }
 
-    console.log("Using Mercado Pago token (first 10 chars):", mercadoPagoToken.substring(0, 10));
+    console.log("Creating checkout for user:", user.email);
+    console.log("Plan type:", planType, "Price:", price);
 
     // Check if user already has a Mercado Pago customer ID
     const serviceClient = createClient(
@@ -77,7 +78,7 @@ serve(async (req) => {
         headers: {
           'Authorization': `Bearer ${mercadoPagoToken}`,
           'Content-Type': 'application/json',
-          'X-Idempotency-Key': user.id, // Add idempotency key
+          'X-Idempotency-Key': user.id,
         },
         body: JSON.stringify(customerPayload),
       });
@@ -86,14 +87,28 @@ serve(async (req) => {
       
       if (!newCustomerResponse.ok) {
         const errorText = await newCustomerResponse.text();
-        console.error("Error creating customer - Status:", newCustomerResponse.status);
-        console.error("Error creating customer - Response:", errorText);
-        console.error("Error creating customer - Headers:", Object.fromEntries(newCustomerResponse.headers.entries()));
-        throw new Error(`Failed to create customer: ${newCustomerResponse.status} - ${errorText}`);
+        console.error("Error creating customer:", {
+          status: newCustomerResponse.status,
+          response: errorText,
+          headers: Object.fromEntries(newCustomerResponse.headers.entries())
+        });
+        
+        // Try to parse error response for better error handling
+        let errorMessage = "Failed to create customer";
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch (e) {
+          // Keep default error message if parsing fails
+        }
+        
+        throw new Error(`Payment service error: ${errorMessage}`);
       }
 
       const newCustomer = await newCustomerResponse.json();
-      console.log("Customer created successfully:", JSON.stringify(newCustomer));
+      console.log("Customer created successfully:", newCustomer.id);
       customerId = newCustomer.id;
 
       // Save the customer ID in Supabase
@@ -110,7 +125,7 @@ serve(async (req) => {
       reason: 'Assinatura TotalGestor Pro',
       auto_recurring: {
         frequency: 1,
-        frequency_type: planType === 'monthly' ? 'months' : planType === 'quarterly' ? 'months' : 'months',
+        frequency_type: planType === 'monthly' ? 'months' : 'months',
         transaction_amount: price / 100, // Convert from cents to reais
         currency_id: 'BRL',
       },
@@ -133,7 +148,7 @@ serve(async (req) => {
       headers: {
         'Authorization': `Bearer ${mercadoPagoToken}`,
         'Content-Type': 'application/json',
-        'X-Idempotency-Key': `${user.id}-${Date.now()}`, // Add idempotency key
+        'X-Idempotency-Key': `${user.id}-${Date.now()}`,
       },
       body: JSON.stringify(subscriptionData),
     });
@@ -142,17 +157,30 @@ serve(async (req) => {
 
     if (!subscriptionResponse.ok) {
       const errorText = await subscriptionResponse.text();
-      console.error("Error creating subscription - Status:", subscriptionResponse.status);
-      console.error("Error creating subscription - Response:", errorText);
-      console.error("Error creating subscription - Headers:", Object.fromEntries(subscriptionResponse.headers.entries()));
-      throw new Error(`Failed to create subscription: ${subscriptionResponse.status} - ${errorText}`);
+      console.error("Error creating subscription:", {
+        status: subscriptionResponse.status,
+        response: errorText,
+        headers: Object.fromEntries(subscriptionResponse.headers.entries())
+      });
+      
+      let errorMessage = "Failed to create subscription";
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      } catch (e) {
+        // Keep default error message if parsing fails
+      }
+      
+      throw new Error(`Payment service error: ${errorMessage}`);
     }
 
     const subscription = await subscriptionResponse.json();
-    console.log("Subscription created:", JSON.stringify(subscription));
+    console.log("Subscription created successfully:", subscription.id);
 
     if (!subscription.init_point) {
-      throw new Error('Failed to create subscription - no init_point returned');
+      throw new Error('Failed to create subscription - no payment URL returned');
     }
 
     // Track the checkout session in your database
@@ -163,18 +191,18 @@ serve(async (req) => {
       status: 'pending'
     });
 
+    console.log("Checkout session created successfully, redirecting to:", subscription.init_point);
+
     return new Response(JSON.stringify({ url: subscription.init_point }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
     console.error("Error creating checkout session:", error);
-    // Generic error message for security (don't expose internal details)
-    const userMessage = error.message.includes("not configured") 
-      ? "Service temporarily unavailable" 
-      : "Unable to process request";
     
-    return new Response(JSON.stringify({ error: userMessage }), {
+    return new Response(JSON.stringify({ 
+      error: error.message || "Unable to process request"
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
