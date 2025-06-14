@@ -526,6 +526,7 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          mercado_pago_customer_id: string | null
           stripe_customer_id: string | null
           updated_at: string
           user_id: string | null
@@ -534,6 +535,7 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
+          mercado_pago_customer_id?: string | null
           stripe_customer_id?: string | null
           updated_at?: string
           user_id?: string | null
@@ -542,6 +544,7 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          mercado_pago_customer_id?: string | null
           stripe_customer_id?: string | null
           updated_at?: string
           user_id?: string | null
@@ -553,6 +556,7 @@ export type Database = {
           created_at: string | null
           end_date: string
           id: string
+          mercado_pago_subscription_id: string | null
           payment_provider: string
           start_date: string
           status: string
@@ -562,6 +566,7 @@ export type Database = {
           created_at?: string | null
           end_date: string
           id?: string
+          mercado_pago_subscription_id?: string | null
           payment_provider: string
           start_date: string
           status: string
@@ -571,6 +576,7 @@ export type Database = {
           created_at?: string | null
           end_date?: string
           id?: string
+          mercado_pago_subscription_id?: string | null
           payment_provider?: string
           start_date?: string
           status?: string

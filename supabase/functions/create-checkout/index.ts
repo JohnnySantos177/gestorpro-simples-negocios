@@ -44,6 +44,8 @@ serve(async (req) => {
       throw new Error("Mercado Pago access token not configured");
     }
 
+    console.log("Using Mercado Pago token (first 10 chars):", mercadoPagoToken.substring(0, 10));
+
     // Check if user already has a Mercado Pago customer ID
     const serviceClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -60,26 +62,38 @@ serve(async (req) => {
     let customerId = subscribers?.mercado_pago_customer_id;
 
     if (!customerId) {
+      console.log("Creating new customer for email:", user.email);
+      
       // Create new customer in Mercado Pago
+      const customerPayload = {
+        email: user.email,
+        description: `TotalGestor customer - ${user.id}`,
+      };
+      
+      console.log("Customer payload:", JSON.stringify(customerPayload));
+
       const newCustomerResponse = await fetch('https://api.mercadopago.com/v1/customers', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${mercadoPagoToken}`,
           'Content-Type': 'application/json',
+          'X-Idempotency-Key': user.id, // Add idempotency key
         },
-        body: JSON.stringify({
-          email: user.email,
-          description: `TotalGestor customer - ${user.id}`,
-        }),
+        body: JSON.stringify(customerPayload),
       });
 
+      console.log("Customer response status:", newCustomerResponse.status);
+      
       if (!newCustomerResponse.ok) {
         const errorText = await newCustomerResponse.text();
-        console.error("Error creating customer:", errorText);
-        throw new Error("Failed to create customer");
+        console.error("Error creating customer - Status:", newCustomerResponse.status);
+        console.error("Error creating customer - Response:", errorText);
+        console.error("Error creating customer - Headers:", Object.fromEntries(newCustomerResponse.headers.entries()));
+        throw new Error(`Failed to create customer: ${newCustomerResponse.status} - ${errorText}`);
       }
 
       const newCustomer = await newCustomerResponse.json();
+      console.log("Customer created successfully:", JSON.stringify(newCustomer));
       customerId = newCustomer.id;
 
       // Save the customer ID in Supabase
@@ -119,14 +133,19 @@ serve(async (req) => {
       headers: {
         'Authorization': `Bearer ${mercadoPagoToken}`,
         'Content-Type': 'application/json',
+        'X-Idempotency-Key': `${user.id}-${Date.now()}`, // Add idempotency key
       },
       body: JSON.stringify(subscriptionData),
     });
 
+    console.log("Subscription response status:", subscriptionResponse.status);
+
     if (!subscriptionResponse.ok) {
       const errorText = await subscriptionResponse.text();
-      console.error("Error creating subscription:", errorText);
-      throw new Error("Failed to create subscription");
+      console.error("Error creating subscription - Status:", subscriptionResponse.status);
+      console.error("Error creating subscription - Response:", errorText);
+      console.error("Error creating subscription - Headers:", Object.fromEntries(subscriptionResponse.headers.entries()));
+      throw new Error(`Failed to create subscription: ${subscriptionResponse.status} - ${errorText}`);
     }
 
     const subscription = await subscriptionResponse.json();

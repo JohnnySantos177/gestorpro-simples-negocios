@@ -81,67 +81,80 @@ serve(async (req) => {
         },
       });
 
-      const customerData = await customerResponse.json();
+      if (customerResponse.ok) {
+        const customerData = await customerResponse.json();
 
-      if (customerData.results && customerData.results.length > 0) {
-        customerId = customerData.results[0].id;
-      } else {
-        // Create new customer in Mercado Pago
-        const newCustomerResponse = await fetch('https://api.mercadopago.com/v1/customers', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${mercadoPagoToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+        if (customerData.results && customerData.results.length > 0) {
+          customerId = customerData.results[0].id;
+        } else {
+          // Create new customer in Mercado Pago
+          const newCustomerResponse = await fetch('https://api.mercadopago.com/v1/customers', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${mercadoPagoToken}`,
+              'Content-Type': 'application/json',
+              'X-Idempotency-Key': user.id,
+            },
+            body: JSON.stringify({
+              email: user.email,
+              description: `TotalGestor customer - ${user.id}`,
+            }),
+          });
+
+          if (newCustomerResponse.ok) {
+            const newCustomer = await newCustomerResponse.json();
+            customerId = newCustomer.id;
+          }
+        }
+
+        // Save the customer ID in Supabase if we have one
+        if (customerId) {
+          await supabaseClient.from('subscribers').upsert({
+            user_id: user.id,
             email: user.email,
-            description: `TotalGestor customer - ${user.id}`,
-          }),
-        });
-
-        const newCustomer = await newCustomerResponse.json();
-        customerId = newCustomer.id;
+            mercado_pago_customer_id: customerId,
+            created_at: new Date().toISOString(),
+          });
+        }
       }
-
-      // Save the customer ID in Supabase
-      await supabaseClient.from('subscribers').upsert({
-        user_id: user.id,
-        email: user.email,
-        mercado_pago_customer_id: customerId,
-        created_at: new Date().toISOString(),
-      });
     }
 
-    // Check for active subscriptions
-    const subscriptionsResponse = await fetch(`https://api.mercadopago.com/preapproval/search?payer_id=${customerId}&status=authorized`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${mercadoPagoToken}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    const subscriptionsData = await subscriptionsResponse.json();
-    const hasActiveSub = subscriptionsData.results && subscriptionsData.results.length > 0;
+    // Check for active subscriptions only if we have a customer ID
+    let hasActiveSub = false;
     let subscriptionEnd = null;
     let subscriptionId = null;
 
-    if (hasActiveSub) {
-      const subscription = subscriptionsData.results[0];
-      subscriptionId = subscription.id;
-      subscriptionEnd = subscription.next_payment_date;
-
-      // Update subscription status in the database
-      await supabaseClient.from('subscriptions').upsert({
-        user_id: user.id,
-        mercado_pago_subscription_id: subscriptionId,
-        status: 'active',
-        start_date: subscription.date_created,
-        end_date: subscriptionEnd,
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'user_id',
+    if (customerId) {
+      const subscriptionsResponse = await fetch(`https://api.mercadopago.com/preapproval/search?payer_id=${customerId}&status=authorized`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${mercadoPagoToken}`,
+          'Content-Type': 'application/json',
+        },
       });
+
+      if (subscriptionsResponse.ok) {
+        const subscriptionsData = await subscriptionsResponse.json();
+        hasActiveSub = subscriptionsData.results && subscriptionsData.results.length > 0;
+
+        if (hasActiveSub) {
+          const subscription = subscriptionsData.results[0];
+          subscriptionId = subscription.id;
+          subscriptionEnd = subscription.next_payment_date;
+
+          // Update subscription status in the database
+          await supabaseClient.from('subscriptions').upsert({
+            user_id: user.id,
+            mercado_pago_subscription_id: subscriptionId,
+            status: 'active',
+            start_date: subscription.date_created,
+            end_date: subscriptionEnd,
+            updated_at: new Date().toISOString(),
+          }, {
+            onConflict: 'user_id',
+          });
+        }
+      }
     }
 
     // Log successful action for security monitoring
