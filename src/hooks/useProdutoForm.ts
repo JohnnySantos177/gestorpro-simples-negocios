@@ -16,7 +16,7 @@ const produtoSchema = z.object({
 export type ProdutoFormData = z.infer<typeof produtoSchema>;
 
 export const useProdutoForm = (defaultValues?: Partial<ProdutoFormData>) => {
-  return useForm<ProdutoFormData>({
+  const form = useForm<ProdutoFormData>({
     resolver: zodResolver(produtoSchema),
     defaultValues: {
       nome: "",
@@ -29,4 +29,6 @@ export const useProdutoForm = (defaultValues?: Partial<ProdutoFormData>) => {
       ...defaultValues,
     },
   });
+
+  return form;
 };
