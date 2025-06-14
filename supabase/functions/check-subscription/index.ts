@@ -71,15 +71,14 @@ serve(async (req) => {
 
     if (!customerId) {
       // Look for existing customer in Mercado Pago or create a new one
-      const customerResponse = await fetch('https://api.mercadopago.com/v1/customers/search', {
+      const customerSearchUrl = `https://api.mercadopago.com/v1/customers/search?email=${encodeURIComponent(user.email)}`;
+      
+      const customerResponse = await fetch(customerSearchUrl, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${mercadoPagoToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          email: user.email,
-        }),
       });
 
       const customerData = await customerResponse.json();

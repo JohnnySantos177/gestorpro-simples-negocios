@@ -73,6 +73,12 @@ serve(async (req) => {
         }),
       });
 
+      if (!newCustomerResponse.ok) {
+        const errorText = await newCustomerResponse.text();
+        console.error("Error creating customer:", errorText);
+        throw new Error("Failed to create customer");
+      }
+
       const newCustomer = await newCustomerResponse.json();
       customerId = newCustomer.id;
 
@@ -106,6 +112,8 @@ serve(async (req) => {
       subscriptionData.auto_recurring.frequency = 6;
     }
 
+    console.log("Creating subscription with data:", JSON.stringify(subscriptionData));
+
     const subscriptionResponse = await fetch('https://api.mercadopago.com/preapproval', {
       method: 'POST',
       headers: {
@@ -115,10 +123,17 @@ serve(async (req) => {
       body: JSON.stringify(subscriptionData),
     });
 
+    if (!subscriptionResponse.ok) {
+      const errorText = await subscriptionResponse.text();
+      console.error("Error creating subscription:", errorText);
+      throw new Error("Failed to create subscription");
+    }
+
     const subscription = await subscriptionResponse.json();
+    console.log("Subscription created:", JSON.stringify(subscription));
 
     if (!subscription.init_point) {
-      throw new Error('Failed to create subscription');
+      throw new Error('Failed to create subscription - no init_point returned');
     }
 
     // Track the checkout session in your database
