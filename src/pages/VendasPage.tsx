@@ -149,14 +149,12 @@ const VendasPage = () => {
     
     const cliente = clientes.find(c => c.id === data.clienteId);
 
-    // PARA CRIAÇÃO E EDIÇÃO DE COMPRAS, SEMPRE PASSE user_id DO USUÁRIO LOGADO
     if (dialogType === "add") {
       if (!user?.id) {
         // Por segurança, não permitir salvar sem usuário autenticado
         return;
       }
       addCompra({
-        user_id: user.id,
         clienteId: data.clienteId,
         clienteNome: cliente?.nome || "",
         data: new Date().toISOString(),
@@ -168,7 +166,6 @@ const VendasPage = () => {
     } else if (dialogType === "edit" && selectedCompra) {
       if (!user?.id) return;
       updateCompra(selectedCompra.id, {
-        user_id: user.id,
         clienteId: data.clienteId,
         clienteNome: cliente?.nome || "",
         produtos: itensPedido,

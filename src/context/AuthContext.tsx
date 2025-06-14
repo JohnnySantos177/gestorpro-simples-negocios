@@ -29,8 +29,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setProfile,
     setIsAdmin,
     loadUserProfile,
-    setUser,
-    setSession,
   } = useAuthState();
 
   const { isVisitorMode, targetUserId } = useVisitorMode();
@@ -100,8 +98,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await authService.signOut();
       setProfile(null);
       setIsAdmin(false);
-      setUser && setUser(null);
-      setSession && setSession(null);
     } catch (error: any) {
       throw error;
     }
