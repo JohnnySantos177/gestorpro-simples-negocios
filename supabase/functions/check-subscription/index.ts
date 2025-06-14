@@ -62,123 +62,51 @@ serve(async (req) => {
       });
     }
 
-    // Check if user already has a Mercado Pago customer ID
-    const { data: subscribers, error: fetchError } = await supabaseClient
-      .from('subscribers')
-      .select('mercado_pago_customer_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    let customerId = subscribers?.mercado_pago_customer_id;
-
-    if (!customerId) {
-      // Look for existing customer in Mercado Pago or create a new one
-      const customerSearchUrl = `https://api.mercadopago.com/v1/customers/search?email=${encodeURIComponent(user.email)}`;
-      
-      console.log("Searching for existing customer:", user.email);
-
-      const customerResponse = await fetch(customerSearchUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${mercadoPagoToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (customerResponse.ok) {
-        const customerData = await customerResponse.json();
-
-        if (customerData.results && customerData.results.length > 0) {
-          customerId = customerData.results[0].id;
-          console.log("Found existing customer:", customerId);
-        } else {
-          console.log("No existing customer found, creating new one");
-          
-          // Create new customer in Mercado Pago
-          const newCustomerResponse = await fetch('https://api.mercadopago.com/v1/customers', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${mercadoPagoToken}`,
-              'Content-Type': 'application/json',
-              'X-Idempotency-Key': user.id,
-            },
-            body: JSON.stringify({
-              email: user.email,
-              description: `TotalGestor customer - ${user.id}`,
-            }),
-          });
-
-          if (newCustomerResponse.ok) {
-            const newCustomer = await newCustomerResponse.json();
-            customerId = newCustomer.id;
-            console.log("Created new customer:", customerId);
-          } else {
-            const errorText = await newCustomerResponse.text();
-            console.error("Failed to create customer:", errorText);
-          }
-        }
-
-        // Save the customer ID in Supabase if we have one
-        if (customerId) {
-          await supabaseClient.from('subscribers').upsert({
-            user_id: user.id,
-            email: user.email,
-            mercado_pago_customer_id: customerId,
-            created_at: new Date().toISOString(),
-          });
-        }
-      } else {
-        const errorText = await customerResponse.text();
-        console.error("Error searching for customer:", errorText);
-      }
-    }
-
-    // Check for active subscriptions only if we have a customer ID
+    // Check for active subscriptions by email instead of customer ID
     let hasActiveSub = false;
     let subscriptionEnd = null;
     let subscriptionId = null;
 
-    if (customerId) {
-      console.log("Checking subscriptions for customer:", customerId);
-      
-      const subscriptionsResponse = await fetch(`https://api.mercadopago.com/preapproval/search?payer_id=${customerId}&status=authorized`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${mercadoPagoToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
+    console.log("Checking subscriptions for email:", user.email);
+    
+    // Search for subscriptions by payer email
+    const subscriptionsResponse = await fetch(`https://api.mercadopago.com/preapproval/search?payer_email=${encodeURIComponent(user.email)}&status=authorized`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${mercadoPagoToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
-      if (subscriptionsResponse.ok) {
-        const subscriptionsData = await subscriptionsResponse.json();
-        hasActiveSub = subscriptionsData.results && subscriptionsData.results.length > 0;
+    if (subscriptionsResponse.ok) {
+      const subscriptionsData = await subscriptionsResponse.json();
+      hasActiveSub = subscriptionsData.results && subscriptionsData.results.length > 0;
 
-        console.log("Found subscriptions:", subscriptionsData.results?.length || 0);
+      console.log("Found subscriptions:", subscriptionsData.results?.length || 0);
 
-        if (hasActiveSub) {
-          const subscription = subscriptionsData.results[0];
-          subscriptionId = subscription.id;
-          subscriptionEnd = subscription.next_payment_date;
+      if (hasActiveSub) {
+        const subscription = subscriptionsData.results[0];
+        subscriptionId = subscription.id;
+        subscriptionEnd = subscription.next_payment_date;
 
-          console.log("Active subscription found:", subscriptionId);
+        console.log("Active subscription found:", subscriptionId);
 
-          // Update subscription status in the database
-          await supabaseClient.from('subscriptions').upsert({
-            user_id: user.id,
-            mercado_pago_subscription_id: subscriptionId,
-            status: 'active',
-            start_date: subscription.date_created,
-            end_date: subscriptionEnd,
-            payment_provider: 'mercado_pago',
-            updated_at: new Date().toISOString(),
-          }, {
-            onConflict: 'user_id',
-          });
-        }
-      } else {
-        const errorText = await subscriptionsResponse.text();
-        console.error("Error checking subscriptions:", errorText);
+        // Update subscription status in the database
+        await supabaseClient.from('subscriptions').upsert({
+          user_id: user.id,
+          mercado_pago_subscription_id: subscriptionId,
+          status: 'active',
+          start_date: subscription.date_created,
+          end_date: subscriptionEnd,
+          payment_provider: 'mercado_pago',
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id',
+        });
       }
+    } else {
+      const errorText = await subscriptionsResponse.text();
+      console.error("Error checking subscriptions:", errorText);
     }
 
     // Log successful action for security monitoring

@@ -48,151 +48,8 @@ serve(async (req) => {
     console.log("Creating checkout for user:", user.email);
     console.log("Plan type:", planType, "Price:", price);
 
-    // Check if user already has a Mercado Pago customer ID
-    const serviceClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
-    );
-
-    const { data: subscribers } = await serviceClient
-      .from('subscribers')
-      .select('mercado_pago_customer_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    let customerId = subscribers?.mercado_pago_customer_id;
-
-    if (!customerId) {
-      console.log("No customer ID found in database, searching for existing customer in Mercado Pago");
-      
-      // First, try to find existing customer by email with better error handling
-      const customerSearchUrl = `https://api.mercadopago.com/v1/customers/search?email=${encodeURIComponent(user.email)}`;
-      
-      try {
-        const searchResponse = await fetch(customerSearchUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${mercadoPagoToken}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (searchResponse.ok) {
-          const searchData = await searchResponse.json();
-          console.log("Search response:", JSON.stringify(searchData));
-          
-          if (searchData.results && searchData.results.length > 0) {
-            // Customer already exists, use the existing one
-            customerId = searchData.results[0].id;
-            console.log("Found existing customer in Mercado Pago:", customerId);
-            
-            // Save to database for future use
-            await serviceClient.from('subscribers').upsert({
-              user_id: user.id,
-              email: user.email,
-              mercado_pago_customer_id: customerId,
-              created_at: new Date().toISOString(),
-            });
-          }
-        } else {
-          const searchErrorText = await searchResponse.text();
-          console.error("Error searching for customer:", searchErrorText);
-        }
-      } catch (searchError) {
-        console.error("Error in customer search:", searchError);
-      }
-    }
-
-    // Only create customer if we still don't have one
-    if (!customerId) {
-      console.log("Creating new customer for email:", user.email);
-      
-      const customerPayload = {
-        email: user.email,
-        description: `TotalGestor customer - ${user.id}`,
-      };
-      
-      console.log("Customer payload:", JSON.stringify(customerPayload));
-
-      const newCustomerResponse = await fetch('https://api.mercadopago.com/v1/customers', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${mercadoPagoToken}`,
-          'Content-Type': 'application/json',
-          'X-Idempotency-Key': user.id,
-        },
-        body: JSON.stringify(customerPayload),
-      });
-
-      console.log("Customer response status:", newCustomerResponse.status);
-      
-      if (!newCustomerResponse.ok) {
-        const errorText = await newCustomerResponse.text();
-        console.error("Error creating customer:", {
-          status: newCustomerResponse.status,
-          response: errorText,
-          headers: Object.fromEntries(newCustomerResponse.headers.entries())
-        });
-        
-        // Try to parse error and see if customer already exists
-        try {
-          const errorData = JSON.parse(errorText);
-          if (errorData.message && errorData.message.includes("already exists")) {
-            console.log("Customer already exists error, trying to find existing customer again");
-            
-            // Retry the search with a small delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            const retrySearchResponse = await fetch(customerSearchUrl, {
-              method: 'GET',
-              headers: {
-                'Authorization': `Bearer ${mercadoPagoToken}`,
-                'Content-Type': 'application/json',
-              },
-            });
-
-            if (retrySearchResponse.ok) {
-              const retrySearchData = await retrySearchResponse.json();
-              if (retrySearchData.results && retrySearchData.results.length > 0) {
-                customerId = retrySearchData.results[0].id;
-                console.log("Found existing customer on retry:", customerId);
-                
-                // Save to database
-                await serviceClient.from('subscribers').upsert({
-                  user_id: user.id,
-                  email: user.email,
-                  mercado_pago_customer_id: customerId,
-                  created_at: new Date().toISOString(),
-                });
-              }
-            }
-          }
-        } catch (parseError) {
-          console.error("Error parsing customer creation error:", parseError);
-        }
-        
-        if (!customerId) {
-          throw new Error(`Failed to create customer: ${errorText}`);
-        }
-      } else {
-        const newCustomer = await newCustomerResponse.json();
-        console.log("Customer created successfully:", newCustomer.id);
-        customerId = newCustomer.id;
-        
-        // Save the customer ID in Supabase
-        await serviceClient.from('subscribers').upsert({
-          user_id: user.id,
-          email: user.email,
-          mercado_pago_customer_id: customerId,
-          created_at: new Date().toISOString(),
-        });
-      }
-    }
-
-    console.log("Using customer ID:", customerId);
-
-    // Create subscription preference
+    // Create subscription preference directly without customer creation
+    // This avoids the "can't pay yourself" error
     const subscriptionData = {
       reason: 'Assinatura TotalGestor Pro',
       auto_recurring: {
@@ -204,6 +61,7 @@ serve(async (req) => {
       payer_email: user.email,
       back_url: `${req.headers.get("origin")}/confirmation-success`,
       status: 'pending',
+      external_reference: `subscription_${user.id}_${Date.now()}`,
     };
 
     // Adjust frequency based on plan type
@@ -245,12 +103,26 @@ serve(async (req) => {
       throw new Error('Failed to create subscription - no payment URL returned');
     }
 
+    // Use the service role key to perform writes in Supabase
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
+
     // Track the checkout session in your database
     await serviceClient.from('checkout_sessions').insert({
       user_id: user.id,
       session_id: subscription.id,
       amount: price,
       status: 'pending'
+    });
+
+    // Save customer info for future reference (without creating in MP)
+    await serviceClient.from('subscribers').upsert({
+      user_id: user.id,
+      email: user.email,
+      created_at: new Date().toISOString(),
     });
 
     console.log("Checkout session created successfully, redirecting to:", subscription.init_point);
