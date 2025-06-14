@@ -31,6 +31,7 @@ export const authService = {
           nome: nome || "",
           telefone: telefone || "",
         },
+        emailRedirectTo: `${window.location.origin}/`,
       },
     });
     if (error) throw error;

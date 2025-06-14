@@ -148,6 +148,7 @@ export interface UserProfile {
   tipo_usuario: 'usuario' | 'admin_mestre';
   created_at: string;
   updated_at: string;
-  email?: string; // Optional field for admin views
-  is_super_admin?: boolean; // Campo para controle de super admin
+  is_super_admin?: boolean;
+  email?: string; // Para facilitar o painel, email pode ser opcional
+  telefone?: string | null;
 }

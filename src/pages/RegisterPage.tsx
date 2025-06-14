@@ -1,81 +1,72 @@
-
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Layout } from "@/components/Layout";
+import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 const registerSchema = z.object({
   nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
-  email: z.string().email("E-mail inválido").min(1, "E-mail é obrigatório"),
-  telefone: z.string().min(8, "Telefone deve ter pelo menos 8 dígitos"),
+  email: z.string().email("E-mail inválido"),
   password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
-  confirmPassword: z.string().min(6, "Confirme sua senha"),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "As senhas não coincidem",
-  path: ["confirmPassword"],
+  telefone: z.string().optional(),
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 const RegisterPage = () => {
+  const { signUp } = useAuth();
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { signUp, user } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Redirect if already logged in
-  React.useEffect(() => {
-    if (user) {
-      navigate("/");
-    }
-  }, [user, navigate]);
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       nome: "",
       email: "",
-      telefone: "",
       password: "",
-      confirmPassword: "",
+      telefone: "",
     },
   });
 
-  const onSubmit = async (data: RegisterFormValues) => {
-    setIsLoading(true);
+  const handleRegister = async (values: RegisterFormValues) => {
     try {
-      await signUp(data.email, data.password, data.nome, data.telefone);
+      setLoading(true);
+      await signUp(values.email, values.password, values.nome, values.telefone);
+      toast.success("Conta criada! Verifique seu e-mail para ativar o cadastro.");
       navigate("/login");
-    } catch (error) {
-      // Error handled in AuthContext
+    } catch (error: any) {
+      toast.error(`Erro ao criar conta: ${error.message}`);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Criar Conta</CardTitle>
-          <CardDescription>Registre-se para usar o sistema</CardDescription>
-        </CardHeader>
-        <CardContent>
+    <Layout>
+      <div className="container flex items-center justify-center">
+        <div className="w-full max-w-md">
+          <PageHeader
+            title="Criar uma conta"
+            description="Crie sua conta para começar a usar o sistema"
+          />
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(handleRegister)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="nome"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nome Completo</FormLabel>
+                    <FormLabel>Nome</FormLabel>
                     <FormControl>
-                      <Input placeholder="Seu nome completo" {...field} />
+                      <Input placeholder="Nome completo" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -88,21 +79,7 @@ const RegisterPage = () => {
                   <FormItem>
                     <FormLabel>E-mail</FormLabel>
                     <FormControl>
-                      <Input placeholder="seu@email.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              {/* Campo de telefone */}
-              <FormField
-                control={form.control}
-                name="telefone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Telefone</FormLabel>
-                    <FormControl>
-                      <Input placeholder="(99) 99999-9999" {...field} />
+                      <Input placeholder="email@exemplo.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -123,31 +100,31 @@ const RegisterPage = () => {
               />
               <FormField
                 control={form.control}
-                name="confirmPassword"
+                name="telefone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Confirme a Senha</FormLabel>
+                    <FormLabel>Telefone</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="******" {...field} />
+                      <Input placeholder="(99) 99999-9999" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Registrando..." : "Criar Conta"}
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Criando conta..." : "Criar conta"}
               </Button>
             </form>
           </Form>
-        </CardContent>
-        <CardFooter className="text-sm text-center">
-          Já tem uma conta?{" "}
-          <Link to="/login" className="text-gestorpro-600 hover:underline">
-            Fazer login
-          </Link>
-        </CardFooter>
-      </Card>
-    </div>
+          <div className="mt-4 text-sm text-muted-foreground">
+            Já tem uma conta?{" "}
+            <Link to="/login" className="text-primary hover:underline">
+              Faça login
+            </Link>
+          </div>
+        </div>
+      </div>
+    </Layout>
   );
 };
 

@@ -23,11 +23,13 @@ const userSchema = z.object({
   email: z.string().email("E-mail inválido"),
   password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
   tipo_plano: z.enum(['padrao', 'premium']),
+  telefone: z.string().optional(),
 });
 
 const editUserSchema = z.object({
   nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
   tipo_plano: z.enum(['padrao', 'premium']),
+  telefone: z.string().optional(),
 });
 
 type UserFormValues = z.infer<typeof userSchema>;
@@ -72,6 +74,7 @@ const UserManagementPage = () => {
       email: "",
       password: "",
       tipo_plano: "padrao",
+      telefone: "",
     },
   });
 
@@ -80,6 +83,7 @@ const UserManagementPage = () => {
     defaultValues: {
       nome: "",
       tipo_plano: "padrao",
+      telefone: "",
     },
   });
 
@@ -115,7 +119,7 @@ const UserManagementPage = () => {
             created_at: profile.created_at,
             updated_at: profile.updated_at,
             email: authUser?.email,
-            telefone: profile.telefone || '',
+            telefone: profile.telefone || '', // Corrige erro TypeScript
           });
         });
       }
@@ -144,19 +148,21 @@ const UserManagementPage = () => {
         password: data.password,
         email_confirm: true,
         user_metadata: {
-          nome: data.nome
+          nome: data.nome,
+          telefone: data.telefone,
         }
       });
 
       if (authError) throw authError;
 
-      // Update profile with correct plan
+      // Update profile with correct plan and telefone
       if (authData.user) {
         const { error: profileError } = await supabase
           .from('profiles')
           .update({
             nome: data.nome,
-            tipo_plano: data.tipo_plano
+            tipo_plano: data.tipo_plano,
+            telefone: data.telefone,
           })
           .eq('id', authData.user.id);
 
@@ -181,7 +187,8 @@ const UserManagementPage = () => {
         .from('profiles')
         .update({
           nome: data.nome,
-          tipo_plano: data.tipo_plano
+          tipo_plano: data.tipo_plano,
+          telefone: data.telefone,
         })
         .eq('id', selectedUser.id);
 
@@ -220,6 +227,7 @@ const UserManagementPage = () => {
     setSelectedUser(userProfile);
     editUserForm.setValue('nome', userProfile.nome || '');
     editUserForm.setValue('tipo_plano', userProfile.tipo_plano);
+    editUserForm.setValue('telefone', userProfile.telefone || '');
     setIsEditDialogOpen(true);
   };
 
@@ -317,6 +325,19 @@ const UserManagementPage = () => {
                           <SelectItem value="premium">Premium</SelectItem>
                         </SelectContent>
                       </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={createUserForm.control}
+                  name="telefone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Telefone</FormLabel>
+                      <FormControl>
+                        <Input placeholder="(99) 99999-9999" {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -427,6 +448,19 @@ const UserManagementPage = () => {
                         <SelectItem value="premium">Premium</SelectItem>
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editUserForm.control}
+                name="telefone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Telefone</FormLabel>
+                    <FormControl>
+                      <Input placeholder="(99) 99999-9999" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
