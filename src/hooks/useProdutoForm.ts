@@ -75,28 +75,23 @@ export const useProdutoForm = (fornecedores: Fornecedor[]) => {
 
   const handleAddEditSubmit = (data: ProdutoFormData) => {
     if (dialogType === "add") {
-      addProduto({
+      const newProduto = {
         ...data,
-        id: crypto.randomUUID(),
-        userId: "current-user-id", // This should come from auth context
         precoCompra: data.precoCompra || 0,
         precoVenda: data.precoVenda || 0,
         quantidade: data.quantidade || 0,
         fornecedorNome: fornecedores.find(f => f.id === data.fornecedorId)?.nome || "",
-        dataCadastro: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      };
+      addProduto(newProduto);
     } else if (dialogType === "edit" && selectedProduto) {
-      updateProduto(selectedProduto.id, {
-        ...selectedProduto,
+      const updatedProduto = {
         ...data,
         precoCompra: data.precoCompra || 0,
         precoVenda: data.precoVenda || 0,
         quantidade: data.quantidade || 0,
         fornecedorNome: fornecedores.find(f => f.id === data.fornecedorId)?.nome || "",
-        updatedAt: new Date(),
-      });
+      };
+      updateProduto(selectedProduto.id, updatedProduto);
     }
     setDialogOpen(false);
   };
