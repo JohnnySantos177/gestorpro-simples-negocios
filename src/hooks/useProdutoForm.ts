@@ -1,11 +1,13 @@
+
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Produto, Fornecedor } from "@/types";
 import { useData } from "@/context/DataContext";
 
 // Match ProdutoFormData in ProdutoForm.tsx!
+// fornecedorId é opcional!
 export const produtoSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
   descricao: z.string().optional(),
@@ -13,7 +15,7 @@ export const produtoSchema = z.object({
   precoCompra: z.coerce.number().min(0, "Preço de compra deve ser maior que 0"),
   precoVenda: z.coerce.number().min(0, "Preço de venda deve ser maior que 0"),
   quantidade: z.coerce.number().min(0, "Quantidade deve ser maior que 0"),
-  fornecedorId: z.string().optional(),
+  fornecedorId: z.string().optional().or(z.literal("")), // permite string vazia ou undefined
 });
 
 export type ProdutoFormData = z.infer<typeof produtoSchema>;
@@ -25,7 +27,7 @@ export const useProdutoForm = (fornecedores: Fornecedor[]) => {
   const [dialogType, setDialogType] = useState<"add" | "edit" | "delete">("add");
   const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null);
 
-  // EXPLICIT GENERIC: ProdutoFormData
+  // ProdutoFormData já possui definição correta
   const form = useForm<ProdutoFormData>({
     resolver: zodResolver(produtoSchema),
     defaultValues: {
@@ -35,7 +37,7 @@ export const useProdutoForm = (fornecedores: Fornecedor[]) => {
       precoCompra: 0,
       precoVenda: 0,
       quantidade: 0,
-      fornecedorId: "",
+      fornecedorId: "", // valor padrão é string vazia
     },
   });
 
@@ -47,11 +49,11 @@ export const useProdutoForm = (fornecedores: Fornecedor[]) => {
       precoCompra: 0,
       precoVenda: 0,
       quantidade: 0,
-      fornecedorId: "",
+      fornecedorId: "", // string vazia ao adicionar
     });
     setDialogType("add");
     setDialogOpen(true);
-    setSelectedProduto(null); // ensure no selectedProduto on add
+    setSelectedProduto(null);
   };
 
   const openEditDialog = (produto: Produto) => {
@@ -76,7 +78,10 @@ export const useProdutoForm = (fornecedores: Fornecedor[]) => {
   };
 
   const handleAddEditSubmit = (data: ProdutoFormData) => {
-    const fornecedor = fornecedores.find((f) => f.id === data.fornecedorId);
+    // Apenas associe se houver fornecedorId
+    const fornecedor = data.fornecedorId
+      ? fornecedores.find((f) => f.id === data.fornecedorId)
+      : undefined;
 
     if (dialogType === "add") {
       addProduto({
@@ -86,7 +91,7 @@ export const useProdutoForm = (fornecedores: Fornecedor[]) => {
         precoCompra: data.precoCompra,
         precoVenda: data.precoVenda,
         quantidade: data.quantidade,
-        fornecedorId: data.fornecedorId,
+        fornecedorId: data.fornecedorId || "",
         fornecedorNome: fornecedor?.nome || "",
       });
     } else if (dialogType === "edit" && selectedProduto) {
@@ -97,7 +102,7 @@ export const useProdutoForm = (fornecedores: Fornecedor[]) => {
         precoCompra: data.precoCompra,
         precoVenda: data.precoVenda,
         quantidade: data.quantidade,
-        fornecedorId: data.fornecedorId,
+        fornecedorId: data.fornecedorId || "",
         fornecedorNome: fornecedor?.nome || "",
       });
     }
