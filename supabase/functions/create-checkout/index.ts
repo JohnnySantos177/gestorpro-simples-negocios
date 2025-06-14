@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -33,6 +32,10 @@ serve(async (req) => {
     }
 
     const authHeader = req.headers.get("Authorization")!;
+    if (!authHeader) {
+      throw new Error("Authorization header is required");
+    }
+    
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);
     const user = data.user;
@@ -83,9 +86,16 @@ serve(async (req) => {
       expires: true,
       expiration_date_from: new Date().toISOString(),
       expiration_date_to: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+      // Add additional configuration for better success rate
+      payment_methods: {
+        excluded_payment_methods: [],
+        excluded_payment_types: [],
+        installments: 12 // Allow up to 12 installments
+      },
+      notification_url: `${origin}/api/webhooks/mercadopago`, // For future webhook implementation
     };
 
-    console.log("Creating preference with data:", JSON.stringify(preferenceData));
+    console.log("Creating preference with data:", JSON.stringify(preferenceData, null, 2));
 
     const preferenceResponse = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',
@@ -98,24 +108,46 @@ serve(async (req) => {
     });
 
     console.log("Preference response status:", preferenceResponse.status);
+    console.log("Preference response headers:", Object.fromEntries(preferenceResponse.headers.entries()));
 
     if (!preferenceResponse.ok) {
       const errorText = await preferenceResponse.text();
       console.error("Error creating preference:", {
         status: preferenceResponse.status,
+        statusText: preferenceResponse.statusText,
         response: errorText,
         headers: Object.fromEntries(preferenceResponse.headers.entries())
       });
       
-      throw new Error(`Failed to create payment preference: ${errorText}`);
+      // Try to parse error response for more details
+      let errorDetails = errorText;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorDetails = errorJson.message || errorJson.error || errorText;
+      } catch (e) {
+        // Keep original error text if parsing fails
+      }
+      
+      throw new Error(`Failed to create payment preference: ${errorDetails}`);
     }
 
     const preference = await preferenceResponse.json();
-    console.log("Preference created successfully:", preference.id);
+    console.log("Preference created successfully:", {
+      id: preference.id,
+      init_point: preference.init_point,
+      sandbox_init_point: preference.sandbox_init_point
+    });
 
-    if (!preference.init_point) {
+    if (!preference.init_point && !preference.sandbox_init_point) {
       throw new Error('Failed to create preference - no payment URL returned');
     }
+
+    // Use sandbox URL for test tokens
+    const redirectUrl = mercadoPagoToken.startsWith("TEST-") 
+      ? (preference.sandbox_init_point || preference.init_point)
+      : preference.init_point;
+
+    console.log("Using redirect URL:", redirectUrl);
 
     // Use the service role key to perform writes in Supabase
     const serviceClient = createClient(
@@ -125,28 +157,41 @@ serve(async (req) => {
     );
 
     // Track the checkout session in your database
-    await serviceClient.from('checkout_sessions').insert({
-      user_id: user.id,
-      session_id: preference.id,
-      amount: price,
-      status: 'pending'
-    });
+    try {
+      await serviceClient.from('checkout_sessions').insert({
+        user_id: user.id,
+        session_id: preference.id,
+        amount: price,
+        status: 'pending'
+      });
+      console.log("Checkout session logged successfully");
+    } catch (dbError) {
+      console.error("Failed to log checkout session:", dbError);
+      // Don't fail the checkout for logging errors
+    }
 
     // Save customer info for future reference
-    await serviceClient.from('subscribers').upsert({
-      user_id: user.id,
-      email: user.email,
-      created_at: new Date().toISOString(),
-    });
+    try {
+      await serviceClient.from('subscribers').upsert({
+        user_id: user.id,
+        email: user.email,
+        created_at: new Date().toISOString(),
+      });
+      console.log("Subscriber info updated successfully");
+    } catch (dbError) {
+      console.error("Failed to update subscriber info:", dbError);
+      // Don't fail the checkout for logging errors
+    }
 
-    console.log("Checkout session created successfully, redirecting to:", preference.init_point);
+    console.log("Checkout session created successfully, redirecting to:", redirectUrl);
 
-    return new Response(JSON.stringify({ url: preference.init_point }), {
+    return new Response(JSON.stringify({ url: redirectUrl }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
     console.error("Error creating checkout session:", error);
+    console.error("Error stack:", error.stack);
     
     return new Response(JSON.stringify({ 
       error: error.message || "Unable to process request"

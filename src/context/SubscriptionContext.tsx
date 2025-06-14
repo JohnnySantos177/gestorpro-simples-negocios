@@ -134,6 +134,15 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
   const initiateCheckout = async (planType: 'monthly' | 'quarterly' | 'semiannual' = 'monthly') => {
     setCheckoutLoading(true);
     try {
+      console.log("Iniciating checkout for plan:", planType);
+      
+      // Check if user is authenticated
+      const session = await supabase.auth.getSession();
+      if (!session.data.session) {
+        toast.error("Você precisa estar logado para fazer uma assinatura");
+        return;
+      }
+
       // Plan prices
       const planPrices = {
         monthly: 8990, // R$ 89,90
@@ -149,9 +158,13 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
         return;
       }
 
+      console.log("Calling create-checkout function with:", { price, planType });
+
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { price, planType }
       });
+      
+      console.log("Create-checkout response:", { data, error });
       
       if (error) {
         console.error("Error initiating checkout:", error);
@@ -159,32 +172,50 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
         // Handle specific error cases
         if (error.message?.includes("temporarily unavailable")) {
           toast.error("Serviço de pagamento temporariamente indisponível. Tente novamente mais tarde.");
+        } else if (error.message?.includes("not configured")) {
+          toast.error("Serviço de pagamento não configurado. Entre em contato com o suporte.");
         } else {
-          toast.error("Erro ao iniciar o checkout");
+          toast.error("Erro ao iniciar o checkout: " + (error.message || "Erro desconhecido"));
         }
         return;
       }
       
+      if (!data) {
+        toast.error("Resposta vazia do serviço de pagamento");
+        return;
+      }
+
+      if (data.error) {
+        console.error("Checkout service error:", data.error);
+        toast.error("Erro no serviço: " + data.error);
+        return;
+      }
+      
       if (data.url) {
+        console.log("Redirecting to checkout URL:", data.url);
         // Security improvement: validate URL before redirect
         try {
           const url = new URL(data.url);
           if (url.hostname.includes('mercadopago.com') || url.hostname.includes('mercadolibre.com')) {
-            window.location.href = data.url;
-            toast.info("Redirecionando para página de pagamento");
+            toast.info("Redirecionando para página de pagamento...");
+            // Add a small delay to show the toast
+            setTimeout(() => {
+              window.location.href = data.url;
+            }, 1000);
           } else {
             throw new Error("Invalid redirect URL");
           }
         } catch (urlError) {
           console.error("Invalid checkout URL:", urlError);
-          toast.error("Erro ao processar pagamento");
+          toast.error("URL de pagamento inválida");
         }
       } else {
-        toast.error("Erro ao gerar link de pagamento");
+        console.error("No URL returned from checkout service");
+        toast.error("Erro: Link de pagamento não foi gerado");
       }
     } catch (error) {
       console.error("Error in initiateCheckout:", error);
-      toast.error("Erro ao processar pagamento. Tente novamente.");
+      toast.error("Erro ao processar pagamento: " + (error.message || "Erro desconhecido"));
     } finally {
       setCheckoutLoading(false);
     }
