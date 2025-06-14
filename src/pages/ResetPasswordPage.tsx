@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -34,35 +33,50 @@ const ResetPasswordPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isResetEmailSent, setIsResetEmailSent] = useState(false);
   const [hasResetToken, setHasResetToken] = useState(false);
+  const [tokenChecked, setTokenChecked] = useState(false);
+  const [tokenError, setTokenError] = useState<string | null>(null);
 
-  // Check if we have a reset token in the URL
+  // Verifica se existe um token de redefinição na URL
   useEffect(() => {
     const checkForToken = async () => {
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       const accessToken = hashParams.get('access_token');
-      
-      if (accessToken) {
-        const { error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: '',
-        });
-        
-        if (!error) {
-          setHasResetToken(true);
+      const type = hashParams.get('type');
+      // O "type" pode ser "recovery" quando for reset de senha
+      if (accessToken && type === "recovery") {
+        try {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: "",
+          });
+          if (!error) {
+            setHasResetToken(true);
+            setTokenChecked(true);
+          } else {
+            setTokenError("Link de redefinição inválido ou expirado.");
+            setTokenChecked(true);
+          }
+        } catch (err) {
+          setTokenError("Erro ao validar o link de redefinição.");
+          setTokenChecked(true);
         }
+      } else if (accessToken) {
+        // Caso token mas não seja do tipo correto, ainda sim permita o fluxo (para compatibilidade)
+        setHasResetToken(true);
+        setTokenChecked(true);
+      } else {
+        setTokenChecked(true);
       }
     };
-    
     checkForToken();
   }, []);
 
-  // Form for requesting password reset
+  // Formulários de request e de redefinição de senha
   const requestResetForm = useForm<RequestResetFormValues>({
     resolver: zodResolver(requestResetSchema),
     defaultValues: { email: "" },
   });
 
-  // Form for setting a new password
   const newPasswordForm = useForm<NewPasswordFormValues>({
     resolver: zodResolver(newPasswordSchema),
     defaultValues: { password: "", confirmPassword: "" },
@@ -94,7 +108,44 @@ const ResetPasswordPage = () => {
     }
   };
 
-  // If user has already received the reset email
+  // Se estivermos aguardando a checagem do token, mostrar loading
+  if (!tokenChecked) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold">Carregando...</CardTitle>
+            <CardDescription>
+              Verificando link de redefinição de senha
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  // Se houve erro ao validar o token
+  if (tokenError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold text-red-600">Link inválido</CardTitle>
+            <CardDescription>
+              {tokenError}
+            </CardDescription>
+          </CardHeader>
+          <CardFooter className="flex justify-center">
+            <Link to="/reset-password">
+              <Button variant="outline">Solicitar novo link</Button>
+            </Link>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
+  // Após envio do email
   if (isResetEmailSent) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
@@ -115,14 +166,16 @@ const ResetPasswordPage = () => {
     );
   }
 
-  // If user has a reset token and needs to set a new password
+  // FORMULÁRIO DE NOVA SENHA (apenas quando tem token)
   if (hasResetToken) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Definir nova senha</CardTitle>
-            <CardDescription>Crie uma nova senha para sua conta</CardDescription>
+            <CardTitle className="text-2xl font-bold">Cadastrar Nova Senha</CardTitle>
+            <CardDescription>
+              Defina sua nova senha abaixo.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...newPasswordForm}>
@@ -145,7 +198,7 @@ const ResetPasswordPage = () => {
                   name="confirmPassword"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Confirme a Senha</FormLabel>
+                      <FormLabel>Confirme a Nova Senha</FormLabel>
                       <FormControl>
                         <Input type="password" placeholder="******" {...field} />
                       </FormControl>
@@ -169,7 +222,7 @@ const ResetPasswordPage = () => {
     );
   }
 
-  // Initial password reset request form
+  // FORMULÁRIO INICIAL DE SOLICITAÇÃO DE LINK (padrão)
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
       <Card className="w-full max-w-md">
