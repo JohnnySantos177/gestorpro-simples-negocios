@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -65,7 +64,7 @@ serve(async (req) => {
       periodDescription = "Assinatura Semestral (6 meses)";
     }
 
-    // Create payment preference - using test configuration
+    // Create payment preference - using test configuration with better error handling
     const preferenceData = {
       items: [
         {
@@ -78,21 +77,26 @@ serve(async (req) => {
       ],
       back_urls: {
         success: `${origin}/confirmation-success`,
-        failure: `${origin}/assinatura`,
-        pending: `${origin}/confirmation-success`
+        failure: `${origin}/assinatura?error=payment_failed`,
+        pending: `${origin}/confirmation-success?status=pending`
       },
       auto_return: 'approved',
       external_reference: `payment_${user.id}_${planType}_${Date.now()}`,
       expires: true,
       expiration_date_from: new Date().toISOString(),
       expiration_date_to: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
-      // Test configuration
+      // Test configuration with additional settings
       payment_methods: {
         excluded_payment_methods: [],
         excluded_payment_types: [],
-        installments: 12 // Allow up to 12 installments
+        installments: 12,
+        default_installments: 1
       },
-      notification_url: `${origin}/api/webhooks/mercadopago`, // For future webhook implementation
+      notification_url: `${origin}/api/webhooks/mercadopago`,
+      // Additional test settings
+      statement_descriptor: "TOTALGESTOR",
+      binary_mode: false,
+      marketplace: "NONE"
     };
 
     console.log("Creating preference with data:", JSON.stringify(preferenceData, null, 2));
@@ -108,30 +112,36 @@ serve(async (req) => {
     });
 
     console.log("Preference response status:", preferenceResponse.status);
-    console.log("Preference response headers:", Object.fromEntries(preferenceResponse.headers.entries()));
+    const responseText = await preferenceResponse.text();
+    console.log("Preference response body:", responseText);
 
     if (!preferenceResponse.ok) {
-      const errorText = await preferenceResponse.text();
       console.error("Error creating preference:", {
         status: preferenceResponse.status,
         statusText: preferenceResponse.statusText,
-        response: errorText,
-        headers: Object.fromEntries(preferenceResponse.headers.entries())
+        response: responseText,
       });
       
       // Try to parse error response for more details
-      let errorDetails = errorText;
+      let errorDetails = responseText;
       try {
-        const errorJson = JSON.parse(errorText);
-        errorDetails = errorJson.message || errorJson.error || errorText;
+        const errorJson = JSON.parse(responseText);
+        if (errorJson.message) {
+          errorDetails = errorJson.message;
+        } else if (errorJson.cause && errorJson.cause.length > 0) {
+          errorDetails = errorJson.cause.map((c: any) => c.description || c.code).join(', ');
+        } else if (errorJson.error) {
+          errorDetails = errorJson.error;
+        }
       } catch (e) {
         // Keep original error text if parsing fails
+        console.log("Could not parse error response as JSON");
       }
       
       throw new Error(`Failed to create payment preference: ${errorDetails}`);
     }
 
-    const preference = await preferenceResponse.json();
+    const preference = JSON.parse(responseText);
     console.log("Preference created successfully:", {
       id: preference.id,
       sandbox_init_point: preference.sandbox_init_point
