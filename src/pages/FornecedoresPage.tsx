@@ -16,6 +16,7 @@ import { ExportButtons } from "@/components/ExportButtons";
 
 const FornecedoresPage = () => {
   const { filterFornecedores, addFornecedor, updateFornecedor, deleteFornecedor, fornecedores } = useData();
+  const { isSubscribed } = useSubscription();
   
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     search: "",

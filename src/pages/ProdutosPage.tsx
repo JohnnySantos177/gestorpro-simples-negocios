@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { PageHeader } from "@/components/PageHeader";
@@ -12,7 +13,7 @@ import { useProdutoForm, ProdutoFormData } from "@/hooks/useProdutoForm";
 import { ExportButtons } from "@/components/ExportButtons";
 
 const ProdutosPage = () => {
-  const { filterProdutos, fornecedores, addProduto, updateProduto, deleteProduto, refreshData, loading, produtos } = useData();
+  const { filterProdutos, fornecedores, addProduto, updateProduto, deleteProduto, refreshData, loading } = useData();
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     search: "",
     sortBy: "nome",
