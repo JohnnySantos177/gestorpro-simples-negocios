@@ -36,10 +36,12 @@ serve(async (req) => {
 
     console.log("Checking subscription for user:", user.email);
 
-    // Get Mercado Pago access token from environment variables
-    const mercadoPagoToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
+    // Use TEST token in development/testing, PROD token in production
+    // For now, we'll use TEST token to allow safe testing
+    const mercadoPagoToken = Deno.env.get("MERCADO_PAGO_TEST_ACCESS_TOKEN") || Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
+    
     if (!mercadoPagoToken) {
-      console.error("Mercado Pago access token not configured");
+      console.error("No Mercado Pago access token configured (neither TEST nor PROD)");
       
       // Log failed action for security monitoring
       await supabaseClient.from('security_audit_logs').insert({
@@ -61,6 +63,8 @@ serve(async (req) => {
         status: 200,
       });
     }
+
+    console.log("Using token type:", mercadoPagoToken.startsWith("TEST-") ? "TEST" : "PRODUCTION");
 
     // Check for active subscription in our database first
     const { data: subscriptionData } = await supabaseClient
