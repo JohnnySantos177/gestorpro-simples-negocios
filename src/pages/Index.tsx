@@ -6,7 +6,8 @@ import {
   ShoppingCart, 
   DollarSign, 
   TrendingUp,
-  TrendingDown
+  TrendingDown,
+  AlertTriangle
 } from "lucide-react";
 import {
   Card,
@@ -34,9 +35,10 @@ import {
 } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { VisitorBanner } from "@/components/VisitorBanner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Dashboard = () => {
-  const { dashboardStats, updateDashboardStats } = useData();
+  const { dashboardStats, updateDashboardStats, produtos } = useData();
 
   // Pegar data para saudação
   const date = new Date();
@@ -48,23 +50,41 @@ const Dashboard = () => {
       ? "Boa tarde"
       : "Boa noite";
 
-  // Cores padrão para os gráficos
-  const COLORS = ["#9b87f5", "#7E69AB", "#6E59A5", "#D6BCFA", "#E5DEFF"];
+  // Calcular produtos com estoque baixo (menos de 15% do estoque máximo ou menos de 10 unidades)
+  const produtosEstoqueBaixo = produtos.filter(produto => {
+    const estoqueMaximo = Math.max(...produtos.map(p => p.quantidade), 50); // Assumindo 50 como máximo padrão
+    const limiteBaixo = Math.max(estoqueMaximo * 0.15, 10); // 15% do máximo ou 10 unidades
+    return produto.quantidade <= limiteBaixo;
+  });
 
-  // Dados para o gráfico de status do estoque
+  const temEstoqueBaixo = produtosEstoqueBaixo.length > 0;
+
+  // Dados atualizados para o gráfico de status do estoque com alerta
   const estoqueData = [
-    { name: "Estoque Baixo", value: dashboardStats.estoqueStatus.baixo },
-    { name: "Estoque Normal", value: dashboardStats.estoqueStatus.normal },
-    { name: "Estoque Alto", value: dashboardStats.estoqueStatus.alto },
+    { 
+      name: "Estoque Crítico", 
+      value: produtosEstoqueBaixo.length,
+      color: "#EF4444" // Vermelho para estoque baixo
+    },
+    { 
+      name: "Estoque Normal", 
+      value: dashboardStats.estoqueStatus.normal,
+      color: "#9b87f5" // Roxo padrão
+    },
+    { 
+      name: "Estoque Alto", 
+      value: dashboardStats.estoqueStatus.alto,
+      color: "#10B981" // Verde para estoque alto
+    },
   ];
 
   // Configuração de cores dos gráficos
   const chartConfig = {
     vendas: { color: "#9b87f5" },
     produtos: { color: "#9b87f5" },
-    estoqueBaixo: { color: "#F97316" }, // Cor de alerta (laranja)
+    estoqueCritico: { color: "#EF4444" },
     estoqueNormal: { color: "#9b87f5" },
-    estoqueAlto: { color: "#7E69AB" },
+    estoqueAlto: { color: "#10B981" },
   };
 
   return (
@@ -106,25 +126,28 @@ const Dashboard = () => {
             <CardTitle>Vendas por Período</CardTitle>
           </CardHeader>
           <CardContent className="p-4">
-            <div className="h-[250px] w-full">
+            <div className="h-[280px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
                   data={dashboardStats.vendasPorPeriodo}
                   margin={{
-                    top: 10,
-                    right: 10,
-                    left: 10,
-                    bottom: 20,
+                    top: 20,
+                    right: 20,
+                    left: 20,
+                    bottom: 40,
                   }}
                 >
                   <XAxis 
                     dataKey="periodo" 
-                    tick={{ fontSize: 10 }}
-                    height={30}
+                    tick={{ fontSize: 11 }}
+                    interval={0}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
                   />
                   <YAxis 
-                    tick={{ fontSize: 10 }}
-                    width={50}
+                    tick={{ fontSize: 11 }}
+                    width={60}
                   />
                   <Tooltip
                     formatter={(value: number) => [formatCurrency(value), "Vendas"]}
@@ -135,8 +158,8 @@ const Dashboard = () => {
                     dataKey="valor"
                     stroke="#9b87f5"
                     strokeWidth={2}
-                    dot={{ r: 3, fill: "#9b87f5" }}
-                    activeDot={{ r: 5, fill: "#9b87f5" }}
+                    dot={{ r: 4, fill: "#9b87f5" }}
+                    activeDot={{ r: 6, fill: "#9b87f5" }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -146,28 +169,49 @@ const Dashboard = () => {
         
         <Card>
           <CardHeader>
-            <CardTitle>Status do Estoque</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              Status do Estoque
+              {temEstoqueBaixo && (
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-4">
-            <div className="h-[250px] flex items-center justify-center">
+            {temEstoqueBaixo && (
+              <Alert className="mb-4 border-red-200 bg-red-50">
+                <AlertTriangle className="h-4 w-4 text-red-600" />
+                <AlertDescription className="text-red-800 text-sm">
+                  <strong>{produtosEstoqueBaixo.length} produto(s)</strong> com estoque crítico!
+                </AlertDescription>
+              </Alert>
+            )}
+            <div className="h-[200px] flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={estoqueData}
+                    data={estoqueData.filter(item => item.value > 0)}
                     cx="50%"
                     cy="50%"
-                    outerRadius={60}
+                    outerRadius={70}
                     dataKey="value"
-                    label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    label={({name, percent, value}) => 
+                      value > 0 ? `${name}: ${value} (${(percent * 100).toFixed(0)}%)` : ''
+                    }
+                    labelLine={false}
                   >
                     {estoqueData.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
+                        fill={entry.color}
                       />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: number) => [`${value} produtos`]} />
+                  <Tooltip 
+                    formatter={(value: number, name: string) => [
+                      `${value} produtos`, 
+                      name === "Estoque Crítico" ? "⚠️ " + name : name
+                    ]} 
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -179,27 +223,28 @@ const Dashboard = () => {
             <CardTitle>Produtos Mais Vendidos</CardTitle>
           </CardHeader>
           <CardContent className="p-4">
-            <div className="h-[250px] w-full">
+            <div className="h-[280px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={dashboardStats.produtosMaisVendidos}
                   layout="vertical"
                   margin={{
-                    top: 10,
-                    right: 20,
-                    left: 80,
-                    bottom: 10,
+                    top: 20,
+                    right: 30,
+                    left: 100,
+                    bottom: 20,
                   }}
                 >
                   <XAxis 
                     type="number" 
-                    tick={{ fontSize: 10 }}
+                    tick={{ fontSize: 11 }}
                   />
                   <YAxis
                     type="category"
                     dataKey="nome"
-                    width={75}
-                    tick={{ fontSize: 9 }}
+                    width={90}
+                    tick={{ fontSize: 10 }}
+                    interval={0}
                   />
                   <Tooltip
                     formatter={(value: number) => [`${value} unidades`, "Quantidade"]}
@@ -208,8 +253,8 @@ const Dashboard = () => {
                   <Bar 
                     dataKey="quantidade" 
                     fill="#9b87f5" 
-                    barSize={18}
-                    radius={[0, 3, 3, 0]}
+                    barSize={20}
+                    radius={[0, 4, 4, 0]}
                   />
                 </BarChart>
               </ResponsiveContainer>

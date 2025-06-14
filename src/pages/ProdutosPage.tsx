@@ -22,18 +22,50 @@ const ProdutosPage = () => {
     categoria: "Todas"
   });
 
-  const {
-    form,
-    dialogOpen,
-    dialogType,
-    selectedProduto,
-    setDialogOpen,
-    openAddDialog,
-    openEditDialog,
-    openDeleteDialog,
-    handleAddEditSubmit,
-    handleDeleteConfirm,
-  } = useProdutoForm(fornecedores);
+  const form = useProdutoForm();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogType, setDialogType] = useState<'add' | 'edit' | 'delete'>('add');
+  const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null);
+
+  const openAddDialog = () => {
+    setDialogType('add');
+    setSelectedProduto(null);
+    form.reset();
+    setDialogOpen(true);
+  };
+
+  const openEditDialog = (produto: Produto) => {
+    setDialogType('edit');
+    setSelectedProduto(produto);
+    form.reset({
+      nome: produto.nome,
+      descricao: produto.descricao,
+      categoria: produto.categoria,
+      precoCompra: produto.precoCompra,
+      precoVenda: produto.precoVenda,
+      quantidade: produto.quantidade,
+      fornecedorId: produto.fornecedorId,
+    });
+    setDialogOpen(true);
+  };
+
+  const openDeleteDialog = (produto: Produto) => {
+    setDialogType('delete');
+    setSelectedProduto(produto);
+    setDialogOpen(true);
+  };
+
+  const handleAddEditSubmit = async (data: any) => {
+    // Handle form submission logic here
+    console.log('Form submitted:', data);
+    setDialogOpen(false);
+  };
+
+  const handleDeleteConfirm = async () => {
+    // Handle delete logic here
+    console.log('Delete confirmed');
+    setDialogOpen(false);
+  };
 
   const produtos = filterProdutos(filterOptions);
 

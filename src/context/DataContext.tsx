@@ -221,11 +221,14 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       });
     }
     
-    // Status do estoque
+    // Status do estoque atualizado com lógica de estoque crítico
+    const estoqueMaximo = produtos.length > 0 ? Math.max(...produtos.map(p => p.quantidade), 50) : 50;
+    const limiteCritico = Math.max(estoqueMaximo * 0.15, 10); // 15% do máximo ou 10 unidades
+    
     const estoqueStatus = {
-      baixo: produtos.filter(p => p.quantidade <= 5).length,
-      normal: produtos.filter(p => p.quantidade > 5 && p.quantidade <= 20).length,
-      alto: produtos.filter(p => p.quantidade > 20).length
+      baixo: produtos.filter(p => p.quantidade <= limiteCritico).length, // Estoque crítico
+      normal: produtos.filter(p => p.quantidade > limiteCritico && p.quantidade <= estoqueMaximo * 0.5).length,
+      alto: produtos.filter(p => p.quantidade > estoqueMaximo * 0.5).length
     };
     
     // Atualizar estado do dashboard
