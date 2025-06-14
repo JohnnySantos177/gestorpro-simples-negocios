@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { 
   Cliente, Produto, Fornecedor, Compra, Transacao, 
@@ -168,18 +167,25 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   
   // Atualizar estatísticas do dashboard
   const updateDashboardStats = () => {
-    // Vendas (transações de entrada)
-    const vendas = transacoes.filter(t => t.tipo === 'entrada' && t.categoria === 'Vendas');
+    console.log('Atualizando estatísticas do dashboard...');
+    console.log('Compras:', compras.length);
+    console.log('Transações:', transacoes.length);
+    
+    // Vendas (compras são vendas no sistema)
+    const totalVendas = compras.length;
     
     // Calcular total de vendas do mês atual
     const hoje = new Date();
     const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-    const vendasMes = vendas.filter(v => new Date(v.data) >= primeiroDiaMes);
-    const faturamentoMensal = vendasMes.reduce((total, venda) => total + venda.valor, 0);
+    const vendasMes = compras.filter(compra => new Date(compra.data) >= primeiroDiaMes);
+    const faturamentoMensal = vendasMes.reduce((total, venda) => total + venda.valorTotal, 0);
+    
+    console.log('Vendas do mês:', vendasMes.length);
+    console.log('Faturamento mensal:', faturamentoMensal);
     
     // Ticket médio
-    const ticketMedio = vendas.length > 0 
-      ? vendas.reduce((total, venda) => total + venda.valor, 0) / vendas.length 
+    const ticketMedio = totalVendas > 0 
+      ? compras.reduce((total, venda) => total + venda.valorTotal, 0) / totalVendas 
       : 0;
     
     // Produtos mais vendidos
@@ -209,12 +215,12 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       const mes = data.getMonth();
       const ano = data.getFullYear();
       
-      const vendasMes = vendas.filter(v => {
-        const dataVenda = new Date(v.data);
-        return dataVenda.getMonth() === mes && dataVenda.getFullYear() === ano;
+      const vendasMes = compras.filter(compra => {
+        const dataCompra = new Date(compra.data);
+        return dataCompra.getMonth() === mes && dataCompra.getFullYear() === ano;
       });
       
-      const totalMes = vendasMes.reduce((total, venda) => total + venda.valor, 0);
+      const totalMes = vendasMes.reduce((total, venda) => total + venda.valorTotal, 0);
       
       vendasPorPeriodo.push({
         periodo: `${data.getMonth() + 1}/${data.getFullYear()}`,
@@ -233,22 +239,27 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     };
     
     // Atualizar estado do dashboard
-    setDashboardStats({
+    const newStats = {
       totalClientes: clientes.length,
       totalProdutos: produtos.length,
-      totalVendas: vendas.length,
+      totalVendas,
       totalCompras: compras.length,
       faturamentoMensal,
       ticketMedio,
       produtosMaisVendidos,
       vendasPorPeriodo,
       estoqueStatus
-    });
+    };
+    
+    console.log('Novas estatísticas:', newStats);
+    setDashboardStats(newStats);
   };
   
   // Atualiza dashboard quando os dados mudam
   useEffect(() => {
-    updateDashboardStats();
+    if (clientes.length >= 0 && produtos.length >= 0 && compras.length >= 0 && transacoes.length >= 0) {
+      updateDashboardStats();
+    }
   }, [clientes, produtos, compras, transacoes]);
   
   // CRUD operations
@@ -324,11 +335,6 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
           produto.id === id ? { ...produto, ...produtoUpdate } : produto
         )
       );
-      
-      // Recarregar dados para garantir sincronização
-      setTimeout(() => {
-        loadData();
-      }, 500);
       
       toast.success('Produto atualizado com sucesso!');
     } catch (error) {
@@ -438,13 +444,11 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         return false;
       }
 
-      // Criar a venda
+      // Criar a venda primeiro
       const newCompra = await supabaseDataService.createCompra(compra);
-      setCompras([newCompra, ...compras]);
+      console.log('Venda criada com sucesso:', newCompra);
       
-      console.log('Venda criada, atualizando estoque...');
-      
-      // Atualizar estoque dos produtos no estado local e no banco
+      // Atualizar estoque dos produtos no banco e no estado local
       const produtosAtualizados = [...produtos];
       for (const item of newCompra.produtos) {
         const produtoIndex = produtosAtualizados.findIndex(p => p.id === item.produtoId);
@@ -467,16 +471,12 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         }
       }
       
-      // Atualizar estado dos produtos imediatamente
+      // Atualizar estados imediatamente
+      setCompras([newCompra, ...compras]);
       setProdutos(produtosAtualizados);
       
-      // Recarregar dados após um pequeno delay para garantir sincronização
-      setTimeout(() => {
-        loadData();
-      }, 1000);
-      
       // Adicionar transação correspondente
-      await addTransacao({
+      const novaTransacao = await supabaseDataService.createTransacao({
         tipo: 'entrada',
         categoria: 'Vendas',
         descricao: `Venda para ${newCompra.clienteNome}`,
@@ -487,7 +487,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         clienteId: newCompra.clienteId
       });
       
-      console.log('Venda e atualização de estoque concluídas com sucesso');
+      setTransacoes([novaTransacao, ...transacoes]);
+      
+      console.log('Venda, estoque e transação atualizados com sucesso');
       toast.success('Venda registrada com sucesso!');
       return true;
     } catch (error) {
