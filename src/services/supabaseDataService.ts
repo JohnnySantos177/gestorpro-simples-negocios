@@ -323,20 +323,20 @@ export const supabaseDataService = {
     return compras;
   },
 
-  async createCompra(compra: Omit<Compra, "id">): Promise<Compra> {
+  async createCompra(compraData: Omit<Compra, "id">): Promise<Compra> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("User not authenticated");
 
     const { data, error } = await supabase
       .from('compras')
       .insert({
-        cliente_id: compra.clienteId,
-        cliente_nome: compra.clienteNome,
-        data: compra.data,
-        produtos: compra.produtos as any,
-        valor_total: compra.valorTotal,
-        forma_pagamento: compra.formaPagamento,
-        status: compra.status,
+        cliente_id: compraData.clienteId,
+        cliente_nome: compraData.clienteNome,
+        data: compraData.data,
+        produtos: compraData.produtos as any,
+        valor_total: compraData.valorTotal,
+        forma_pagamento: compraData.formaPagamento,
+        status: compraData.status,
         user_id: user.id
       })
       .select()
@@ -344,7 +344,7 @@ export const supabaseDataService = {
 
     if (error) throw error;
     
-    const compra = {
+    const newCompra = {
       id: data.id,
       clienteId: data.cliente_id,
       clienteNome: data.cliente_nome,
@@ -355,7 +355,7 @@ export const supabaseDataService = {
       status: data.status,
     };
 
-    return compra;
+    return newCompra;
   },
 
   async updateCompra(id: string, updates: Partial<Compra>): Promise<void> {
