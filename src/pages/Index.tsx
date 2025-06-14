@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { 
   Users, 
@@ -105,19 +106,27 @@ const Dashboard = () => {
             <CardTitle>Vendas por Período</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div className="h-[280px] w-full">
               <ChartContainer config={chartConfig}>
                 <LineChart
                   data={dashboardStats.vendasPorPeriodo}
                   margin={{
-                    top: 10,
-                    right: 10,
-                    left: 10,
-                    bottom: 20,
+                    top: 5,
+                    right: 20,
+                    left: 20,
+                    bottom: 5,
                   }}
                 >
-                  <XAxis dataKey="periodo" />
-                  <YAxis />
+                  <XAxis 
+                    dataKey="periodo" 
+                    tick={{ fontSize: 12 }}
+                    tickMargin={5}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 12 }}
+                    tickMargin={5}
+                    width={60}
+                  />
                   <ChartTooltip
                     content={
                       <ChartTooltipContent 
@@ -146,14 +155,14 @@ const Dashboard = () => {
             <CardTitle>Status do Estoque</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px] flex items-center justify-center">
+            <div className="h-[280px] flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={estoqueData}
                     cx="50%"
                     cy="50%"
-                    outerRadius={80}
+                    outerRadius={70}
                     dataKey="value"
                     label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
                   >
@@ -176,29 +185,35 @@ const Dashboard = () => {
             <CardTitle>Produtos Mais Vendidos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div className="h-[280px] w-full">
               <ChartContainer config={chartConfig}>
                 <BarChart
                   data={dashboardStats.produtosMaisVendidos}
                   layout="vertical"
                   margin={{
-                    top: 10,
-                    right: 10,
-                    left: 80,
-                    bottom: 20,
+                    top: 5,
+                    right: 20,
+                    left: 100,
+                    bottom: 5,
                   }}
                 >
-                  <XAxis type="number" />
+                  <XAxis 
+                    type="number" 
+                    tick={{ fontSize: 12 }}
+                    tickMargin={5}
+                  />
                   <YAxis
                     type="category"
                     dataKey="nome"
-                    width={70}
-                    tick={{ fontSize: 12 }}
+                    width={90}
+                    tick={{ fontSize: 11 }}
+                    tickMargin={5}
                   />
                   <ChartTooltip
                     content={
                       <ChartTooltipContent 
-                        formatter={(value: number) => [`${value} unidades`]}
+                        formatter={(value: number) => [`${value} unidades`, "Quantidade"]}
+                        labelFormatter={(label) => `Produto: ${label}`}
                       />
                     }
                   />
@@ -206,7 +221,8 @@ const Dashboard = () => {
                     dataKey="quantidade" 
                     name="produtos"
                     fill="#9b87f5" 
-                    barSize={20} 
+                    barSize={20}
+                    radius={[0, 4, 4, 0]}
                   />
                 </BarChart>
               </ChartContainer>
