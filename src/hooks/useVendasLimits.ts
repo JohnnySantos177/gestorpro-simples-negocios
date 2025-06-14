@@ -6,13 +6,14 @@ import { useAuth } from "@/context/AuthContext";
 
 export const useVendasLimits = () => {
   const { compras } = useData();
-  const { isSubscribed } = useSubscription();
-  const { profile } = useAuth();
+  const { profile } = useAuth(); // Usar profile diretamente para tipo_plano (corrigido)
+  // Removido isSubscribed da subscription context (mais abaixo explico)
   const [hasReachedLimit, setHasReachedLimit] = useState(false);
   const [limitType, setLimitType] = useState<"registros" | "tempo" | null>(null);
 
   useEffect(() => {
-    if (isSubscribed) {
+    // LIBERAÇÃO PREMIUM: se o usuário for premium, nunca bloqueia
+    if (profile?.tipo_plano === "premium") {
       setHasReachedLimit(false);
       setLimitType(null);
       return;
@@ -40,16 +41,16 @@ export const useVendasLimits = () => {
 
     setHasReachedLimit(false);
     setLimitType(null);
-  }, [compras.length, isSubscribed, profile?.created_at]);
+  }, [compras.length, profile?.tipo_plano, profile?.created_at]);
 
   const getRemainingDays = () => {
     if (!profile?.created_at) return 0;
-    
+
     const accountCreatedDate = new Date(profile.created_at);
     const sevenDaysLater = new Date(accountCreatedDate.getTime() + 7 * 24 * 60 * 60 * 1000);
     const now = new Date();
     const remainingTime = sevenDaysLater.getTime() - now.getTime();
-    
+
     return Math.max(0, Math.ceil(remainingTime / (24 * 60 * 60 * 1000)));
   };
 
@@ -65,3 +66,4 @@ export const useVendasLimits = () => {
     totalRegistros: compras.length,
   };
 };
+
