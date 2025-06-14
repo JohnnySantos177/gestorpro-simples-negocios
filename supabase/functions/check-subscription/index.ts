@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import Stripe from "https://esm.sh/stripe@12.5.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,10 +34,10 @@ serve(async (req) => {
       throw new Error("User not authenticated or email not available");
     }
 
-    // Get Stripe secret key from environment variables
-    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeSecretKey) {
-      console.error("Stripe secret key not configured");
+    // Get Mercado Pago access token from environment variables
+    const mercadoPagoToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
+    if (!mercadoPagoToken) {
+      console.error("Mercado Pago access token not configured");
       
       // Log failed action for security monitoring
       await supabaseClient.from('security_audit_logs').insert({
@@ -46,7 +45,7 @@ serve(async (req) => {
         action: 'check_subscription',
         resource_type: 'subscription',
         success: false,
-        error_message: 'Stripe secret key not configured',
+        error_message: 'Mercado Pago access token not configured',
       });
 
       // Return false subscription status instead of error when key is missing
@@ -61,37 +60,47 @@ serve(async (req) => {
       });
     }
 
-    // Initialize Stripe with secret key from environment
-    const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: "2023-10-16",
-    });
-
-    // Check if user already has a Stripe customer ID
+    // Check if user already has a Mercado Pago customer ID
     const { data: subscribers, error: fetchError } = await supabaseClient
       .from('subscribers')
-      .select('stripe_customer_id')
+      .select('mercado_pago_customer_id')
       .eq('user_id', user.id)
       .maybeSingle();
 
-    let customerId = subscribers?.stripe_customer_id;
+    let customerId = subscribers?.mercado_pago_customer_id;
 
     if (!customerId) {
-      // Look for existing customer in Stripe or create a new one
-      const customers = await stripe.customers.list({
-        email: user.email,
-        limit: 1,
+      // Look for existing customer in Mercado Pago or create a new one
+      const customerResponse = await fetch('https://api.mercadopago.com/v1/customers/search', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${mercadoPagoToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: user.email,
+        }),
       });
 
-      if (customers.data.length > 0) {
-        customerId = customers.data[0].id;
+      const customerData = await customerResponse.json();
+
+      if (customerData.results && customerData.results.length > 0) {
+        customerId = customerData.results[0].id;
       } else {
-        // Create new customer in Stripe
-        const newCustomer = await stripe.customers.create({
-          email: user.email,
-          metadata: {
-            user_id: user.id,
+        // Create new customer in Mercado Pago
+        const newCustomerResponse = await fetch('https://api.mercadopago.com/v1/customers', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${mercadoPagoToken}`,
+            'Content-Type': 'application/json',
           },
+          body: JSON.stringify({
+            email: user.email,
+            description: `TotalGestor customer - ${user.id}`,
+          }),
         });
+
+        const newCustomer = await newCustomerResponse.json();
         customerId = newCustomer.id;
       }
 
@@ -99,33 +108,36 @@ serve(async (req) => {
       await supabaseClient.from('subscribers').upsert({
         user_id: user.id,
         email: user.email,
-        stripe_customer_id: customerId,
+        mercado_pago_customer_id: customerId,
         created_at: new Date().toISOString(),
       });
     }
 
     // Check for active subscriptions
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      status: 'active',
-      limit: 1,
+    const subscriptionsResponse = await fetch(`https://api.mercadopago.com/preapproval/search?payer_id=${customerId}&status=authorized`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${mercadoPagoToken}`,
+        'Content-Type': 'application/json',
+      },
     });
 
-    const hasActiveSub = subscriptions.data.length > 0;
+    const subscriptionsData = await subscriptionsResponse.json();
+    const hasActiveSub = subscriptionsData.results && subscriptionsData.results.length > 0;
     let subscriptionEnd = null;
     let subscriptionId = null;
 
     if (hasActiveSub) {
-      const subscription = subscriptions.data[0];
+      const subscription = subscriptionsData.results[0];
       subscriptionId = subscription.id;
-      subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+      subscriptionEnd = subscription.next_payment_date;
 
       // Update subscription status in the database
       await supabaseClient.from('subscriptions').upsert({
         user_id: user.id,
-        stripe_subscription_id: subscriptionId,
+        mercado_pago_subscription_id: subscriptionId,
         status: 'active',
-        start_date: new Date(subscription.current_period_start * 1000).toISOString(),
+        start_date: subscription.date_created,
         end_date: subscriptionEnd,
         updated_at: new Date().toISOString(),
       }, {

@@ -59,12 +59,8 @@ const AssinaturaPage = () => {
   ];
 
   const handleSubscribe = async (planId: 'monthly' | 'quarterly' | 'semiannual') => {
-    const plan = plans.find(p => p.id === planId);
-    if (!plan) return;
-    
-    // For now, we'll use the existing checkout with the selected plan price
-    // In a real implementation, you'd pass the plan details to the checkout
-    await initiateCheckout();
+    setSelectedPlan(planId);
+    await initiateCheckout(planId);
   };
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -235,7 +231,7 @@ const AssinaturaPage = () => {
                 <div>
                   <h3 className="font-semibold mb-1">Pagamento Seguro</h3>
                   <p className="text-sm text-muted-foreground">
-                    Seus dados de pagamento são protegidos com criptografia de ponta a ponta.
+                    Seus dados de pagamento são protegidos com criptografia de ponta a ponta via Mercado Pago.
                   </p>
                 </div>
                 

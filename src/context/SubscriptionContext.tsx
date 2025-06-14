@@ -10,7 +10,7 @@ interface SubscriptionContextType {
   subscriptionStatus: SubscriptionStatus;
   checkoutLoading: boolean;
   subscriptionPrice: number;
-  initiateCheckout: () => Promise<void>;
+  initiateCheckout: (planType?: 'monthly' | 'quarterly' | 'semiannual') => Promise<void>;
   checkSubscriptionStatus: () => Promise<void>;
 }
 
@@ -32,7 +32,7 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
   const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>("inactive");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [subscriptionPrice, setSubscriptionPrice] = useState<number>(5999); // Default R$59.99 in cents
+  const [subscriptionPrice, setSubscriptionPrice] = useState<number>(8990); // Default R$89.90 in cents
   
   // Check subscription status on mount and when auth state changes
   useEffect(() => {
@@ -93,7 +93,7 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
       
       if (error) {
         console.error("Error checking subscription status:", error);
-        // Don't show error toast for missing Stripe key - just silently fail
+        // Don't show error toast for missing Mercado Pago key - just silently fail
         if (!error.message?.includes("temporarily unavailable")) {
           toast.error("Erro ao verificar status da assinatura");
         }
@@ -131,17 +131,26 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
     }
   };
   
-  const initiateCheckout = async () => {
+  const initiateCheckout = async (planType: 'monthly' | 'quarterly' | 'semiannual' = 'monthly') => {
     setCheckoutLoading(true);
     try {
+      // Plan prices
+      const planPrices = {
+        monthly: 8990, // R$ 89,90
+        quarterly: 7990, // R$ 79,90 per month
+        semiannual: 6990 // R$ 69,90 per month
+      };
+
+      const price = planPrices[planType];
+
       // Input validation
-      if (!subscriptionPrice || subscriptionPrice <= 0) {
+      if (!price || price <= 0) {
         toast.error("Preço da assinatura inválido");
         return;
       }
 
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { price: subscriptionPrice }
+        body: { price, planType }
       });
       
       if (error) {
@@ -160,7 +169,7 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
         // Security improvement: validate URL before redirect
         try {
           const url = new URL(data.url);
-          if (url.hostname.includes('stripe.com') || url.hostname.includes('checkout.stripe.com')) {
+          if (url.hostname.includes('mercadopago.com') || url.hostname.includes('mercadolibre.com')) {
             window.location.href = data.url;
             toast.info("Redirecionando para página de pagamento");
           } else {

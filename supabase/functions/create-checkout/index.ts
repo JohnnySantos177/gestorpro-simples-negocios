@@ -1,6 +1,6 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import Stripe from "https://esm.sh/stripe@12.5.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,11 +20,15 @@ serve(async (req) => {
 
   try {
     // Parse request body if it exists
-    let price = 5999; // Default price in cents (R$59.99)
+    let price = 8990; // Default price in cents (R$89.90)
+    let planType = 'monthly';
     if (req.body) {
       const requestData = await req.json();
       if (requestData.price && !isNaN(requestData.price)) {
         price = parseInt(requestData.price);
+      }
+      if (requestData.planType) {
+        planType = requestData.planType;
       }
     }
 
@@ -34,18 +38,13 @@ serve(async (req) => {
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
-    // Get Stripe secret key from environment variables (security fix)
-    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeSecretKey) {
-      throw new Error("Stripe secret key not configured");
+    // Get Mercado Pago access token from environment variables
+    const mercadoPagoToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
+    if (!mercadoPagoToken) {
+      throw new Error("Mercado Pago access token not configured");
     }
 
-    // Initialize Stripe with secret key from environment
-    const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: "2023-10-16",
-    });
-
-    // Check if user already has a Stripe customer ID
+    // Check if user already has a Mercado Pago customer ID
     const serviceClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -54,75 +53,83 @@ serve(async (req) => {
 
     const { data: subscribers } = await serviceClient
       .from('subscribers')
-      .select('stripe_customer_id')
+      .select('mercado_pago_customer_id')
       .eq('user_id', user.id)
       .maybeSingle();
 
-    let customerId = subscribers?.stripe_customer_id;
+    let customerId = subscribers?.mercado_pago_customer_id;
 
     if (!customerId) {
-      // Look for existing customer in Stripe
-      const customers = await stripe.customers.list({
-        email: user.email,
-        limit: 1,
+      // Create new customer in Mercado Pago
+      const newCustomerResponse = await fetch('https://api.mercadopago.com/v1/customers', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${mercadoPagoToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: user.email,
+          description: `TotalGestor customer - ${user.id}`,
+        }),
       });
 
-      if (customers.data.length > 0) {
-        customerId = customers.data[0].id;
-      } else {
-        // Create new customer in Stripe
-        const newCustomer = await stripe.customers.create({
-          email: user.email,
-          metadata: {
-            user_id: user.id,
-          },
-        });
-        customerId = newCustomer.id;
-      }
+      const newCustomer = await newCustomerResponse.json();
+      customerId = newCustomer.id;
 
       // Save the customer ID in Supabase
       await serviceClient.from('subscribers').upsert({
         user_id: user.id,
         email: user.email,
-        stripe_customer_id: customerId,
+        mercado_pago_customer_id: customerId,
         created_at: new Date().toISOString(),
       });
     }
 
-    // Create a Stripe checkout session
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'brl',
-            product_data: {
-              name: 'TotalGestor Pro Subscription',
-              description: 'Acesso completo a plataforma TotalGestor Pro',
-            },
-            unit_amount: price,
-            recurring: {
-              interval: 'month',
-            },
-          },
-          quantity: 1,
-        },
-      ],
-      mode: 'subscription',
-      success_url: `${req.headers.get("origin")}/confirmation-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get("origin")}/assinatura`,
+    // Create subscription preference
+    const subscriptionData = {
+      reason: 'Assinatura TotalGestor Pro',
+      auto_recurring: {
+        frequency: 1,
+        frequency_type: planType === 'monthly' ? 'months' : planType === 'quarterly' ? 'months' : 'months',
+        transaction_amount: price / 100, // Convert from cents to reais
+        currency_id: 'BRL',
+      },
+      payer_email: user.email,
+      back_url: `${req.headers.get("origin")}/confirmation-success`,
+      status: 'pending',
+    };
+
+    // Adjust frequency based on plan type
+    if (planType === 'quarterly') {
+      subscriptionData.auto_recurring.frequency = 3;
+    } else if (planType === 'semiannual') {
+      subscriptionData.auto_recurring.frequency = 6;
+    }
+
+    const subscriptionResponse = await fetch('https://api.mercadopago.com/preapproval', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${mercadoPagoToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(subscriptionData),
     });
+
+    const subscription = await subscriptionResponse.json();
+
+    if (!subscription.init_point) {
+      throw new Error('Failed to create subscription');
+    }
 
     // Track the checkout session in your database
     await serviceClient.from('checkout_sessions').insert({
       user_id: user.id,
-      session_id: session.id,
+      session_id: subscription.id,
       amount: price,
       status: 'pending'
     });
 
-    return new Response(JSON.stringify({ url: session.url }), {
+    return new Response(JSON.stringify({ url: subscription.init_point }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
