@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { 
   Edit, 
@@ -36,17 +35,17 @@ import { formatDate } from "@/utils/format";
 import { toast } from "sonner";
 import { z } from "zod";
 
-// Atualize o schema: email deve ser string().optional().or(z.literal(""))
+// Atualize o schema: somente nome e telefone obrigatórios
 const clienteSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
   email: z.string().email("E-mail inválido").optional().or(z.literal("")),
   telefone: z.string().min(1, "Telefone é obrigatório"),
-  endereco: z.string().min(1, "Endereço é obrigatório"),
-  cidade: z.string().min(1, "Cidade é obrigatória"),
-  estado: z.string().min(1, "Estado é obrigatório"),
-  cep: z.string().min(1, "CEP é obrigatório"),
-  grupo: z.string().min(1, "Grupo é obrigatório"),
-  observacoes: z.string().optional(),
+  endereco: z.string().optional().or(z.literal("")),
+  cidade: z.string().optional().or(z.literal("")),
+  estado: z.string().optional().or(z.literal("")),
+  cep: z.string().optional().or(z.literal("")),
+  grupo: z.string().optional().or(z.literal("")),
+  observacoes: z.string().optional().or(z.literal("")),
 });
 
 const ClientesPage = () => {
@@ -515,4 +514,3 @@ const ClientesPage = () => {
 };
 
 export default ClientesPage;
-
