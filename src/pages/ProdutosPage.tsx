@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { PageHeader } from "@/components/PageHeader";
 import { DataTable } from "@/components/ui/data-table";
@@ -6,12 +7,12 @@ import { useData } from "@/context/DataContext";
 import { FilterOptions, Produto } from "@/types";
 import { Button } from "@/components/ui/button";
 import { CATEGORIAS_PRODUTOS } from "@/data/constants";
-import { Package, Edit, Trash2 } from "lucide-react";
+import { Package, Edit, Trash2, RefreshCw } from "lucide-react";
 import { ProdutoDialogs } from "@/components/produtos/ProdutoDialogs";
 import { useProdutoForm, ProdutoFormData } from "@/hooks/useProdutoForm";
 
 const ProdutosPage = () => {
-  const { filterProdutos, fornecedores, addProduto, updateProduto, deleteProduto } = useData();
+  const { filterProdutos, fornecedores, addProduto, updateProduto, deleteProduto, refreshData, loading } = useData();
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     search: "",
     sortBy: "nome",
@@ -24,8 +25,24 @@ const ProdutosPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<'add' | 'edit' | 'delete'>('add');
   const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const form = useProdutoForm();
+
+  // Atualizar dados automaticamente a cada 30 segundos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshData();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [refreshData]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refreshData();
+    setRefreshing(false);
+  };
 
   const openAddDialog = () => {
     setDialogType('add');
@@ -99,7 +116,15 @@ const ProdutosPage = () => {
     { key: "nome", header: "Nome" },
     { key: "categoria", header: "Categoria" },
     { key: "precoVenda", header: "Preço", cell: (value: number) => `R$ ${value.toFixed(2)}` },
-    { key: "quantidade", header: "Estoque" },
+    { 
+      key: "quantidade", 
+      header: "Estoque", 
+      cell: (value: number) => (
+        <span className={value <= 10 ? "text-red-500 font-semibold" : "text-green-600"}>
+          {value}
+        </span>
+      )
+    },
     { key: "fornecedorNome", header: "Fornecedor" },
     { 
       key: "actions", 
@@ -124,7 +149,17 @@ const ProdutosPage = () => {
         description="Gerencie seu catálogo de produtos"
         icon={<Package className="h-6 w-6" />}
         actions={
-          <Button onClick={openAddDialog}>Novo Produto</Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleRefresh}
+              disabled={refreshing || loading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
+            <Button onClick={openAddDialog}>Novo Produto</Button>
+          </div>
         }
       />
 

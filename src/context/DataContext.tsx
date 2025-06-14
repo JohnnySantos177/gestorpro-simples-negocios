@@ -317,11 +317,19 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const updateProduto = async (id: string, produtoUpdate: Partial<Produto>) => {
     try {
       await supabaseDataService.updateProduto(id, produtoUpdate);
-      setProdutos(
-        produtos.map(produto => 
+      
+      // Atualizar imediatamente no estado local
+      setProdutos(prevProdutos => 
+        prevProdutos.map(produto => 
           produto.id === id ? { ...produto, ...produtoUpdate } : produto
         )
       );
+      
+      // Recarregar dados para garantir sincronização
+      setTimeout(() => {
+        loadData();
+      }, 500);
+      
       toast.success('Produto atualizado com sucesso!');
     } catch (error) {
       console.error('Erro ao atualizar produto:', error);
@@ -459,8 +467,13 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         }
       }
       
-      // Atualizar estado dos produtos
+      // Atualizar estado dos produtos imediatamente
       setProdutos(produtosAtualizados);
+      
+      // Recarregar dados após um pequeno delay para garantir sincronização
+      setTimeout(() => {
+        loadData();
+      }, 1000);
       
       // Adicionar transação correspondente
       await addTransacao({
