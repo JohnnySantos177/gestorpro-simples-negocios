@@ -12,46 +12,45 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Create a Supabase client using the service role key
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
-  );
-
   try {
-    // Get the current subscription price from the settings table
+    // Create a Supabase client using the anon key (this is a read-only operation)
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    );
+
+    // Get the subscription price from settings
     const { data, error } = await supabaseClient
       .from('settings')
       .select('value')
       .eq('key', 'subscription_price')
-      .single();
-    
+      .maybeSingle();
+
     if (error) {
-      // If there's an error (like the setting doesn't exist yet), return the default price
+      console.error("Error fetching subscription price:", error);
       return new Response(JSON.stringify({ 
-        price: 5999 // Default R$59.99 in cents
+        price: 5999 // Default fallback price
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
     
-    // Return the price from the database (or default if it doesn't exist)
+    const price = data?.value ? parseInt(data.value) : 5999; // Default R$59.99 in cents
+    
     return new Response(JSON.stringify({ 
-      price: data ? parseInt(data.value) : 5999
+      price: price
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
-    console.error("Error getting subscription price:", error);
+    console.error("Error in get-subscription-price:", error);
     return new Response(JSON.stringify({ 
-      error: error.message,
-      price: 5999 // Default R$59.99 in cents as fallback
+      price: 5999 // Default fallback price
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
+      status: 200,
     });
   }
 });

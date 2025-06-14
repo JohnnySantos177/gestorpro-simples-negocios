@@ -54,7 +54,7 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
           return;
         }
         
-        if (data && data.price) {
+        if (data && data.price && !isNaN(data.price) && data.price > 0) {
           setSubscriptionPrice(data.price);
         }
       } catch (error) {
@@ -119,6 +119,12 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
   const initiateCheckout = async () => {
     setCheckoutLoading(true);
     try {
+      // Input validation
+      if (!subscriptionPrice || subscriptionPrice <= 0) {
+        toast.error("Preço da assinatura inválido");
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { price: subscriptionPrice }
       });
@@ -130,9 +136,19 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
       }
       
       if (data.url) {
-        // Redirect to Stripe checkout
-        window.location.href = data.url;
-        toast.info("Redirecionando para página de pagamento");
+        // Security improvement: validate URL before redirect
+        try {
+          const url = new URL(data.url);
+          if (url.hostname.includes('stripe.com') || url.hostname.includes('checkout.stripe.com')) {
+            window.location.href = data.url;
+            toast.info("Redirecionando para página de pagamento");
+          } else {
+            throw new Error("Invalid redirect URL");
+          }
+        } catch (urlError) {
+          console.error("Invalid checkout URL:", urlError);
+          toast.error("Erro ao processar pagamento");
+        }
       } else {
         toast.error("Erro ao gerar link de pagamento");
       }

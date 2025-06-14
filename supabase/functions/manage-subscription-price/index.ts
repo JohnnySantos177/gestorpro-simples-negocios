@@ -7,9 +7,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Admin email constant
-const ADMIN_EMAIL = "johnnysantos_177@msn.com";
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -23,20 +20,27 @@ serve(async (req) => {
   );
 
   try {
-    // Verify admin authentication
+    // Verify admin authentication using database function (security fix)
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
     const { data: userData } = await supabaseClient.auth.getUser(token);
     const user = userData.user;
     
-    if (!user?.email) throw new Error("User not authenticated or email not available");
-    if (user.email !== ADMIN_EMAIL) throw new Error("Unauthorized: Admin access required");
+    if (!user?.id) throw new Error("User not authenticated");
+    
+    // Use database function to check admin status instead of hardcoded email
+    const { data: isAdminResult, error: adminError } = await supabaseClient
+      .rpc('is_admin', { user_id: user.id });
+    
+    if (adminError) throw new Error("Failed to verify admin status");
+    if (!isAdminResult) throw new Error("Unauthorized: Admin access required");
 
     // Parse request body to get new price
     const requestData = await req.json();
     const { price } = requestData;
     
-    if (!price || isNaN(price) || price < 0) {
+    // Input validation (security improvement)
+    if (!price || isNaN(price) || price < 0 || price > 1000000) {
       throw new Error("Invalid price value");
     }
 
@@ -50,6 +54,13 @@ serve(async (req) => {
 
     if (error) throw error;
     
+    // Log admin action for security monitoring
+    await supabaseClient.from('admin_logs').insert({
+      admin_id: user.id,
+      action: 'update_subscription_price',
+      details: { old_price: null, new_price: price },
+    });
+    
     return new Response(JSON.stringify({ 
       success: true, 
       message: "Subscription price updated successfully",
@@ -60,11 +71,24 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("Error updating subscription price:", error);
+    
+    // Generic error messages for security (don't expose internal details)
+    let userMessage = "Unable to process request";
+    let statusCode = 500;
+    
+    if (error.message.includes("Unauthorized")) {
+      userMessage = "Access denied";
+      statusCode = 403;
+    } else if (error.message.includes("Invalid price")) {
+      userMessage = "Invalid input provided";
+      statusCode = 400;
+    }
+    
     return new Response(JSON.stringify({ 
-      error: error.message 
+      error: userMessage 
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: error.message.includes("Unauthorized") ? 403 : 500,
+      status: statusCode,
     });
   }
 });

@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import Stripe from "https://esm.sh/stripe@12.5.0";
@@ -35,8 +34,14 @@ serve(async (req) => {
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
-    // Initialize Stripe with secret key
-    const stripe = new Stripe("sk_test_51RNhaPQVGReNUF6iM9HtcrW7XLbfOCZEcCz2R0jdaI2rDO7jjyUJV5N5WqsvHGKZP19Ed0tBL5KvcAaunHcdDtz200i1aUi3bC", {
+    // Get Stripe secret key from environment variables (security fix)
+    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeSecretKey) {
+      throw new Error("Stripe secret key not configured");
+    }
+
+    // Initialize Stripe with secret key from environment
+    const stripe = new Stripe(stripeSecretKey, {
       apiVersion: "2023-10-16",
     });
 
@@ -123,7 +128,12 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("Error creating checkout session:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    // Generic error message for security (don't expose internal details)
+    const userMessage = error.message.includes("not configured") 
+      ? "Service temporarily unavailable" 
+      : "Unable to process request";
+    
+    return new Response(JSON.stringify({ error: userMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
