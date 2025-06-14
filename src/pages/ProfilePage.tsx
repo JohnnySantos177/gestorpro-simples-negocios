@@ -16,7 +16,6 @@ import { formatCurrency } from "@/utils/format";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
-import { ChangePasswordModal } from "@/components/ChangePasswordModal";
 
 const profileSchema = z.object({
   nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
@@ -78,6 +77,7 @@ const ProfilePage = () => {
         title="Meu Perfil"
         description="Gerencie suas informações pessoais e configurações de conta"
       />
+
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -89,6 +89,7 @@ const ProfilePage = () => {
                 <AvatarFallback className="text-2xl">{getUserInitials()}</AvatarFallback>
               </Avatar>
             </div>
+
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onUpdateProfile)} className="space-y-4">
                 <FormField
@@ -104,16 +105,19 @@ const ProfilePage = () => {
                     </FormItem>
                   )}
                 />
+                
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Email</label>
                   <p className="font-medium">{user?.email}</p>
                 </div>
+                
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Data de Cadastro</label>
                   <p className="font-medium">
                     {profile?.created_at && format(new Date(profile.created_at), "PPP", { locale: ptBR })}
                   </p>
                 </div>
+                
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Último Acesso</label>
                   <p className="font-medium">
@@ -122,18 +126,16 @@ const ProfilePage = () => {
                       : "Primeiro acesso"}
                   </p>
                 </div>
+
                 <Button type="submit" disabled={updating} className="w-full">
                   <Save className="h-4 w-4 mr-2" />
                   {updating ? "Salvando..." : "Salvar Alterações"}
                 </Button>
               </form>
             </Form>
-            {/* Novo botão/modal para alteração de senha */}
-            <div className="mt-6 flex justify-center">
-              <ChangePasswordModal userEmail={user?.email || ""} />
-            </div>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Minha Assinatura</CardTitle>
