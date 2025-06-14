@@ -1,7 +1,10 @@
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useData } from "@/context/DataContext";
+import { Produto, Fornecedor } from "@/types";
 
 const produtoSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
@@ -15,7 +18,12 @@ const produtoSchema = z.object({
 
 export type ProdutoFormData = z.infer<typeof produtoSchema>;
 
-export const useProdutoForm = (defaultValues?: Partial<ProdutoFormData>) => {
+export const useProdutoForm = (fornecedores: Fornecedor[]) => {
+  const { addProduto, updateProduto, deleteProduto } = useData();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogType, setDialogType] = useState<"add" | "edit" | "delete">("add");
+  const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null);
+
   const form = useForm<ProdutoFormData>({
     resolver: zodResolver(produtoSchema),
     defaultValues: {
@@ -26,9 +34,90 @@ export const useProdutoForm = (defaultValues?: Partial<ProdutoFormData>) => {
       precoVenda: 0,
       quantidade: 0,
       fornecedorId: "",
-      ...defaultValues,
     },
   });
 
-  return form;
+  const openAddDialog = () => {
+    form.reset({
+      nome: "",
+      descricao: "",
+      categoria: "",
+      precoCompra: 0,
+      precoVenda: 0,
+      quantidade: 0,
+      fornecedorId: "",
+    });
+    setDialogType("add");
+    setSelectedProduto(null);
+    setDialogOpen(true);
+  };
+
+  const openEditDialog = (produto: Produto) => {
+    form.reset({
+      nome: produto.nome,
+      descricao: produto.descricao || "",
+      categoria: produto.categoria || "",
+      precoCompra: produto.precoCompra,
+      precoVenda: produto.precoVenda,
+      quantidade: produto.quantidade,
+      fornecedorId: produto.fornecedorId || "",
+    });
+    setDialogType("edit");
+    setSelectedProduto(produto);
+    setDialogOpen(true);
+  };
+
+  const openDeleteDialog = (produto: Produto) => {
+    setDialogType("delete");
+    setSelectedProduto(produto);
+    setDialogOpen(true);
+  };
+
+  const handleAddEditSubmit = (data: ProdutoFormData) => {
+    if (dialogType === "add") {
+      addProduto({
+        ...data,
+        id: crypto.randomUUID(),
+        userId: "current-user-id", // This should come from auth context
+        precoCompra: data.precoCompra || 0,
+        precoVenda: data.precoVenda || 0,
+        quantidade: data.quantidade || 0,
+        fornecedorNome: fornecedores.find(f => f.id === data.fornecedorId)?.nome || "",
+        dataCadastro: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    } else if (dialogType === "edit" && selectedProduto) {
+      updateProduto(selectedProduto.id, {
+        ...selectedProduto,
+        ...data,
+        precoCompra: data.precoCompra || 0,
+        precoVenda: data.precoVenda || 0,
+        quantidade: data.quantidade || 0,
+        fornecedorNome: fornecedores.find(f => f.id === data.fornecedorId)?.nome || "",
+        updatedAt: new Date(),
+      });
+    }
+    setDialogOpen(false);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (selectedProduto) {
+      deleteProduto(selectedProduto.id);
+    }
+    setDialogOpen(false);
+  };
+
+  return {
+    form,
+    dialogOpen,
+    dialogType,
+    selectedProduto,
+    setDialogOpen,
+    openAddDialog,
+    openEditDialog,
+    openDeleteDialog,
+    handleAddEditSubmit,
+    handleDeleteConfirm,
+  };
 };
