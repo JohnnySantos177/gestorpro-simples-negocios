@@ -5,21 +5,31 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Button } from "@/components/ui/button";
 import { CheckCircle2 } from "lucide-react";
 import { useSubscription } from "@/context/SubscriptionContext";
+import { toast } from "sonner";
 
 const ConfirmationSuccessPage = () => {
   const { checkSubscriptionStatus } = useSubscription();
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get("session_id");
+  const status = searchParams.get("status");
 
   useEffect(() => {
-    // If this is a confirmation from Mercado Pago checkout, check subscription status
-    if (sessionId) {
-      checkSubscriptionStatus();
+    // Se veio do Mercado Pago, aguardar um pouco para o webhook processar
+    if (sessionId || status) {
+      console.log("Confirmação recebida do Mercado Pago", { sessionId, status });
+      
+      // Aguardar 3 segundos para dar tempo do webhook processar
+      const timer = setTimeout(() => {
+        checkSubscriptionStatus();
+        toast.success("Verificando status da sua assinatura...");
+      }, 3000);
+
+      return () => clearTimeout(timer);
     }
     
-    // Log confirmation success for debugging
-    console.log("Confirmation success page loaded", { fromMercadoPago: !!sessionId });
-  }, [sessionId, checkSubscriptionStatus]);
+    // Verificar status imediatamente se não veio do Mercado Pago
+    checkSubscriptionStatus();
+  }, [sessionId, status, checkSubscriptionStatus]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
@@ -39,14 +49,26 @@ const ConfirmationSuccessPage = () => {
           <div className="flex justify-center mb-4">
             <CheckCircle2 className="h-16 w-16 text-green-500" />
           </div>
-          <CardTitle className="text-2xl font-bold">Sua confirmação foi feita com sucesso!</CardTitle>
+          <CardTitle className="text-2xl font-bold">Pagamento Processado!</CardTitle>
         </CardHeader>
         <CardContent className="text-center">
-          <p className="text-muted-foreground">Seu pagamento via Mercado Pago foi processado. Por favor, vá para a tela de login</p>
+          <p className="text-muted-foreground mb-4">
+            Seu pagamento foi processado com sucesso. 
+          </p>
+          {status === "pending" && (
+            <p className="text-yellow-600 text-sm mb-4">
+              ⚠️ Seu pagamento está pendente de confirmação. Você receberá uma notificação quando for aprovado.
+            </p>
+          )}
+          <p className="text-sm text-muted-foreground">
+            Estamos ativando sua assinatura premium. Isso pode levar alguns minutos.
+          </p>
         </CardContent>
         <CardFooter className="flex justify-center">
           <Link to="/login">
-            <Button className="bg-totalgestor-500 hover:bg-totalgestor-600 text-white">Ir para Login</Button>
+            <Button className="bg-totalgestor-500 hover:bg-totalgestor-600 text-white">
+              Ir para Dashboard
+            </Button>
           </Link>
         </CardFooter>
       </Card>
