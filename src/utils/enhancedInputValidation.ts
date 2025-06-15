@@ -1,4 +1,3 @@
-
 // Enhanced input validation with more comprehensive checks
 export const enhancedValidation = {
   sanitizeInput: (input: string): string => {
@@ -33,24 +32,8 @@ export const enhancedValidation = {
   validatePassword: (password: string): { valid: boolean; message?: string } => {
     if (!password) return { valid: false, message: 'Senha é obrigatória' };
     
-    if (password.length < 8) {
-      return { valid: false, message: 'Senha deve ter pelo menos 8 caracteres' };
-    }
-    
     if (password.length > 128) {
       return { valid: false, message: 'Senha muito longa' };
-    }
-    
-    // Check for at least one number, one lowercase, one uppercase
-    const hasNumber = /\d/.test(password);
-    const hasLower = /[a-z]/.test(password);
-    const hasUpper = /[A-Z]/.test(password);
-    
-    if (!hasNumber || !hasLower || !hasUpper) {
-      return { 
-        valid: false, 
-        message: 'Senha deve conter pelo menos uma letra maiúscula, uma minúscula e um número' 
-      };
     }
     
     return { valid: true };
