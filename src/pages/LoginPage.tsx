@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -8,8 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { AdminNavigation } from "@/components/AdminNavigation";
+import { ManualDialog } from "@/components/manual/ManualDialog";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import { BookOpen } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email("E-mail inválido").min(1, "E-mail é obrigatório"),
@@ -144,6 +147,14 @@ const LoginPage = () => {
               <Link to="/register" className="text-gestorpro-600 hover:underline">
                 Cadastre-se
               </Link>
+            </div>
+            <div className="pt-2 border-t border-gray-200">
+              <ManualDialog>
+                <Button variant="outline" size="sm" className="w-full">
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Manual de Uso
+                </Button>
+              </ManualDialog>
             </div>
           </CardFooter>
         </Card>

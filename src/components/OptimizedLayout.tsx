@@ -12,7 +12,8 @@ import {
   LogOut,
   ShieldAlert,
   User,
-  BarChart as ChartBarIcon
+  BarChart as ChartBarIcon,
+  BookOpen
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSubscription } from "@/context/SubscriptionContext";
@@ -42,6 +43,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { ManualDialog } from "@/components/manual/ManualDialog";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
 
 interface OptimizedLayoutProps {
@@ -247,6 +249,13 @@ export const OptimizedLayout: React.FC<OptimizedLayoutProps> = memo(({ children 
                   </Button>
                 </div>
               )}
+              
+              <ManualDialog>
+                <Button variant="outline" size="sm">
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Manual
+                </Button>
+              </ManualDialog>
               
               <UserDropdown user={user} isAdmin={isAdmin} onLogout={handleLogout} />
             </div>
