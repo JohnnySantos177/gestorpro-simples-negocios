@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { ManualDialog } from "@/components/manual/ManualDialog";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-import { BookOpen, ArrowRight } from "lucide-react";
+import { BookOpen, ArrowRight, Sparkles, Lock } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email("E-mail inválido").min(1, "E-mail é obrigatório"),
@@ -59,29 +59,54 @@ export const LoginFormSection = () => {
   };
 
   return (
-    <section id="login-form" className="py-20 px-4 bg-gradient-to-br from-primary to-secondary text-white">
-      <div className="max-w-md mx-auto">
-        <Card className="bg-white/95 backdrop-blur-sm">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl text-foreground">Comece Sua Transformação Hoje!</CardTitle>
-            <CardDescription>
-              Faça login ou crie sua conta para começar
+    <section id="login-form" className="py-24 px-4 bg-gradient-to-br from-primary via-primary/95 to-secondary relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.05\"%3E%3Ccircle cx=\"30\" cy=\"30\" r=\"2\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]"></div>
+      <div className="absolute top-20 left-20 w-32 h-32 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+      <div className="absolute bottom-20 right-20 w-40 h-40 bg-yellow-300/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+      
+      <div className="max-w-md mx-auto relative z-10">
+        {/* Header */}
+        <div className="text-center mb-12 animate-fade-in">
+          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white px-6 py-3 rounded-full mb-6">
+            <Sparkles className="h-5 w-5" />
+            <span className="font-semibold">COMECE AGORA</span>
+          </div>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            Comece Sua{" "}
+            <span className="bg-gradient-to-r from-yellow-300 to-yellow-500 bg-clip-text text-transparent">
+              Transformação Hoje!
+            </span>
+          </h2>
+          <p className="text-white/90 text-lg">
+            Faça login ou crie sua conta para começar
+          </p>
+        </div>
+
+        <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-2xl animate-scale-in" style={{ animationDelay: '0.2s' }}>
+          <CardHeader className="text-center pb-6">
+            <CardTitle className="text-2xl text-foreground flex items-center justify-center gap-2">
+              <Lock className="h-6 w-6 text-primary" />
+              Acesso Seguro
+            </CardTitle>
+            <CardDescription className="text-base">
+              Entre na sua conta e transforme sua gestão
             </CardDescription>
           </CardHeader>
           
           <CardContent>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
                   control={form.control}
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>E-mail</FormLabel>
+                      <FormLabel className="text-foreground font-semibold">E-mail</FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="seu@email.com" 
-                          className="h-12"
+                          className="h-12 bg-white border-2 border-gray-200 focus:border-primary transition-all duration-200 rounded-xl"
                           {...field} 
                         />
                       </FormControl>
@@ -94,12 +119,12 @@ export const LoginFormSection = () => {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Senha</FormLabel>
+                      <FormLabel className="text-foreground font-semibold">Senha</FormLabel>
                       <FormControl>
                         <Input 
                           type="password" 
                           placeholder="••••••••" 
-                          className="h-12"
+                          className="h-12 bg-white border-2 border-gray-200 focus:border-primary transition-all duration-200 rounded-xl"
                           {...field} 
                         />
                       </FormControl>
@@ -110,7 +135,7 @@ export const LoginFormSection = () => {
                 
                 <Button 
                   type="submit" 
-                  className="w-full h-12 bg-primary hover:bg-primary/90" 
+                  className="w-full h-12 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" 
                   disabled={isLoading || loading}
                 >
                   {isLoading ? (
@@ -119,7 +144,10 @@ export const LoginFormSection = () => {
                       Entrando...
                     </div>
                   ) : (
-                    "Entrar"
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Entrar Agora
+                    </>
                   )}
                 </Button>
               </form>
@@ -128,30 +156,31 @@ export const LoginFormSection = () => {
             <div className="text-center mt-6 space-y-4">
               <Link 
                 to="/reset-password" 
-                className="text-sm text-primary hover:underline"
+                className="text-sm text-primary hover:text-primary/80 hover:underline transition-colors font-medium"
               >
                 Esqueceu sua senha?
               </Link>
 
-              <div className="border-t pt-4">
-                <p className="text-sm text-muted-foreground mb-3">
+              <div className="border-t border-gray-200 pt-6">
+                <p className="text-sm text-muted-foreground mb-4">
                   Ainda não tem uma conta?
                 </p>
                 <Button 
                   asChild 
                   variant="outline" 
-                  className="w-full"
+                  className="w-full h-12 border-2 border-primary text-primary hover:bg-primary hover:text-white font-semibold rounded-xl transition-all duration-300 hover:scale-105"
                 >
                   <Link to="/register">
+                    <Sparkles className="mr-2 h-4 w-4" />
                     Criar Conta Grátis
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
               </div>
 
-              <div className="border-t pt-4">
+              <div className="border-t border-gray-200 pt-4">
                 <ManualDialog>
-                  <Button variant="ghost" size="sm" className="text-muted-foreground">
+                  <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary transition-colors">
                     <BookOpen className="h-4 w-4 mr-2" />
                     Manual de Uso
                   </Button>
@@ -160,6 +189,14 @@ export const LoginFormSection = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Security badge */}
+        <div className="text-center mt-8 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+          <div className="inline-flex items-center gap-2 text-white/80 text-sm">
+            <Lock className="h-4 w-4" />
+            <span>Seus dados estão 100% seguros e protegidos</span>
+          </div>
+        </div>
       </div>
     </section>
   );
