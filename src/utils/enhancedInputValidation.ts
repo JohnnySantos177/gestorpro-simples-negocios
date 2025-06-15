@@ -1,3 +1,4 @@
+
 // Enhanced input validation with more comprehensive checks
 export const enhancedValidation = {
   sanitizeInput: (input: string): string => {
@@ -31,11 +32,15 @@ export const enhancedValidation = {
 
   validatePassword: (password: string): { valid: boolean; message?: string } => {
     if (!password) return { valid: false, message: 'Senha é obrigatória' };
-    
+
+    // Apenas tamanho mínimo de 6 caracteres, sem outras exigências!
+    if (password.length < 6) {
+      return { valid: false, message: "Senha deve ter pelo menos 6 caracteres" };
+    }
     if (password.length > 128) {
       return { valid: false, message: 'Senha muito longa' };
     }
-    
+
     return { valid: true };
   },
 
@@ -85,3 +90,4 @@ export const enhancedValidation = {
     return { valid: true };
   }
 };
+
