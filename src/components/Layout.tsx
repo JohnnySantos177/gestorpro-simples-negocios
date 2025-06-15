@@ -41,6 +41,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { PWAInstallButton } from "@/components/PWAInstallButton";
 
 // Importar o ícone ChartBar corretamente
 import { BarChart as ChartBarIcon } from "lucide-react";
@@ -173,6 +174,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <SidebarTrigger />
             
             <div className="ml-auto flex items-center gap-4">
+              <PWAInstallButton />
+              
               {isAdmin && (
                 <div className="hidden md:flex items-center">
                   <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full mr-2">

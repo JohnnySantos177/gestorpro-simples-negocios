@@ -36,6 +36,7 @@ import { DataProvider } from "@/context/DataContext";
 import { VisitorModeProvider } from "@/context/VisitorModeContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { OptimizedLayout } from "@/components/OptimizedLayout";
+import { MobileOptimizations } from "@/components/MobileOptimizations";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ function App() {
             <SubscriptionProvider>
               <DataProvider>
                 <TooltipProvider>
+                  <MobileOptimizations />
                   <Toaster />
                   <Sonner />
                   <BrowserRouter>
