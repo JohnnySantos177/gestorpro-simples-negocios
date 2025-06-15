@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Clock, TrendingUp, DollarSign, AlertTriangle } from "lucide-react";
+import { Clock, TrendingUp, DollarSign } from "lucide-react";
 
 export const ProblemsSection = () => {
   const problemsData = [
@@ -34,10 +34,6 @@ export const ProblemsSection = () => {
       
       <div className="max-w-6xl mx-auto relative z-10">
         <div className="text-center mb-20">
-          <div className="inline-flex items-center gap-2 bg-red-100 text-red-700 px-4 py-2 rounded-full mb-6 animate-fade-in">
-            <AlertTriangle className="h-4 w-4" />
-            <span className="text-sm font-semibold">ATENÇÃO: Problemas Comuns</span>
-          </div>
           <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground animate-fade-in" style={{ animationDelay: '0.2s' }}>
             Você Está Perdendo{" "}
             <span className="bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">

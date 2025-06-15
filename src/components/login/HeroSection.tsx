@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ArrowRight } from "lucide-react";
+import { Sparkles, ArrowRight, Star } from "lucide-react";
 
 export const HeroSection = () => {
   return (
@@ -54,11 +54,12 @@ export const HeroSection = () => {
           </Button>
           <Button 
             size="lg" 
-            variant="outline" 
-            className="border-2 border-white/50 text-white hover:bg-white/10 hover:border-white backdrop-blur-sm px-8 py-6 text-lg rounded-xl shadow-xl transition-all duration-300 hover:scale-105"
+            className="bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white font-semibold px-8 py-6 text-lg rounded-xl shadow-2xl hover:shadow-green-500/25 transition-all duration-300 hover:scale-105 group border-0"
             onClick={() => document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth' })}
           >
-            Ver Planos
+            <Star className="mr-2 h-5 w-5 group-hover:animate-pulse" />
+            Ver Planos Premium
+            <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
           </Button>
         </div>
 
