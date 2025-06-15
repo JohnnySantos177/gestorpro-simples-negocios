@@ -139,9 +139,9 @@ const AdminPanel = () => {
 
       console.log("AdminPanel: Loading users from super_admin_user_overview");
 
-      // Usar any na tipagem pois as views não aparecem nas typings do Supabase
+      // ATENÇÃO: Corrigida a tipagem para .from<any, any>
       const { data, error } = await supabase
-        .from<any>('super_admin_user_overview')
+        .from<any, any>('super_admin_user_overview')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -150,7 +150,6 @@ const AdminPanel = () => {
         throw error;
       }
 
-      // Ajuste: garantir que os datos castados para UserOverview[]
       const parsedUsers: UserOverview[] = (data || []).map((user: any) => ({
         id: user.id,
         nome: user.nome,

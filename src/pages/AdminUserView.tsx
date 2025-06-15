@@ -47,9 +47,9 @@ const AdminUserView = () => {
       try {
         setLoading(true);
 
-        // Usar any pois é uma view customizada
+        // Corrigida a tipagem: .from<any, any>
         const { data, error } = await supabase
-          .from<any>('super_admin_user_overview')
+          .from<any, any>('super_admin_user_overview')
           .select('*')
           .eq('id', userId)
           .maybeSingle();
@@ -58,7 +58,7 @@ const AdminUserView = () => {
           throw error;
         }
 
-        if (data) {
+        if (data && !('code' in data)) {
           setUserData({
             id: data.id,
             nome: data.nome,
@@ -69,6 +69,8 @@ const AdminUserView = () => {
             total_produtos: Number(data.total_produtos) || 0,
             total_vendas: Number(data.total_vendas) || 0,
           });
+        } else {
+          setUserData(null);
         }
       } catch (error: any) {
         console.error("Erro ao buscar detalhes do usuário:", error);
