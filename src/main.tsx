@@ -40,16 +40,16 @@ createRoot(rootElement).render(
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <SecurityProvider>
-            <AuthProvider>
-              <SubscriptionProvider>
-                <VisitorModeProvider>
+            <VisitorModeProvider>
+              <AuthProvider>
+                <SubscriptionProvider>
                   <DataProvider>
                     <App />
                     <Toaster />
                   </DataProvider>
-                </VisitorModeProvider>
-              </SubscriptionProvider>
-            </AuthProvider>
+                </SubscriptionProvider>
+              </AuthProvider>
+            </VisitorModeProvider>
           </SecurityProvider>
         </BrowserRouter>
       </QueryClientProvider>
