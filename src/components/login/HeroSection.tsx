@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Sparkles, ArrowRight, Star } from "lucide-react";
@@ -66,11 +67,7 @@ export const HeroSection = () => {
         <div className="mt-16 flex flex-wrap items-center justify-center gap-8 opacity-80 animate-fade-in" style={{ animationDelay: '0.8s' }}>
           <div className="flex items-center gap-2 text-sm">
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            <span>+1000 empresas confiam</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm">
-            <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-            <span>Suporte 24/7</span>
+            <span>um verdadeiro gestor profissional</span>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>

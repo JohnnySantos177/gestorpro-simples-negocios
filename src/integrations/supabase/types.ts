@@ -805,32 +805,11 @@ export type Database = {
       }
     }
     Views: {
-      super_admin_user_overview: {
-        Row: {
-          cargo: string | null
-          cidade: string | null
-          created_at: string | null
-          email: string | null
-          empresa: string | null
-          estado: string | null
-          id: string | null
-          nome: string | null
-          nome_completo: string | null
-          status: string | null
-          telefone: string | null
-          tipo_plano: string | null
-          tipo_usuario: string | null
-          total_clientes: number | null
-          total_produtos: number | null
-          total_vendas: number | null
-          updated_at: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       is_admin: {
-        Args: { user_id: string }
+        Args: Record<PropertyKey, never> | { user_id: string }
         Returns: boolean
       }
       is_admin_secure: {
@@ -838,7 +817,7 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: {
-        Args: { user_id: string }
+        Args: Record<PropertyKey, never> | { user_id: string }
         Returns: boolean
       }
     }
