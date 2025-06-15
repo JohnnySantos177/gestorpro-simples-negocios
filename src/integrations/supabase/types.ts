@@ -773,6 +773,36 @@ export type Database = {
         }
         Relationships: []
       }
+      webhook_events: {
+        Row: {
+          created_at: string | null
+          event_id: string
+          event_type: string
+          id: string
+          payment_id: string | null
+          processed_at: string | null
+          signature_hash: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_id: string
+          event_type: string
+          id?: string
+          payment_id?: string | null
+          processed_at?: string | null
+          signature_hash?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_id?: string
+          event_type?: string
+          id?: string
+          payment_id?: string | null
+          processed_at?: string | null
+          signature_hash?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       super_admin_user_overview: {

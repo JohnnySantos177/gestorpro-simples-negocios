@@ -1,18 +1,13 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { validateWebhookSignature, generateEventId } from "../_shared/webhookValidation.ts";
-import { rateLimitManager } from "../_shared/rateLimitManager.ts";
+import { enhancedWebhookSecurity } from "../_shared/enhancedWebhookSecurity.ts";
+import { enhancedSecurity } from "../_shared/enhancedSecurity.ts";
 import { calculateSubscriptionEndDate } from "../_shared/mercadopago.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-signature",
-};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: enhancedSecurity.getSecurityHeaders() });
   }
 
   const supabaseClient = createClient(
@@ -22,56 +17,105 @@ serve(async (req) => {
   );
 
   try {
-    // Rate limiting check
+    // Enhanced request validation
+    const requestValidation = enhancedSecurity.validateRequest(req);
+    if (!requestValidation.valid) {
+      await enhancedSecurity.logSecurityEvent(
+        null,
+        'webhook_request_validation_failed',
+        'webhook',
+        false,
+        { error: requestValidation.error },
+        requestValidation.error,
+        req
+      );
+      return enhancedSecurity.createErrorResponse('Invalid request', 400);
+    }
+
+    // Enhanced rate limiting
     const clientIP = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
-    const rateLimitResult = rateLimitManager.isAllowed(clientIP, 'webhook');
+    const rateLimitResult = await enhancedSecurity.rateLimitCheck(clientIP, 20, 60000); // 20 requests per minute
     
     if (!rateLimitResult.allowed) {
-      console.log(`Rate limit exceeded for IP: ${clientIP}`);
+      await enhancedSecurity.logSecurityEvent(
+        null,
+        'webhook_rate_limit_exceeded',
+        'webhook',
+        false,
+        { ip: clientIP, remaining: rateLimitResult.remaining },
+        'Rate limit exceeded',
+        req
+      );
+      
       return new Response("Rate limit exceeded", { 
         status: 429,
         headers: {
-          ...corsHeaders,
-          'Retry-After': Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString()
+          ...enhancedSecurity.getSecurityHeaders(),
+          'Retry-After': '60'
         }
       });
     }
 
-    // Get webhook signature
+    // Get and validate webhook signature
     const signature = req.headers.get("x-signature");
     if (!signature) {
-      console.error("Missing webhook signature");
-      return new Response("Missing signature", { status: 401, headers: corsHeaders });
+      await enhancedSecurity.logSecurityEvent(
+        null,
+        'webhook_missing_signature',
+        'webhook',
+        false,
+        { ip: clientIP },
+        'Missing webhook signature',
+        req
+      );
+      return enhancedSecurity.createErrorResponse("Missing signature", 401);
     }
 
     // Get webhook secret
     const webhookSecret = Deno.env.get("MERCADO_PAGO_WEBHOOK_SECRET");
     if (!webhookSecret) {
       console.error("Webhook secret not configured");
-      return new Response("Webhook secret not configured", { status: 500, headers: corsHeaders });
+      return enhancedSecurity.createErrorResponse("Configuration error", 500);
     }
 
     // Read and validate request body
     const bodyText = await req.text();
     if (!bodyText) {
-      console.error("Empty request body");
-      return new Response("Empty body", { status: 400, headers: corsHeaders });
+      await enhancedSecurity.logSecurityEvent(
+        null,
+        'webhook_empty_body',
+        'webhook',
+        false,
+        { ip: clientIP },
+        'Empty request body',
+        req
+      );
+      return enhancedSecurity.createErrorResponse("Empty body", 400);
     }
 
-    // Validate webhook signature
-    const isValidSignature = validateWebhookSignature({
+    // Enhanced signature validation
+    const isValidSignature = await enhancedWebhookSecurity.validateSignature({
       signature,
       body: bodyText,
       secret: webhookSecret
     });
 
     if (!isValidSignature) {
-      console.error("Invalid webhook signature");
-      return new Response("Invalid signature", { status: 401, headers: corsHeaders });
+      await enhancedSecurity.logSecurityEvent(
+        null,
+        'webhook_invalid_signature',
+        'webhook',
+        false,
+        { ip: clientIP, signatureLength: signature.length },
+        'Invalid webhook signature',
+        req
+      );
+      return enhancedSecurity.createErrorResponse("Invalid signature", 401);
     }
 
-    const webhookData = JSON.parse(bodyText);
-    console.log("Webhook recebido do Mercado Pago:", JSON.stringify(webhookData, null, 2));
+    // Parse and sanitize webhook data
+    const webhookData = enhancedSecurity.sanitizeInput(JSON.parse(bodyText));
+    console.log("Enhanced webhook received from Mercado Pago:", JSON.stringify(webhookData, null, 2));
 
     const { type, data } = webhookData;
     
@@ -79,205 +123,244 @@ serve(async (req) => {
       const paymentId = data?.id;
       
       if (!paymentId) {
-        console.log("Payment ID não encontrado no webhook");
-        return new Response("OK", { status: 200, headers: corsHeaders });
+        console.log("Payment ID not found in webhook");
+        return enhancedSecurity.createSecureResponse("OK", 200);
       }
 
-      // Generate event ID for idempotency
-      const eventId = generateEventId(paymentId, Date.now());
+      // Generate secure event ID for idempotency
+      const eventId = await enhancedWebhookSecurity.generateSecureEventId(paymentId, Date.now());
       
-      // Check if this event was already processed
-      const { data: existingEvent } = await supabaseClient
-        .from('webhook_events')
-        .select('id')
-        .eq('event_id', eventId)
-        .single();
-
-      if (existingEvent) {
-        console.log("Event already processed, skipping:", eventId);
-        return new Response("OK", { status: 200, headers: corsHeaders });
+      // Check for replay attacks
+      const isReplay = await enhancedWebhookSecurity.checkReplayAttack(eventId, paymentId);
+      if (isReplay) {
+        console.log("Replay attack detected, skipping:", eventId);
+        return enhancedSecurity.createSecureResponse("OK", 200);
       }
 
       // Record this webhook event
-      await supabaseClient
-        .from('webhook_events')
-        .insert({
-          event_id: eventId,
-          event_type: type,
-          payment_id: paymentId,
-          signature_hash: signature
-        });
+      await enhancedWebhookSecurity.recordWebhookEvent(eventId, type, paymentId, signature);
 
-      console.log("Processando pagamento ID:", paymentId);
+      console.log("Processing payment ID:", paymentId);
 
-      // Fetch payment details from Mercado Pago
+      // Fetch payment details from Mercado Pago with enhanced security
       const mercadoPagoToken = Deno.env.get("MERCADO_PAGO_PRODUCTION_ACCESS_TOKEN");
       
       if (!mercadoPagoToken) {
-        console.error("Token do Mercado Pago não configurado");
-        return new Response("Token not configured", { status: 500, headers: corsHeaders });
+        console.error("Mercado Pago token not configured");
+        return enhancedSecurity.createErrorResponse("Token not configured", 500);
       }
 
       const paymentResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
         headers: {
           'Authorization': `Bearer ${mercadoPagoToken}`,
           'Content-Type': 'application/json',
+          'User-Agent': 'TotalGestor-Webhook/1.0'
         },
       });
 
       if (!paymentResponse.ok) {
-        console.error("Erro ao buscar pagamento:", await paymentResponse.text());
-        return new Response("Payment not found", { status: 404, headers: corsHeaders });
+        const errorText = await paymentResponse.text();
+        console.error("Error fetching payment:", errorText);
+        
+        await enhancedSecurity.logSecurityEvent(
+          null,
+          'webhook_payment_fetch_failed',
+          'payment',
+          false,
+          { paymentId, status: paymentResponse.status },
+          'Failed to fetch payment details',
+          req
+        );
+        
+        return enhancedSecurity.createErrorResponse("Payment not found", 404);
       }
 
       const payment = await paymentResponse.json();
-      console.log("Detalhes do pagamento:", JSON.stringify(payment, null, 2));
+      console.log("Payment details:", JSON.stringify(payment, null, 2));
 
-      // Verify payment status
+      // Process approved payments with enhanced validation
       if (payment.status === "approved") {
         const externalReference = payment.external_reference;
         
         if (!externalReference) {
-          console.log("External reference não encontrada");
-          return new Response("OK", { status: 200, headers: corsHeaders });
+          console.log("External reference not found");
+          return enhancedSecurity.createSecureResponse("OK", 200);
         }
 
-        // Validate external reference format
-        const referenceMatch = externalReference.match(/^payment_([^_]+)_([^_]+)_/);
+        // Enhanced validation of external reference format
+        const referenceMatch = externalReference.match(/^payment_([a-f0-9-]{36})_([a-z]+)_/);
         
         if (!referenceMatch) {
-          console.log("Formato de external_reference inválido:", externalReference);
-          return new Response("OK", { status: 200, headers: corsHeaders });
+          await enhancedSecurity.logSecurityEvent(
+            null,
+            'webhook_invalid_reference_format',
+            'payment',
+            false,
+            { externalReference, paymentId },
+            'Invalid external reference format',
+            req
+          );
+          console.log("Invalid external_reference format:", externalReference);
+          return enhancedSecurity.createSecureResponse("OK", 200);
         }
 
         const userId = referenceMatch[1];
         const planType = referenceMatch[2];
 
-        // Validate plan type
+        // Enhanced plan type validation
         if (!['monthly', 'quarterly', 'semiannual'].includes(planType)) {
-          console.log("Tipo de plano inválido:", planType);
-          return new Response("OK", { status: 200, headers: corsHeaders });
+          await enhancedSecurity.logSecurityEvent(
+            userId,
+            'webhook_invalid_plan_type',
+            'subscription',
+            false,
+            { planType, paymentId },
+            'Invalid plan type',
+            req
+          );
+          console.log("Invalid plan type:", planType);
+          return enhancedSecurity.createSecureResponse("OK", 200);
         }
 
-        console.log("Atualizando usuário:", userId, "para plano:", planType);
+        console.log("Updating user:", userId, "to plan:", planType);
 
-        // Calculate subscription end date
+        // Calculate subscription dates
         const startDate = new Date();
         const endDate = calculateSubscriptionEndDate(planType, startDate);
 
-        // Update user profile to premium
-        const { error: profileError } = await supabaseClient
-          .from('profiles')
-          .update({
-            tipo_plano: 'premium',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', userId);
+        // Enhanced database operations with proper error handling
+        try {
+          // Update user profile to premium
+          const { error: profileError } = await supabaseClient
+            .from('profiles')
+            .update({
+              tipo_plano: 'premium',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', userId);
 
-        if (profileError) {
-          console.error("Erro ao atualizar perfil:", profileError);
-        } else {
-          console.log("Perfil atualizado para premium");
-        }
+          if (profileError) {
+            throw new Error(`Profile update failed: ${profileError.message}`);
+          }
 
-        // Create/update subscription record
-        const { error: subscriptionError } = await supabaseClient
-          .from('subscriptions')
-          .upsert({
-            user_id: userId,
-            mercado_pago_subscription_id: paymentId,
-            status: 'active',
-            start_date: startDate.toISOString(),
-            end_date: endDate.toISOString(),
-            payment_provider: 'mercado_pago',
-            updated_at: new Date().toISOString(),
-          }, {
-            onConflict: 'user_id',
-          });
+          // Create/update subscription record
+          const { error: subscriptionError } = await supabaseClient
+            .from('subscriptions')
+            .upsert({
+              user_id: userId,
+              mercado_pago_subscription_id: paymentId,
+              status: 'active',
+              start_date: startDate.toISOString(),
+              end_date: endDate.toISOString(),
+              payment_provider: 'mercado_pago',
+            }, {
+              onConflict: 'user_id',
+            });
 
-        if (subscriptionError) {
-          console.error("Erro ao criar assinatura:", subscriptionError);
-        } else {
-          console.log("Assinatura criada/atualizada com sucesso");
-        }
+          if (subscriptionError) {
+            throw new Error(`Subscription update failed: ${subscriptionError.message}`);
+          }
 
-        // Record payment
-        const { error: paymentError } = await supabaseClient
-          .from('payments')
-          .insert({
-            user_id: userId,
-            external_reference: externalReference,
-            status: payment.status,
-            amount: Math.round(payment.transaction_amount * 100), // convert to cents
-            currency: payment.currency_id,
-            payment_method: payment.payment_method_id,
-            installments: payment.installments || 1,
-            metadata: {
-              mercado_pago_id: paymentId,
+          // Record payment with enhanced metadata
+          const { error: paymentError } = await supabaseClient
+            .from('payments')
+            .insert({
+              user_id: userId,
+              external_reference: externalReference,
+              status: payment.status,
+              amount: Math.round(payment.transaction_amount * 100),
+              currency: payment.currency_id,
+              payment_method: payment.payment_method_id,
+              installments: payment.installments || 1,
+              metadata: {
+                mercado_pago_id: paymentId,
+                plan_type: planType,
+                payment_date: payment.date_created,
+                webhook_event_id: eventId,
+                ip_address: clientIP,
+                signature_verified: true
+              }
+            });
+
+          if (paymentError) {
+            throw new Error(`Payment record failed: ${paymentError.message}`);
+          }
+
+          // Enhanced security audit logging
+          await enhancedSecurity.logSecurityEvent(
+            userId,
+            'subscription_activated',
+            'subscription',
+            true,
+            {
+              payment_id: paymentId,
               plan_type: planType,
-              payment_date: payment.date_created,
-              webhook_event_id: eventId
-            }
-          });
+              amount: payment.transaction_amount,
+              payment_method: payment.payment_method_id,
+              event_id: eventId,
+              ip_address: clientIP,
+              signature_verified: true
+            },
+            undefined,
+            req
+          );
 
-        if (paymentError) {
-          console.error("Erro ao registrar pagamento:", paymentError);
-        } else {
-          console.log("Pagamento registrado com sucesso");
+          console.log("Webhook processing completed successfully");
+          
+        } catch (dbError) {
+          console.error("Database operation failed:", dbError);
+          
+          await enhancedSecurity.logSecurityEvent(
+            userId,
+            'webhook_database_error',
+            'subscription',
+            false,
+            { paymentId, planType },
+            dbError.message,
+            req
+          );
+          
+          return enhancedSecurity.createErrorResponse("Database error", 500);
         }
-
-        // Security audit log
-        await supabaseClient.from('security_audit_logs').insert({
-          user_id: userId,
-          action: 'subscription_activated',
-          resource_type: 'subscription',
-          success: true,
-          metadata: {
-            payment_id: paymentId,
-            plan_type: planType,
-            amount: payment.transaction_amount,
-            payment_method: payment.payment_method_id,
-            webhook_signature_verified: true,
-            event_id: eventId
-          },
-        });
-
-        console.log("Processamento do webhook concluído com sucesso");
+        
       } else {
-        console.log("Pagamento não aprovado, status:", payment.status);
+        console.log("Payment not approved, status:", payment.status);
+        
+        await enhancedSecurity.logSecurityEvent(
+          null,
+          'webhook_payment_not_approved',
+          'payment',
+          true,
+          { paymentId, status: payment.status },
+          undefined,
+          req
+        );
       }
     } else {
-      console.log("Tipo de webhook não processado:", type);
+      console.log("Webhook type not processed:", type);
     }
 
-    return new Response("OK", { 
-      status: 200,
-      headers: corsHeaders 
-    });
+    return enhancedSecurity.createSecureResponse("OK", 200);
 
   } catch (error) {
-    console.error("Erro no webhook:", error);
+    console.error("Enhanced webhook error:", error);
     
-    // Log security event for failed webhook processing
-    try {
-      await supabaseClient.from('security_audit_logs').insert({
-        action: 'webhook_processing_failed',
-        resource_type: 'webhook',
-        success: false,
+    // Enhanced error logging
+    await enhancedSecurity.logSecurityEvent(
+      null,
+      'webhook_processing_failed',
+      'webhook',
+      false,
+      {
         error_message: error.message,
-        metadata: {
-          error_stack: error.stack,
-          user_agent: req.headers.get('user-agent'),
-          ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip")
-        }
-      });
-    } catch (logError) {
-      console.error("Failed to log security event:", logError);
-    }
+        error_stack: error.stack?.substring(0, 1000),
+        user_agent: req.headers.get('user-agent'),
+        ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip")
+      },
+      error.message,
+      req
+    );
 
-    return new Response("Internal server error", { 
-      status: 500,
-      headers: corsHeaders 
-    });
+    return enhancedSecurity.createErrorResponse("Internal server error", 500);
   }
 });
