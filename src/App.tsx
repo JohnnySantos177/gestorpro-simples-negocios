@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   BrowserRouter,
@@ -5,29 +6,29 @@ import {
   Route,
   Outlet,
 } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { Sonner } from 'sonner';
+import { Toaster as Sonner } from 'sonner';
 
-import { Index } from "@/pages";
-import { LoginPage } from "@/pages/auth/LoginPage";
-import { RegisterPage } from "@/pages/auth/RegisterPage";
-import { ResetPasswordPage } from "@/pages/auth/ResetPasswordPage";
-import { ConfirmationSuccessPage } from "@/pages/auth/ConfirmationSuccessPage";
-import { ClientesPage } from "@/pages/clientes";
-import { ProdutosPage } from "@/pages/produtos";
-import { VendasPage } from "@/pages/vendas";
-import { FinanceiroPage } from "@/pages/financeiro";
-import { FornecedoresPage } from "@/pages/fornecedores";
-import { AvaliacoesPage } from "@/pages/avaliacoes";
-import { PromocoesPage } from "@/pages/promocoes";
-import { AssinaturaPage } from "@/pages/assinatura";
-import { AdminPanel } from "@/pages/admin";
-import { UserManagementPage } from "@/pages/admin/UserManagementPage";
-import { AdminUserView } from "@/pages/admin/AdminUserView";
-import { ProfilePage } from "@/pages/ProfilePage";
-import { NotFound } from "@/pages/NotFound";
+import Index from "@/pages/Index";
+import LoginPage from "@/pages/LoginPage";
+import RegisterPage from "@/pages/RegisterPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import ConfirmationSuccessPage from "@/pages/ConfirmationSuccessPage";
+import ClientesPage from "@/pages/ClientesPage";
+import ProdutosPage from "@/pages/ProdutosPage";
+import VendasPage from "@/pages/VendasPage";
+import FinanceiroPage from "@/pages/FinanceiroPage";
+import FornecedoresPage from "@/pages/FornecedoresPage";
+import AvaliacoesPage from "@/pages/AvaliacoesPage";
+import PromocoesPage from "@/pages/PromocoesPage";
+import AssinaturaPage from "@/pages/AssinaturaPage";
+import AdminPanel from "@/pages/AdminPanel";
+import UserManagementPage from "@/pages/UserManagementPage";
+import AdminUserView from "@/pages/AdminUserView";
+import ProfilePage from "@/pages/ProfilePage";
+import NotFound from "@/pages/NotFound";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AuthProvider } from "@/context/AuthContext";
 import { SubscriptionProvider } from "@/context/SubscriptionContext";
