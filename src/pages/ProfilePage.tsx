@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Layout } from "@/components/Layout";
+import React from "react";
+import { OptimizedLayout } from "@/components/OptimizedLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/context/AuthContext";
 import { useSubscription } from "@/context/SubscriptionContext";
@@ -63,16 +63,16 @@ const ProfilePage = () => {
 
   if (loading) {
     return (
-      <Layout>
+      <OptimizedLayout>
         <div className="flex justify-center items-center p-12">
           <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
         </div>
-      </Layout>
+      </OptimizedLayout>
     );
   }
 
   return (
-    <Layout>
+    <OptimizedLayout>
       <PageHeader 
         title="Meu Perfil"
         description="Gerencie suas informações pessoais e configurações de conta"
@@ -189,7 +189,7 @@ const ProfilePage = () => {
           </CardContent>
         </Card>
       </div>
-    </Layout>
+    </OptimizedLayout>
   );
 };
 

@@ -1,9 +1,9 @@
 import React, { useState } from "react";
+import { OptimizedLayout } from "@/components/OptimizedLayout";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Layout } from "@/components/Layout";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -72,7 +72,7 @@ const RegisterPage = () => {
   };
 
   return (
-    <Layout>
+    <OptimizedLayout>
       <div className="container flex items-center justify-center">
         <div className="w-full max-w-md">
           <PageHeader
@@ -146,7 +146,7 @@ const RegisterPage = () => {
           </div>
         </div>
       </div>
-    </Layout>
+    </OptimizedLayout>
   );
 };
 

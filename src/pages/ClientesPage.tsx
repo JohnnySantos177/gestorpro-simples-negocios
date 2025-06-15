@@ -6,7 +6,7 @@ import {
   Users,
   Filter
 } from "lucide-react";
-import { Layout } from "@/components/Layout";
+import { OptimizedLayout } from "@/components/OptimizedLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -189,7 +189,7 @@ const ClientesPage = () => {
   ];
   
   return (
-    <Layout>
+    <OptimizedLayout>
       <PageHeader
         title="Clientes"
         description="Gerencie os clientes do seu negócio."
@@ -517,7 +517,7 @@ const ClientesPage = () => {
           </DialogContent>
         </Dialog>
       )}
-    </Layout>
+    </OptimizedLayout>
   );
 };
 

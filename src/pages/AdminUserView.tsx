@@ -1,5 +1,6 @@
+
+// Remover import do Layout obsoleto, usar OptimizedLayout
 import React, { useState, useEffect } from "react";
-import { Layout } from "@/components/Layout";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { OptimizedLayout } from "@/components/OptimizedLayout";
 
 type UserData = {
   id: string;
@@ -32,7 +34,6 @@ const AdminUserView = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Verificar se o usuário é administrador, caso contrário, redirecionar
   useEffect(() => {
     if (!isAdmin) {
       toast.error("Você não tem permissão para acessar esta página");
@@ -40,34 +41,32 @@ const AdminUserView = () => {
       return;
     }
 
-    // Carregar informações do usuário usando a view que já funciona
     const loadUserDetails = async () => {
       if (!userId) return;
 
       try {
         setLoading(true);
 
-        // Corrigida a tipagem: .from<any, any>
         const { data, error } = await supabase
-          .from<any, any>('super_admin_user_overview')
-          .select('*')
-          .eq('id', userId)
+          .from("super_admin_user_overview")
+          .select("*")
+          .eq("id", userId)
           .maybeSingle();
 
         if (error) {
           throw error;
         }
 
-        if (data && !('code' in data)) {
+        if (data && !("code" in data)) {
           setUserData({
-            id: data.id,
-            nome: data.nome,
-            email: data.email,
-            tipo_plano: data.tipo_plano,
-            tipo_usuario: data.tipo_usuario,
-            total_clientes: Number(data.total_clientes) || 0,
-            total_produtos: Number(data.total_produtos) || 0,
-            total_vendas: Number(data.total_vendas) || 0,
+            id: (data as any).id,
+            nome: (data as any).nome,
+            email: (data as any).email,
+            tipo_plano: (data as any).tipo_plano,
+            tipo_usuario: (data as any).tipo_usuario,
+            total_clientes: Number((data as any).total_clientes) || 0,
+            total_produtos: Number((data as any).total_produtos) || 0,
+            total_vendas: Number((data as any).total_vendas) || 0,
           });
         } else {
           setUserData(null);
@@ -83,13 +82,12 @@ const AdminUserView = () => {
     loadUserDetails();
   }, [isAdmin, navigate, userId]);
 
-  // Voltar para o painel de administrador
   const handleBackToAdmin = () => {
     navigate("/admin");
   };
 
   return (
-    <Layout>
+    <OptimizedLayout>
       <div className="mb-4">
         <Button variant="ghost" onClick={handleBackToAdmin} className="text-totalgestor-500 hover:text-totalgestor-600 hover:bg-totalgestor-100">
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -165,8 +163,9 @@ const AdminUserView = () => {
           </CardContent>
         </Card>
       )}
-    </Layout>
+    </OptimizedLayout>
   );
 };
 
 export default AdminUserView;
+

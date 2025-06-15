@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React from "react";
+import { OptimizedLayout } from "@/components/OptimizedLayout";
 import { 
   Users, 
   Package, 
@@ -15,8 +16,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { StatsCard } from "@/components/ui/stats-card";
-import { Layout } from "@/components/Layout";
-import { PageHeader } from "@/components/PageHeader";
 import { useData } from "@/context/DataContext";
 import { formatCurrency } from "@/utils/format";
 import {
@@ -106,7 +105,7 @@ const Dashboard = () => {
   };
 
   return (
-    <Layout>
+    <OptimizedLayout>
       <VisitorBanner />
       <PageHeader 
         title={`${greeting}!`}
@@ -333,7 +332,7 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
-    </Layout>
+    </OptimizedLayout>
   );
 };
 

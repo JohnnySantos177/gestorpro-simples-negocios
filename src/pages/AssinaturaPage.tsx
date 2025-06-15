@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState } from "react";
-import { Layout } from "@/components/Layout";
+import { OptimizedLayout } from "@/components/OptimizedLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { useSubscription } from "@/context/SubscriptionContext";
 import { useAuth } from "@/context/AuthContext";
@@ -57,7 +56,7 @@ const AssinaturaPage = () => {
   };
   
   return (
-    <Layout>
+    <OptimizedLayout>
       <PageHeader
         title="Assinatura"
         description="Escolha o plano Premium ideal para seu negócio e aproveite todos os recursos do TotalGestor."
@@ -112,7 +111,7 @@ const AssinaturaPage = () => {
           <FAQ />
         </div>
       </div>
-    </Layout>
+    </OptimizedLayout>
   );
 };
 

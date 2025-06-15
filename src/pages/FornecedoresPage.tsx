@@ -1,6 +1,5 @@
-
 import React, { useState } from "react";
-import { Layout } from "@/components/Layout";
+import { OptimizedLayout } from "@/components/OptimizedLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { DataTable } from "@/components/ui/data-table";
 import { useData } from "@/context/DataContext";
@@ -117,7 +116,7 @@ const FornecedoresPage = () => {
   ];
 
   return (
-    <Layout>
+    <OptimizedLayout>
       <PageHeader 
         title="Fornecedores" 
         description="Gerencie seus fornecedores"
@@ -155,7 +154,7 @@ const FornecedoresPage = () => {
         onAddEditSubmit={handleAddEditSubmit}
         onDeleteConfirm={handleDeleteConfirm}
       />
-    </Layout>
+    </OptimizedLayout>
   );
 };
 

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Layout } from "@/components/Layout";
+import React from "react";
+import { OptimizedLayout } from "@/components/OptimizedLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -233,11 +233,11 @@ const UserManagementPage = () => {
 
   if (loading) {
     return (
-      <Layout>
+      <OptimizedLayout>
         <div className="flex justify-center items-center p-8">
           <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
         </div>
-      </Layout>
+      </OptimizedLayout>
     );
   }
 
@@ -246,7 +246,7 @@ const UserManagementPage = () => {
   }
 
   return (
-    <Layout>
+    <OptimizedLayout>
       <div className="flex justify-between items-center mb-6">
         <PageHeader 
           title="Gerenciamento de Usuários"
@@ -472,7 +472,7 @@ const UserManagementPage = () => {
           </Form>
         </DialogContent>
       </Dialog>
-    </Layout>
+    </OptimizedLayout>
   );
 };
 

@@ -1,6 +1,5 @@
-
-import React, { useState } from "react";
-import { Layout } from "@/components/Layout";
+import React from "react";
+import { OptimizedLayout } from "@/components/OptimizedLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { DataTable } from "@/components/ui/data-table";
 import { useData } from "@/context/DataContext";
@@ -241,7 +240,7 @@ const AvaliacoesPage = () => {
   ];
 
   return (
-    <Layout>
+    <OptimizedLayout>
       <PageHeader 
         title="Avaliações" 
         description="Gerencie as avaliações dos clientes"
@@ -420,7 +419,7 @@ const AvaliacoesPage = () => {
           </div>
         </CrudDialog>
       )}
-    </Layout>
+    </OptimizedLayout>
   );
 };
 

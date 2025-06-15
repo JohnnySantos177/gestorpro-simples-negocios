@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from "react";
-import { Layout } from "@/components/Layout";
+import { OptimizedLayout } from "@/components/OptimizedLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { DataTable } from "@/components/ui/data-table";
 import { useData } from "@/context/DataContext";
@@ -144,7 +143,7 @@ const ProdutosPage = () => {
   ];
 
   return (
-    <Layout>
+    <OptimizedLayout>
       <PageHeader 
         title="Produtos" 
         description="Gerencie seu catálogo de produtos"
@@ -204,7 +203,7 @@ const ProdutosPage = () => {
         onAddEditSubmit={handleAddEditSubmit}
         onDeleteConfirm={handleDeleteConfirm}
       />
-    </Layout>
+    </OptimizedLayout>
   );
 };
 
