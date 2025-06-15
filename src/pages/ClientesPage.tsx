@@ -6,10 +6,6 @@ import {
   Users,
   Filter
 } from "lucide-react";
-import { OptimizedLayout } from "@/components/OptimizedLayout";
-import { PageHeader } from "@/components/PageHeader";
-import { Button } from "@/components/ui/button";
-import { DataTable } from "@/components/ui/data-table";
 import { 
   Dialog, 
   DialogContent, 
@@ -189,10 +185,10 @@ const ClientesPage = () => {
   ];
   
   return (
-    <OptimizedLayout>
+    <>
       <PageHeader
         title="Clientes"
-        description="Gerencie os clientes do seu negócio."
+        description="Gerencie seus clientes"
         actions={
           <div className="flex gap-2">
             <ExportButtons 
@@ -517,7 +513,7 @@ const ClientesPage = () => {
           </DialogContent>
         </Dialog>
       )}
-    </OptimizedLayout>
+    </>
   );
 };
 

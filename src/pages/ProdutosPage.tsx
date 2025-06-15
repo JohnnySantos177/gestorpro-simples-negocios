@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { OptimizedLayout } from "@/components/OptimizedLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { DataTable } from "@/components/ui/data-table";
 import { useData } from "@/context/DataContext";
@@ -143,10 +142,10 @@ const ProdutosPage = () => {
   ];
 
   return (
-    <OptimizedLayout>
-      <PageHeader 
-        title="Produtos" 
-        description="Gerencie seu catálogo de produtos"
+    <>
+      <PageHeader
+        title="Produtos"
+        description="Gerencie seus produtos"
         icon={<Package className="h-6 w-6" />}
         actions={
           <div className="flex gap-2">
@@ -203,7 +202,7 @@ const ProdutosPage = () => {
         onAddEditSubmit={handleAddEditSubmit}
         onDeleteConfirm={handleDeleteConfirm}
       />
-    </OptimizedLayout>
+    </>
   );
 };
 
