@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, ReactNode, useCallback } from "react";
 import { AuthContextType } from "@/types/auth";
 import { useAuthState } from "@/hooks/useAuthState";
@@ -6,6 +5,8 @@ import { authService } from "@/services/authService";
 import { UserProfile } from "@/types";
 import { useVisitorMode } from "./VisitorModeContext";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
+import { useSecurityAudit } from "@/hooks/useSecurityAudit";
+import { secureAuthService } from "@/services/secureAuthService";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -74,24 +75,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   console.log("AuthContext: Provider rendered, loading:", loading);
 
   const { handleError } = useErrorHandler();
+  const { logAuthAttempt } = useSecurityAudit();
 
   const signIn = useCallback(async (email: string, password: string) => {
     try {
       console.log("AuthContext: Sign in attempt");
-      await authService.signIn(email, password);
+      await secureAuthService.signIn(email, password);
+      await logAuthAttempt('signin', true);
     } catch (error) {
+      await logAuthAttempt('signin', false, error instanceof Error ? error.message : 'Unknown error');
       await handleError(error, 'signIn');
     }
-  }, [handleError]);
+  }, [handleError, logAuthAttempt]);
 
   const signUp = useCallback(async (email: string, password: string, nome?: string, telefone?: string) => {
     try {
       console.log("AuthContext: Sign up attempt");
-      await authService.signUp(email, password, nome, telefone);
+      await secureAuthService.signUp(email, password, nome, telefone);
+      await logAuthAttempt('signup', true);
     } catch (error) {
+      await logAuthAttempt('signup', false, error instanceof Error ? error.message : 'Unknown error');
       await handleError(error, 'signUp');
     }
-  }, [handleError]);
+  }, [handleError, logAuthAttempt]);
 
   const signOut = useCallback(async () => {
     try {

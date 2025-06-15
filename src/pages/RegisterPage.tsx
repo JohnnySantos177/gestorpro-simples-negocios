@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import { validateEmail, validatePassword, sanitizeInput } from "@/utils/inputValidation";
 
 const registerSchema = z.object({
   nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
@@ -38,8 +39,29 @@ const RegisterPage = () => {
 
   const handleRegister = async (values: RegisterFormValues) => {
     try {
+      // Additional client-side validation
+      const emailValidation = validateEmail(values.email);
+      if (!emailValidation) {
+        toast.error("E-mail inválido");
+        return;
+      }
+
+      const passwordValidation = validatePassword(values.password);
+      if (!passwordValidation.valid) {
+        toast.error(passwordValidation.message || "Senha inválida");
+        return;
+      }
+
+      // Sanitize inputs
+      const sanitizedValues = {
+        nome: sanitizeInput(values.nome),
+        email: sanitizeInput(values.email).toLowerCase(),
+        password: values.password, // Don't sanitize password
+        telefone: values.telefone ? sanitizeInput(values.telefone) : undefined,
+      };
+
       setLoading(true);
-      await signUp(values.email, values.password, values.nome, values.telefone);
+      await signUp(sanitizedValues.email, sanitizedValues.password, sanitizedValues.nome, sanitizedValues.telefone);
       toast.success("Conta criada! Verifique seu e-mail para ativar o cadastro.");
       navigate("/login");
     } catch (error: any) {
