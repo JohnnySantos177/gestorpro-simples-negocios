@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { OptimizedLayout } from "@/components/OptimizedLayout";
+import { PageHeader } from "@/components/PageHeader";
 import { 
   Users, 
   Package, 
