@@ -28,7 +28,9 @@ export const ProblemsSection = () => {
   return (
     <section className="py-24 px-4 bg-gradient-to-br from-gray-50 via-white to-gray-100 relative overflow-hidden">
       {/* Background pattern */}
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg width=\"40\" height=\"40\" viewBox=\"0 0 40 40\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"%23f3f4f6\" fill-opacity=\"0.4\"%3E%3Cpath d=\"M20 20c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm10 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10z\"/%3E%3C/g%3E%3C/svg%3E')] opacity-30"></div>
+      <div className="absolute inset-0 opacity-30">
+        <div className="w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(156,163,175,0.1),transparent_70%)]"></div>
+      </div>
       
       <div className="max-w-6xl mx-auto relative z-10">
         <div className="text-center mb-20">
