@@ -1,5 +1,4 @@
-
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   Users, 
@@ -42,6 +41,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
+import { InstallPWA } from "@/components/InstallPWA";
 
 // Importar o ícone ChartBar corretamente
 import { BarChart as ChartBarIcon } from "lucide-react";
@@ -55,15 +55,18 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const { isSubscribed } = useSubscription();
   const { user, signOut, isAdmin, profile } = useAuth();
+  
+  const [isMobile, setIsMobile] = useState(false);
 
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      navigate('/login');
-    } catch (error) {
-      console.error("Erro ao fazer logout:", error);
-    }
-  };
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Menu items basic para todos os usuários
   const baseMenuItems = [
@@ -244,6 +247,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         </SidebarInset>
       </div>
+      
+      {/* Show InstallPWA only on mobile */}
+      {isMobile && <InstallPWA />}
     </SidebarProvider>
   );
 };
