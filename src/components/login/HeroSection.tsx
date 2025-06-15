@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Sparkles, ArrowRight, Star } from "lucide-react";
@@ -20,9 +19,9 @@ export const HeroSection = () => {
         <div className="flex items-center justify-center gap-3 mb-8 animate-fade-in">
           <div className="relative">
             <img 
-              src="/lovable-uploads/06397695-3081-4591-9816-edb718b6ee10.png" 
+              src="/lovable-uploads/e07ab7a0-dbbd-4bb6-ab59-43f4c9fec7d4.png" 
               alt="TotalGestor Logo" 
-              className="h-16 w-16 bg-white/95 backdrop-blur-sm rounded-xl p-3 shadow-2xl"
+              className="h-16 w-16 rounded-xl shadow-2xl"
             />
             <Sparkles className="absolute -top-2 -right-2 h-6 w-6 text-yellow-300 animate-pulse" />
           </div>
