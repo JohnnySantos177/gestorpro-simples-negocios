@@ -2,7 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Star, Zap } from "lucide-react";
+import { CheckCircle, Star, Zap, Shield } from "lucide-react";
 import { useSubscription } from "@/context/SubscriptionContext";
 import { formatCurrency } from "@/utils/format";
 
