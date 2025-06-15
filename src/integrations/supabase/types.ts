@@ -805,7 +805,28 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      super_admin_user_overview: {
+        Row: {
+          cargo: string | null
+          cidade: string | null
+          created_at: string | null
+          email: string | null
+          empresa: string | null
+          estado: string | null
+          id: string | null
+          nome: string | null
+          nome_completo: string | null
+          status: string | null
+          telefone: string | null
+          tipo_plano: string | null
+          tipo_usuario: string | null
+          total_clientes: number | null
+          total_produtos: number | null
+          total_vendas: number | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       is_admin: {

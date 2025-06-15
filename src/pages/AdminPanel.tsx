@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { PageHeader } from "@/components/PageHeader";
@@ -136,22 +137,42 @@ const AdminPanel = () => {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      
+
       console.log("AdminPanel: Loading users from super_admin_user_overview");
-      
-      // Usar a view que criamos para buscar dados dos usuários
+
+      // Usar any na tipagem pois as views não aparecem nas typings do Supabase
       const { data, error } = await supabase
-        .from('super_admin_user_overview')
+        .from<any>('super_admin_user_overview')
         .select('*')
         .order('created_at', { ascending: false });
-      
+
       if (error) {
         console.error("AdminPanel: Error loading users:", error);
         throw error;
       }
-      
-      console.log("AdminPanel: Users loaded successfully:", data);
-      setUsers(data || []);
+
+      // Ajuste: garantir que os datos castados para UserOverview[]
+      const parsedUsers: UserOverview[] = (data || []).map((user: any) => ({
+        id: user.id,
+        nome: user.nome,
+        email: user.email,
+        tipo_plano: user.tipo_plano,
+        tipo_usuario: user.tipo_usuario,
+        status: user.status,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
+        nome_completo: user.nome_completo || null,
+        telefone: user.telefone || null,
+        empresa: user.empresa || null,
+        cargo: user.cargo || null,
+        cidade: user.cidade || null,
+        estado: user.estado || null,
+        total_clientes: Number(user.total_clientes) || 0,
+        total_produtos: Number(user.total_produtos) || 0,
+        total_vendas: Number(user.total_vendas) || 0,
+      }));
+
+      setUsers(parsedUsers);
     } catch (error: any) {
       console.error("Erro ao buscar usuários:", error);
       toast.error(`Erro ao carregar usuários: ${error.message}`);

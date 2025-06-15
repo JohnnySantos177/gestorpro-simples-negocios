@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { PageHeader } from "@/components/PageHeader";
@@ -44,21 +43,21 @@ const AdminUserView = () => {
     // Carregar informações do usuário usando a view que já funciona
     const loadUserDetails = async () => {
       if (!userId) return;
-      
+
       try {
         setLoading(true);
-        
-        // Usar a mesma view que funciona no AdminPanel
+
+        // Usar any pois é uma view customizada
         const { data, error } = await supabase
-          .from('super_admin_user_overview')
+          .from<any>('super_admin_user_overview')
           .select('*')
           .eq('id', userId)
-          .single();
-        
+          .maybeSingle();
+
         if (error) {
           throw error;
         }
-        
+
         if (data) {
           setUserData({
             id: data.id,
@@ -66,9 +65,9 @@ const AdminUserView = () => {
             email: data.email,
             tipo_plano: data.tipo_plano,
             tipo_usuario: data.tipo_usuario,
-            total_clientes: data.total_clientes || 0,
-            total_produtos: data.total_produtos || 0,
-            total_vendas: data.total_vendas || 0
+            total_clientes: Number(data.total_clientes) || 0,
+            total_produtos: Number(data.total_produtos) || 0,
+            total_vendas: Number(data.total_vendas) || 0,
           });
         }
       } catch (error: any) {
