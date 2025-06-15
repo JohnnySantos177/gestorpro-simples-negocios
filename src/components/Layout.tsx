@@ -68,6 +68,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+    }
+  };
+
   // Menu items basic para todos os usuários
   const baseMenuItems = [
     { path: "/", label: "Dashboard", icon: ChartBarIcon },
