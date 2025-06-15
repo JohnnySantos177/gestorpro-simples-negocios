@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
@@ -115,7 +116,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <div className="flex items-center gap-2 px-4 py-2">
               <Link to="/" className="flex items-center gap-2">
                 <img 
-                  src="/lovable-uploads/06397695-3081-4591-9816-edb718b6ee10.png" 
+                  src="/lovable-uploads/e07ab7a0-dbbd-4bb6-ab59-43f4c9fec7d4.png" 
                   alt="TotalGestor Logo" 
                   className="h-8 w-8"
                 />
