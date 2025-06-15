@@ -1,10 +1,13 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { validateWebhookSignature, generateEventId } from "../_shared/webhookValidation.ts";
+import { rateLimitManager } from "../_shared/rateLimitManager.ts";
+import { calculateSubscriptionEndDate } from "../_shared/mercadopago.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-signature",
 };
 
 serve(async (req) => {
@@ -12,7 +15,6 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Use the service role key to perform writes in Supabase
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -20,10 +22,57 @@ serve(async (req) => {
   );
 
   try {
-    const webhookData = await req.json();
+    // Rate limiting check
+    const clientIP = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+    const rateLimitResult = rateLimitManager.isAllowed(clientIP, 'webhook');
+    
+    if (!rateLimitResult.allowed) {
+      console.log(`Rate limit exceeded for IP: ${clientIP}`);
+      return new Response("Rate limit exceeded", { 
+        status: 429,
+        headers: {
+          ...corsHeaders,
+          'Retry-After': Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString()
+        }
+      });
+    }
+
+    // Get webhook signature
+    const signature = req.headers.get("x-signature");
+    if (!signature) {
+      console.error("Missing webhook signature");
+      return new Response("Missing signature", { status: 401, headers: corsHeaders });
+    }
+
+    // Get webhook secret
+    const webhookSecret = Deno.env.get("MERCADO_PAGO_WEBHOOK_SECRET");
+    if (!webhookSecret) {
+      console.error("Webhook secret not configured");
+      return new Response("Webhook secret not configured", { status: 500, headers: corsHeaders });
+    }
+
+    // Read and validate request body
+    const bodyText = await req.text();
+    if (!bodyText) {
+      console.error("Empty request body");
+      return new Response("Empty body", { status: 400, headers: corsHeaders });
+    }
+
+    // Validate webhook signature
+    const isValidSignature = validateWebhookSignature({
+      signature,
+      body: bodyText,
+      secret: webhookSecret
+    });
+
+    if (!isValidSignature) {
+      console.error("Invalid webhook signature");
+      return new Response("Invalid signature", { status: 401, headers: corsHeaders });
+    }
+
+    const webhookData = JSON.parse(bodyText);
     console.log("Webhook recebido do Mercado Pago:", JSON.stringify(webhookData, null, 2));
 
-    // Mercado Pago envia diferentes tipos de notificação
     const { type, data } = webhookData;
     
     if (type === "payment") {
@@ -31,17 +80,42 @@ serve(async (req) => {
       
       if (!paymentId) {
         console.log("Payment ID não encontrado no webhook");
-        return new Response("OK", { status: 200 });
+        return new Response("OK", { status: 200, headers: corsHeaders });
       }
+
+      // Generate event ID for idempotency
+      const eventId = generateEventId(paymentId, Date.now());
+      
+      // Check if this event was already processed
+      const { data: existingEvent } = await supabaseClient
+        .from('webhook_events')
+        .select('id')
+        .eq('event_id', eventId)
+        .single();
+
+      if (existingEvent) {
+        console.log("Event already processed, skipping:", eventId);
+        return new Response("OK", { status: 200, headers: corsHeaders });
+      }
+
+      // Record this webhook event
+      await supabaseClient
+        .from('webhook_events')
+        .insert({
+          event_id: eventId,
+          event_type: type,
+          payment_id: paymentId,
+          signature_hash: signature
+        });
 
       console.log("Processando pagamento ID:", paymentId);
 
-      // Buscar detalhes do pagamento no Mercado Pago
+      // Fetch payment details from Mercado Pago
       const mercadoPagoToken = Deno.env.get("MERCADO_PAGO_PRODUCTION_ACCESS_TOKEN");
       
       if (!mercadoPagoToken) {
         console.error("Token do Mercado Pago não configurado");
-        return new Response("Token not configured", { status: 500 });
+        return new Response("Token not configured", { status: 500, headers: corsHeaders });
       }
 
       const paymentResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
@@ -53,52 +127,45 @@ serve(async (req) => {
 
       if (!paymentResponse.ok) {
         console.error("Erro ao buscar pagamento:", await paymentResponse.text());
-        return new Response("Payment not found", { status: 404 });
+        return new Response("Payment not found", { status: 404, headers: corsHeaders });
       }
 
       const payment = await paymentResponse.json();
       console.log("Detalhes do pagamento:", JSON.stringify(payment, null, 2));
 
-      // Verificar se o pagamento foi aprovado
+      // Verify payment status
       if (payment.status === "approved") {
         const externalReference = payment.external_reference;
         
         if (!externalReference) {
           console.log("External reference não encontrada");
-          return new Response("OK", { status: 200 });
+          return new Response("OK", { status: 200, headers: corsHeaders });
         }
 
-        // Extrair user_id e plan_type do external_reference
-        // Formato: payment_{user_id}_{plan_type}_{timestamp}
+        // Validate external reference format
         const referenceMatch = externalReference.match(/^payment_([^_]+)_([^_]+)_/);
         
         if (!referenceMatch) {
           console.log("Formato de external_reference inválido:", externalReference);
-          return new Response("OK", { status: 200 });
+          return new Response("OK", { status: 200, headers: corsHeaders });
         }
 
         const userId = referenceMatch[1];
         const planType = referenceMatch[2];
 
-        console.log("Atualizando usuário:", userId, "para plano:", planType);
-
-        // Calcular data de fim da assinatura baseado no tipo de plano
-        const startDate = new Date();
-        let endDate = new Date();
-        
-        switch (planType) {
-          case 'quarterly':
-            endDate.setMonth(endDate.getMonth() + 3);
-            break;
-          case 'semiannual':
-            endDate.setMonth(endDate.getMonth() + 6);
-            break;
-          default: // monthly
-            endDate.setMonth(endDate.getMonth() + 1);
-            break;
+        // Validate plan type
+        if (!['monthly', 'quarterly', 'semiannual'].includes(planType)) {
+          console.log("Tipo de plano inválido:", planType);
+          return new Response("OK", { status: 200, headers: corsHeaders });
         }
 
-        // Atualizar perfil do usuário para premium
+        console.log("Atualizando usuário:", userId, "para plano:", planType);
+
+        // Calculate subscription end date
+        const startDate = new Date();
+        const endDate = calculateSubscriptionEndDate(planType, startDate);
+
+        // Update user profile to premium
         const { error: profileError } = await supabaseClient
           .from('profiles')
           .update({
@@ -113,7 +180,7 @@ serve(async (req) => {
           console.log("Perfil atualizado para premium");
         }
 
-        // Criar/atualizar registro de assinatura
+        // Create/update subscription record
         const { error: subscriptionError } = await supabaseClient
           .from('subscriptions')
           .upsert({
@@ -134,14 +201,14 @@ serve(async (req) => {
           console.log("Assinatura criada/atualizada com sucesso");
         }
 
-        // Registrar o pagamento
+        // Record payment
         const { error: paymentError } = await supabaseClient
           .from('payments')
           .insert({
             user_id: userId,
             external_reference: externalReference,
             status: payment.status,
-            amount: Math.round(payment.transaction_amount * 100), // converter para centavos
+            amount: Math.round(payment.transaction_amount * 100), // convert to cents
             currency: payment.currency_id,
             payment_method: payment.payment_method_id,
             installments: payment.installments || 1,
@@ -149,6 +216,7 @@ serve(async (req) => {
               mercado_pago_id: paymentId,
               plan_type: planType,
               payment_date: payment.date_created,
+              webhook_event_id: eventId
             }
           });
 
@@ -158,7 +226,7 @@ serve(async (req) => {
           console.log("Pagamento registrado com sucesso");
         }
 
-        // Log de auditoria de segurança
+        // Security audit log
         await supabaseClient.from('security_audit_logs').insert({
           user_id: userId,
           action: 'subscription_activated',
@@ -168,7 +236,9 @@ serve(async (req) => {
             payment_id: paymentId,
             plan_type: planType,
             amount: payment.transaction_amount,
-            payment_method: payment.payment_method_id
+            payment_method: payment.payment_method_id,
+            webhook_signature_verified: true,
+            event_id: eventId
           },
         });
 
@@ -187,6 +257,24 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("Erro no webhook:", error);
+    
+    // Log security event for failed webhook processing
+    try {
+      await supabaseClient.from('security_audit_logs').insert({
+        action: 'webhook_processing_failed',
+        resource_type: 'webhook',
+        success: false,
+        error_message: error.message,
+        metadata: {
+          error_stack: error.stack,
+          user_agent: req.headers.get('user-agent'),
+          ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip")
+        }
+      });
+    } catch (logError) {
+      console.error("Failed to log security event:", logError);
+    }
+
     return new Response("Internal server error", { 
       status: 500,
       headers: corsHeaders 

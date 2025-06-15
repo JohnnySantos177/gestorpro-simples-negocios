@@ -1,6 +1,8 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { validateCheckoutRequest, sanitizeExternalReference } from "../_shared/checkoutValidation.ts";
+import { rateLimitManager } from "../_shared/rateLimitManager.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,27 +14,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Create a Supabase client using the anon key for auth
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_ANON_KEY") ?? ""
   );
 
   try {
-    // Parse request body if it exists
-    let price = 8990; // Default price in cents (R$89.90)
-    let planType = 'monthly';
-    if (req.body) {
-      const requestData = await req.json();
-      if (requestData.price && !isNaN(requestData.price)) {
-        price = parseInt(requestData.price);
-      }
-      if (requestData.planType) {
-        planType = requestData.planType;
-      }
-    }
-
-    const authHeader = req.headers.get("Authorization")!;
+    // Get user from auth header
+    const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       throw new Error("Authorization header is required");
     }
@@ -40,9 +29,52 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);
     const user = data.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
+    if (!user?.email || !user?.id) {
+      throw new Error("User not authenticated or incomplete user data");
+    }
 
-    // Use PRODUCTION token
+    // Rate limiting check
+    const rateLimitResult = rateLimitManager.isAllowed(user.id, 'checkout');
+    
+    if (!rateLimitResult.allowed) {
+      console.log(`Rate limit exceeded for user: ${user.id}`);
+      return new Response(JSON.stringify({ 
+        error: "Muitas tentativas. Tente novamente em alguns minutos.",
+        retryAfter: Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000)
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 429,
+      });
+    }
+
+    // Parse and validate request data
+    let requestData;
+    try {
+      const bodyText = await req.text();
+      if (bodyText) {
+        requestData = JSON.parse(bodyText);
+      } else {
+        requestData = {};
+      }
+    } catch (parseError) {
+      console.error("Invalid JSON in request body:", parseError);
+      return new Response(JSON.stringify({ 
+        error: "Dados de requisição inválidos" 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
+
+    // Set defaults and validate
+    const validatedData = validateCheckoutRequest({
+      price: requestData.price || 8990, // Default: R$89.90
+      planType: requestData.planType || 'monthly'
+    });
+
+    const { price, planType } = validatedData;
+
+    // Verify Mercado Pago token
     const mercadoPagoToken = Deno.env.get("MERCADO_PAGO_PRODUCTION_ACCESS_TOKEN");
     
     if (!mercadoPagoToken) {
@@ -54,7 +86,7 @@ serve(async (req) => {
     console.log("Plan type:", planType, "Price:", price);
     console.log("Using PRODUCTION token");
 
-    // Use domínio fixo para URLs de retorno
+    // Fixed domain for callback URLs
     const origin = "https://gestorpro-simples-negocios.lovable.app";
 
     // Calculate period description based on plan type
@@ -65,7 +97,16 @@ serve(async (req) => {
       periodDescription = "Assinatura Semestral (6 meses)";
     }
 
-    // Create payment preference - URL correta da API
+    // Generate secure external reference
+    const timestamp = Date.now();
+    const externalReference = `payment_${user.id}_${planType}_${timestamp}`;
+
+    // Validate external reference format
+    if (!sanitizeExternalReference(externalReference)) {
+      throw new Error("Invalid external reference format");
+    }
+
+    // Create payment preference
     const preferenceData = {
       items: [
         {
@@ -82,7 +123,7 @@ serve(async (req) => {
         pending: `${origin}/confirmation-success?status=pending`
       },
       auto_return: 'approved',
-      external_reference: `payment_${user.id}_${planType}_${Date.now()}`,
+      external_reference: externalReference,
       expires: true,
       expiration_date_from: new Date().toISOString(),
       expiration_date_to: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
@@ -99,7 +140,7 @@ serve(async (req) => {
 
     console.log("Creating preference with data:", JSON.stringify(preferenceData, null, 2));
 
-    // URL correta da API do Mercado Pago para criar preferências
+    // Create preference with Mercado Pago
     const apiUrl = 'https://api.mercadopago.com/checkout/preferences';
     
     console.log("Making request to:", apiUrl);
@@ -110,7 +151,7 @@ serve(async (req) => {
       headers: {
         'Authorization': `Bearer ${mercadoPagoToken}`,
         'Content-Type': 'application/json',
-        'X-Idempotency-Key': `${user.id}-${planType}-${Date.now()}`,
+        'X-Idempotency-Key': `${user.id}-${planType}-${timestamp}`,
       },
       body: JSON.stringify(preferenceData),
     });
@@ -126,7 +167,6 @@ serve(async (req) => {
         response: responseText,
       });
       
-      // Try to parse error response for more details
       let errorDetails = responseText;
       try {
         const errorJson = JSON.parse(responseText);
@@ -138,7 +178,6 @@ serve(async (req) => {
           errorDetails = errorJson.error;
         }
       } catch (e) {
-        // Keep original error text if parsing fails
         console.log("Could not parse error response as JSON");
       }
       
@@ -155,19 +194,17 @@ serve(async (req) => {
       throw new Error('Failed to create preference - no payment URL returned');
     }
 
-    // Use production URL for live environment
     const redirectUrl = preference.init_point;
-
     console.log("Using PRODUCTION redirect URL:", redirectUrl);
 
-    // Use the service role key to perform writes in Supabase
+    // Use service role for database operations
     const serviceClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       { auth: { persistSession: false } }
     );
 
-    // Track the checkout session in your database
+    // Track checkout session
     try {
       await serviceClient.from('checkout_sessions').insert({
         user_id: user.id,
@@ -178,10 +215,9 @@ serve(async (req) => {
       console.log("Checkout session logged successfully");
     } catch (dbError) {
       console.error("Failed to log checkout session:", dbError);
-      // Don't fail the checkout for logging errors
     }
 
-    // Save customer info for future reference
+    // Update subscriber info
     try {
       await serviceClient.from('subscribers').upsert({
         user_id: user.id,
@@ -191,8 +227,22 @@ serve(async (req) => {
       console.log("Subscriber info updated successfully");
     } catch (dbError) {
       console.error("Failed to update subscriber info:", dbError);
-      // Don't fail the checkout for logging errors
     }
+
+    // Security audit log
+    await serviceClient.from('security_audit_logs').insert({
+      user_id: user.id,
+      action: 'checkout_created',
+      resource_type: 'checkout',
+      success: true,
+      metadata: {
+        plan_type: planType,
+        amount: price,
+        preference_id: preference.id,
+        external_reference: externalReference,
+        rate_limit_remaining: rateLimitResult.remainingRequests
+      }
+    });
 
     console.log("Checkout session created successfully, redirecting to:", redirectUrl);
 
@@ -200,10 +250,41 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
+
   } catch (error) {
     console.error("Error creating checkout session:", error);
     console.error("Error stack:", error.stack);
     
+    // Log security event for failed checkout
+    try {
+      const authHeader = req.headers.get("Authorization");
+      if (authHeader) {
+        const token = authHeader.replace("Bearer ", "");
+        const { data } = await supabaseClient.auth.getUser(token);
+        if (data.user) {
+          const serviceClient = createClient(
+            Deno.env.get("SUPABASE_URL") ?? "",
+            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+            { auth: { persistSession: false } }
+          );
+          
+          await serviceClient.from('security_audit_logs').insert({
+            user_id: data.user.id,
+            action: 'checkout_failed',
+            resource_type: 'checkout',
+            success: false,
+            error_message: error.message,
+            metadata: {
+              error_stack: error.stack,
+              user_agent: req.headers.get('user-agent')
+            }
+          });
+        }
+      }
+    } catch (logError) {
+      console.error("Failed to log security event:", logError);
+    }
+
     return new Response(JSON.stringify({ 
       error: error.message || "Unable to process request"
     }), {
