@@ -11,7 +11,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { AdminNavigation } from "@/components/AdminNavigation";
 import { ManualDialog } from "@/components/manual/ManualDialog";
 import { useAuth } from "@/context/AuthContext";
+import { useSubscription } from "@/context/SubscriptionContext";
 import { toast } from "sonner";
+import { formatCurrency } from "@/utils/format";
 import { 
   BookOpen, 
   CheckCircle, 
@@ -20,7 +22,9 @@ import {
   Clock, 
   BarChart3,
   Users,
-  DollarSign
+  DollarSign,
+  Star,
+  ArrowRight
 } from "lucide-react";
 
 const loginSchema = z.object({
@@ -33,6 +37,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 const LoginPage = () => {
   const navigate = useNavigate();
   const { signIn, loading, user } = useAuth();
+  const { initiateCheckout, checkoutLoading, isSubscribed } = useSubscription();
   const [isLoading, setIsLoading] = useState(false);
 
   console.log("LoginPage: Rendered, loading:", loading, "user:", !!user);
@@ -97,263 +102,487 @@ const LoginPage = () => {
     );
   }
 
-  const benefits = [
+  const problemsData = [
     {
-      icon: CheckCircle,
-      title: "Organização Sem Esforço",
-      description: "Diga adeus às planilhas e centralize tudo em um só lugar. Clientes, produtos, vendas e finanças na palma da sua mão."
-    },
-    {
-      icon: DollarSign,
-      title: "Controle Financeiro Total",
-      description: "Saiba exatamente para onde seu dinheiro está indo. Fluxo de caixa, contas a pagar/receber e relatórios claros."
+      icon: Clock,
+      title: "Desorganização e Falta de Tempo",
+      description: "Você perde tempo procurando informações espalhadas em planilhas, anotações e sistemas diferentes."
     },
     {
       icon: TrendingUp,
-      title: "Venda Mais, Gerencie Melhor",
-      description: "Otimize seu estoque, acompanhe suas vendas e nunca perca uma oportunidade de negócio."
+      title: "Falta de Visão dos Resultados",
+      description: "Sem relatórios claros, fica difícil saber se o negócio está indo bem ou onde melhorar."
     },
     {
-      icon: Clock,
-      title: "Liberte Seu Tempo",
-      description: "Automatize tarefas repetitivas e foque no crescimento estratégico do seu negócio, não na burocracia."
+      icon: DollarSign,
+      title: "Controle Financeiro Deficiente",
+      description: "Contas em atraso, fluxo de caixa descontrolado e dificuldade para acompanhar a rentabilidade."
+    }
+  ];
+
+  const featuresData = [
+    {
+      icon: Users,
+      title: "Gestão de Clientes",
+      description: "Mantenha todos os dados dos seus clientes organizados e acessíveis a qualquer momento."
+    },
+    {
+      icon: DollarSign,
+      title: "Controle de Estoque",
+      description: "Gerencie seu estoque de forma inteligente, evitando perdas e otimizando compras."
+    },
+    {
+      icon: BarChart3,
+      title: "Vendas e Faturamento",
+      description: "Registre vendas rapidamente e acompanhe seu faturamento em tempo real."
+    },
+    {
+      icon: Shield,
+      title: "Gestão Financeira",
+      description: "Controle completo das suas finanças com relatórios detalhados e fluxo de caixa."
+    },
+    {
+      icon: CheckCircle,
+      title: "Assistência Inteligente",
+      description: "Sistema intuitivo que te ajuda a tomar as melhores decisões para seu negócio."
+    },
+    {
+      icon: BookOpen,
+      title: "Acesso em Qualquer Lugar",
+      description: "Gerencie seu negócio de qualquer dispositivo, a qualquer hora e lugar."
+    }
+  ];
+
+  const plans = [
+    {
+      id: 'monthly' as const,
+      name: 'Mensal',
+      price: 8990,
+      displayPrice: 89.90,
+      interval: 'mensal',
+      description: 'Ideal para começar',
+      features: [
+        'Acesso completo ao sistema',
+        'Gestão de clientes ilimitados',
+        'Controle de estoque',
+        'Relatórios básicos',
+        'Suporte por email'
+      ]
+    },
+    {
+      id: 'semiannual' as const,
+      name: 'Semestral',
+      price: 6990,
+      displayPrice: 69.90,
+      interval: 'mensal',
+      description: 'Mais popular - Economize 22%',
+      features: [
+        'Todos os recursos do plano mensal',
+        'Relatórios avançados',
+        'Backup automático',
+        'Suporte prioritário',
+        'Exportação de dados',
+        '2 meses grátis'
+      ],
+      popular: true
+    },
+    {
+      id: 'quarterly' as const,
+      name: 'Trimestral',
+      price: 7990,
+      displayPrice: 79.90,
+      interval: 'mensal',
+      description: 'Economize 11%',
+      features: [
+        'Todos os recursos do plano mensal',
+        'Relatórios avançados',
+        'Backup automático',
+        'Suporte prioritário'
+      ]
+    }
+  ];
+
+  const testimonials = [
+    {
+      name: "Maria Silva",
+      business: "Boutique Elegance",
+      content: "Desde que comecei a usar o TotalGestor Pro, minha vida mudou! Tenho mais tempo e meu negócio nunca esteve tão organizado.",
+      rating: 5
+    },
+    {
+      name: "João Santos",
+      business: "Tech Solutions",
+      content: "O sistema é muito intuitivo e me ajudou a ter controle total sobre minhas finanças. Recomendo!",
+      rating: 5
+    },
+    {
+      name: "Ana Costa",
+      business: "Café & Cia",
+      content: "Excelente ferramenta! Consegui organizar meu estoque e aumentar minhas vendas em 30%.",
+      rating: 5
+    }
+  ];
+
+  const faqData = [
+    {
+      question: "Como funciona a cobrança?",
+      answer: "A assinatura é cobrada de acordo com o plano escolhido e renovada automaticamente até que você cancele."
+    },
+    {
+      question: "Posso trocar de plano?",
+      answer: "Sim, você pode alterar seu plano a qualquer momento entrando em contato com nosso suporte."
+    },
+    {
+      question: "Posso usar em múltiplos dispositivos?",
+      answer: "Sim, você pode acessar o sistema de qualquer dispositivo com acesso à internet."
+    },
+    {
+      question: "O que acontece se eu cancelar?",
+      answer: "Você terá acesso ao sistema até o final do período pago. Seus dados serão mantidos por 30 dias."
     }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/10">
-      {/* Admin Navigation - only shown for admins */}
-      <div className="absolute top-4 left-4 z-10">
+    <div className="min-h-screen bg-background">
+      {/* Admin Navigation */}
+      <div className="absolute top-4 left-4 z-50">
         <AdminNavigation />
       </div>
 
-      <div className="flex min-h-screen">
-        {/* Left Side - Visual Content */}
-        <div className="hidden lg:flex lg:w-1/2 xl:w-3/5 relative overflow-hidden">
-          {/* Background Pattern */}
-          <div className="absolute inset-0 bg-gradient-to-br from-primary to-secondary opacity-90"></div>
-          <div className="absolute inset-0 opacity-20" style={{
-            backgroundImage: `url("data:image/svg+xml,${encodeURIComponent('<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><g fill="#ffffff" fill-opacity="0.1"><circle cx="30" cy="30" r="2"/></g></g></svg>')}")`
-          }}></div>
+      {/* Hero Section */}
+      <section className="bg-gradient-to-br from-primary to-secondary text-white py-20 px-4">
+        <div className="max-w-6xl mx-auto text-center">
+          <div className="flex items-center justify-center gap-3 mb-8">
+            <img 
+              src="/lovable-uploads/06397695-3081-4591-9816-edb718b6ee10.png" 
+              alt="TotalGestor Logo" 
+              className="h-16 w-16 bg-white rounded-lg p-3"
+            />
+            <h1 className="text-3xl font-bold">TotalGestor Pro</h1>
+          </div>
           
-          {/* Content */}
-          <div className="relative z-10 flex flex-col justify-center px-12 xl:px-16 text-white">
-            <div className="animate-fade-in">
-              <div className="flex items-center gap-3 mb-8">
-                <img 
-                  src="/lovable-uploads/06397695-3081-4591-9816-edb718b6ee10.png" 
-                  alt="TotalGestor Logo" 
-                  className="h-12 w-12 bg-white rounded-lg p-2"
-                />
-                <span className="text-2xl font-bold">TotalGestor Pro</span>
-              </div>
+          <h2 className="text-4xl md:text-6xl font-bold mb-6">
+            Simplifique Sua Gestão e Multiplique Seus Resultados
+          </h2>
+          
+          <p className="text-xl md:text-2xl mb-8 text-white/90 max-w-4xl mx-auto">
+            O sistema completo que pequenos negócios precisam para organizar finanças, vendas, estoque e clientes em um só lugar.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button 
+              size="lg" 
+              className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-8 py-4 text-lg"
+              onClick={() => document.getElementById('login-form')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              Começar Agora - É Grátis
+            </Button>
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="border-white text-white hover:bg-white hover:text-primary px-8 py-4 text-lg"
+              onClick={() => document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              Ver Planos
+            </Button>
+          </div>
+        </div>
+      </section>
 
-              <h1 className="text-4xl xl:text-5xl font-bold mb-6 leading-tight">
-                Cansado(a) do Caos na{" "}
-                <span className="text-yellow-300">Gestão?</span>
-              </h1>
-              
-              <h2 className="text-xl xl:text-2xl font-semibold mb-8 text-white/90">
-                Recupere o Controle e Multiplique Seus Resultados!
-              </h2>
-              
-              <p className="text-lg mb-10 text-white/80 leading-relaxed">
-                O TotalGestor Pro é a ferramenta completa que pequenos negócios precisam para 
-                organizar finanças, vendas, estoque e clientes, tudo em um só lugar.
-              </p>
-
-              {/* Benefits Grid */}
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                {benefits.map((benefit, index) => (
-                  <div 
-                    key={index}
-                    className="flex items-start gap-4 animate-fade-in"
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                  >
-                    <div className="flex-shrink-0 w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
-                      <benefit.icon className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-white mb-1">{benefit.title}</h3>
-                      <p className="text-sm text-white/70 leading-relaxed">{benefit.description}</p>
-                    </div>
+      {/* Problems Section */}
+      <section className="py-20 px-4 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-foreground">
+              Você Está Perdendo Tempo e Dinheiro?
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Estes problemas são mais comuns do que você imagina em pequenos negócios
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            {problemsData.map((problem, index) => (
+              <Card key={index} className="text-center p-6 hover:shadow-lg transition-shadow">
+                <CardContent className="pt-6">
+                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <problem.icon className="h-8 w-8 text-red-600" />
                   </div>
-                ))}
-              </div>
+                  <h3 className="text-xl font-semibold mb-4">{problem.title}</h3>
+                  <p className="text-muted-foreground">{problem.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
 
-              {/* Testimonial */}
-              <div className="mt-10 p-6 bg-white/10 rounded-lg backdrop-blur-sm animate-fade-in" style={{ animationDelay: '0.5s' }}>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="flex text-yellow-300">
-                    {[...Array(5)].map((_, i) => (
-                      <span key={i}>⭐</span>
-                    ))}
+      {/* Solution Section */}
+      <section className="py-20 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-foreground">
+              A Solução Completa Para Sua Gestão
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Tudo que você precisa para organizar e fazer crescer seu negócio
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {featuresData.map((feature, index) => (
+              <Card key={index} className="text-center p-6 hover:shadow-lg transition-shadow">
+                <CardContent className="pt-6">
+                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <feature.icon className="h-8 w-8 text-primary" />
                   </div>
-                </div>
-                <blockquote className="text-white/90 italic mb-3">
-                  "Desde que comecei a usar o TotalGestor Pro, minha vida mudou! Tenho mais tempo e meu negócio nunca esteve tão organizado."
-                </blockquote>
-                <cite className="text-white/70 text-sm">— Maria Silva, Dona da Boutique Elegance</cite>
-              </div>
+                  <h3 className="text-xl font-semibold mb-4">{feature.title}</h3>
+                  <p className="text-muted-foreground">{feature.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Transform Section */}
+      <section className="py-20 px-4 bg-gradient-to-br from-primary to-secondary text-white">
+        <div className="max-w-6xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-8">
+            Transforme Sua Gestão em 30 Dias
+          </h2>
+          
+          <div className="grid md:grid-cols-3 gap-8 mb-12">
+            <div>
+              <div className="text-4xl font-bold mb-2">+200%</div>
+              <p className="text-white/90">Aumento na organização dos dados</p>
+            </div>
+            <div>
+              <div className="text-4xl font-bold mb-2">-80%</div>
+              <p className="text-white/90">Redução no tempo gasto com planilhas</p>
+            </div>
+            <div>
+              <div className="text-4xl font-bold mb-2">+150%</div>
+              <p className="text-white/90">Melhoria no controle financeiro</p>
             </div>
           </div>
-
-          {/* Floating Elements */}
-          <div className="absolute top-20 right-20 w-20 h-20 bg-white/10 rounded-full animate-pulse"></div>
-          <div className="absolute bottom-32 right-32 w-12 h-12 bg-yellow-300/20 rounded-full animate-bounce" style={{ animationDelay: '1s' }}></div>
-          <div className="absolute top-1/2 right-12 w-16 h-16 bg-white/5 rounded-full animate-pulse" style={{ animationDelay: '2s' }}></div>
         </div>
+      </section>
 
-        {/* Right Side - Login Form */}
-        <div className="w-full lg:w-1/2 xl:w-2/5 flex items-center justify-center p-8">
-          <div className="w-full max-w-md space-y-6 animate-scale-in">
-            <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
-              <CardHeader className="text-center pb-6">
-                {/* Mobile Logo */}
-                <div className="lg:hidden flex items-center justify-center gap-3 mb-6">
-                  <img 
-                    src="/lovable-uploads/06397695-3081-4591-9816-edb718b6ee10.png" 
-                    alt="TotalGestor Logo" 
-                    className="h-10 w-10"
-                  />
-                  <span className="text-xl font-bold text-primary">TotalGestor Pro</span>
-                </div>
-
-                <CardTitle className="text-2xl font-bold text-foreground mb-2">
-                  Bem-vindo(a) de volta!
-                </CardTitle>
-                <CardDescription className="text-muted-foreground">
-                  Sua jornada para uma gestão descomplicada começa aqui.
-                </CardDescription>
-              </CardHeader>
-              
-              <CardContent className="space-y-6">
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-foreground font-medium">E-mail</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="seu@email.com" 
-                              className="h-12 border-border/50 focus:border-primary transition-colors"
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-foreground font-medium">Senha</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="password" 
-                              placeholder="••••••••" 
-                              className="h-12 border-border/50 focus:border-primary transition-colors"
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <Button 
-                      type="submit" 
-                      className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold transition-all duration-200 hover:scale-105" 
-                      disabled={isLoading || loading}
-                    >
-                      {isLoading ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          Entrando...
-                        </div>
-                      ) : (
-                        "Entrar"
-                      )}
-                    </Button>
-                  </form>
-                </Form>
-
-                <div className="text-center space-y-3">
-                  <Link 
-                    to="/reset-password" 
-                    className="text-sm text-primary hover:text-primary/80 hover:underline transition-colors"
-                  >
-                    Esqueceu sua senha?
-                  </Link>
-                </div>
-
-                {/* Register CTA */}
-                <div className="border-t border-border/20 pt-6">
-                  <div className="text-center space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      Ainda não tem uma conta?
-                    </p>
-                    <Button 
-                      asChild 
-                      variant="outline" 
-                      className="w-full h-12 border-primary/20 text-primary hover:bg-primary/5 font-semibold transition-all duration-200 hover:scale-105"
-                    >
-                      <Link to="/register">
-                        <span className="mr-2">🚀</span>
-                        Crie sua conta grátis agora!
-                      </Link>
-                    </Button>
+      {/* Testimonials Section */}
+      <section className="py-20 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-foreground">
+              O Que Nossos Clientes Dizem
+            </h2>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <Card key={index} className="p-6">
+                <CardContent className="pt-6">
+                  <div className="flex mb-4">
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <Star key={i} className="h-5 w-5 text-yellow-500 fill-current" />
+                    ))}
                   </div>
+                  <blockquote className="text-muted-foreground mb-4 italic">
+                    "{testimonial.content}"
+                  </blockquote>
+                  <div>
+                    <div className="font-semibold">{testimonial.name}</div>
+                    <div className="text-sm text-muted-foreground">{testimonial.business}</div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Plans Section */}
+      <section id="plans" className="py-20 px-4 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-foreground">
+              Escolha o Plano Ideal Para Seu Negócio
+            </h2>
+            <p className="text-xl text-muted-foreground">
+              Preços transparentes e sem surpresas
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {plans.map((plan) => (
+              <Card key={plan.id} className={`relative ${plan.popular ? 'border-primary border-2' : ''}`}>
+                {plan.popular && (
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                    <span className="bg-primary text-white px-4 py-1 rounded-full text-sm font-semibold">
+                      Mais Popular
+                    </span>
+                  </div>
+                )}
+                <CardHeader className="text-center">
+                  <CardTitle className="text-xl">{plan.name}</CardTitle>
+                  <CardDescription>{plan.description}</CardDescription>
+                  <div className="mt-4">
+                    <span className="text-4xl font-bold">{formatCurrency(plan.displayPrice)}</span>
+                    <span className="text-muted-foreground">/mês</span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3 mb-6">
+                    {plan.features.map((feature, index) => (
+                      <li key={index} className="flex items-start">
+                        <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Button 
+                    className="w-full"
+                    variant={plan.popular ? "default" : "outline"}
+                    onClick={() => initiateCheckout(plan.id)}
+                    disabled={checkoutLoading || isSubscribed}
+                  >
+                    {checkoutLoading ? "Processando..." : isSubscribed ? "Plano Ativo" : "Assinar Agora"}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-20 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-foreground">
+              Perguntas Frequentes
+            </h2>
+          </div>
+          
+          <div className="space-y-4">
+            {faqData.map((faq, index) => (
+              <Card key={index}>
+                <CardHeader>
+                  <CardTitle className="text-lg">{faq.question}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">{faq.answer}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Login Section */}
+      <section id="login-form" className="py-20 px-4 bg-gradient-to-br from-primary to-secondary text-white">
+        <div className="max-w-md mx-auto">
+          <Card className="bg-white/95 backdrop-blur-sm">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl text-foreground">Comece Sua Transformação Hoje!</CardTitle>
+              <CardDescription>
+                Faça login ou crie sua conta para começar
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>E-mail</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="seu@email.com" 
+                            className="h-12"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Senha</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="password" 
+                            placeholder="••••••••" 
+                            className="h-12"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full h-12 bg-primary hover:bg-primary/90" 
+                    disabled={isLoading || loading}
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Entrando...
+                      </div>
+                    ) : (
+                      "Entrar"
+                    )}
+                  </Button>
+                </form>
+              </Form>
+
+              <div className="text-center mt-6 space-y-4">
+                <Link 
+                  to="/reset-password" 
+                  className="text-sm text-primary hover:underline"
+                >
+                  Esqueceu sua senha?
+                </Link>
+
+                <div className="border-t pt-4">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Ainda não tem uma conta?
+                  </p>
+                  <Button 
+                    asChild 
+                    variant="outline" 
+                    className="w-full"
+                  >
+                    <Link to="/register">
+                      Criar Conta Grátis
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
                 </div>
 
-                {/* Manual Button */}
-                <div className="border-t border-border/20 pt-4">
+                <div className="border-t pt-4">
                   <ManualDialog>
-                    <Button variant="ghost" size="sm" className="w-full text-muted-foreground hover:text-primary">
+                    <Button variant="ghost" size="sm" className="text-muted-foreground">
                       <BookOpen className="h-4 w-4 mr-2" />
                       Manual de Uso
                     </Button>
                   </ManualDialog>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Mobile Benefits Preview */}
-            <div className="lg:hidden">
-              <Card className="border-0 shadow-lg bg-gradient-to-r from-primary/10 to-secondary/10">
-                <CardContent className="p-6">
-                  <h3 className="font-semibold text-foreground mb-4 text-center">
-                    Por que escolher o TotalGestor Pro?
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center">
-                      <BarChart3 className="h-8 w-8 text-primary mx-auto mb-2" />
-                      <p className="text-xs text-muted-foreground">Relatórios Claros</p>
-                    </div>
-                    <div className="text-center">
-                      <Users className="h-8 w-8 text-primary mx-auto mb-2" />
-                      <p className="text-xs text-muted-foreground">Gestão de Clientes</p>
-                    </div>
-                    <div className="text-center">
-                      <Shield className="h-8 w-8 text-primary mx-auto mb-2" />
-                      <p className="text-xs text-muted-foreground">Dados Seguros</p>
-                    </div>
-                    <div className="text-center">
-                      <Clock className="h-8 w-8 text-primary mx-auto mb-2" />
-                      <p className="text-xs text-muted-foreground">Economize Tempo</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </div>
+      </section>
     </div>
   );
 };
