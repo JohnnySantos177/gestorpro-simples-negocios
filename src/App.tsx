@@ -1,92 +1,88 @@
+import React from 'react';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Outlet,
+} from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "react-query";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { TooltipProvider } from "@/components/ui/tooltip"
+import { Sonner } from 'sonner';
 
-import { DataProvider } from "./context/DataContext";
-import { SubscriptionProvider } from "./context/SubscriptionContext";
-import { AuthProvider } from "./context/AuthContext"; 
-import { VisitorModeProvider } from "./context/VisitorModeContext";
+import { Index } from "@/pages";
+import { LoginPage } from "@/pages/auth/LoginPage";
+import { RegisterPage } from "@/pages/auth/RegisterPage";
+import { ResetPasswordPage } from "@/pages/auth/ResetPasswordPage";
+import { ConfirmationSuccessPage } from "@/pages/auth/ConfirmationSuccessPage";
+import { ClientesPage } from "@/pages/clientes";
+import { ProdutosPage } from "@/pages/produtos";
+import { VendasPage } from "@/pages/vendas";
+import { FinanceiroPage } from "@/pages/financeiro";
+import { FornecedoresPage } from "@/pages/fornecedores";
+import { AvaliacoesPage } from "@/pages/avaliacoes";
+import { PromocoesPage } from "@/pages/promocoes";
+import { AssinaturaPage } from "@/pages/assinatura";
+import { AdminPanel } from "@/pages/admin";
+import { UserManagementPage } from "@/pages/admin/UserManagementPage";
+import { AdminUserView } from "@/pages/admin/AdminUserView";
+import { ProfilePage } from "@/pages/ProfilePage";
+import { NotFound } from "@/pages/NotFound";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AuthProvider } from "@/context/AuthContext";
+import { SubscriptionProvider } from "@/context/SubscriptionContext";
+import { DataProvider } from "@/context/DataContext";
+import { VisitorModeProvider } from "@/context/VisitorModeContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { OptimizedLayout } from "@/components/OptimizedLayout";
 
-import Index from "./pages/Index";
-import ClientesPage from "./pages/ClientesPage";
-import ProdutosPage from "./pages/ProdutosPage";
-import VendasPage from "./pages/VendasPage";
-import FinanceiroPage from "./pages/FinanceiroPage";
-import FornecedoresPage from "./pages/FornecedoresPage";
-import AvaliacoesPage from "./pages/AvaliacoesPage";
-import PromocoesPage from "./pages/PromocoesPage";
-import AssinaturaPage from "./pages/AssinaturaPage";
-import ProfilePage from "./pages/ProfilePage";
-import UserManagementPage from "./pages/UserManagementPage";
-import NotFound from "./pages/NotFound";
-import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
-import ConfirmationSuccessPage from "./pages/ConfirmationSuccessPage";
-import AdminPanel from "./pages/AdminPanel";
-import AdminUserView from "./pages/AdminUserView";
-import { ProtectedRoute } from "./components/ProtectedRoute";
+const queryClient = new QueryClient();
 
-// Create a new QueryClient instance outside the component
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
-
-const App = () => {
+function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <BrowserRouter>
-          <VisitorModeProvider>
-            <AuthProvider>
-              <SubscriptionProvider>
-                <DataProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <VisitorModeProvider>
+          <AuthProvider>
+            <SubscriptionProvider>
+              <DataProvider>
+                <TooltipProvider>
                   <Toaster />
                   <Sonner />
-                  <Routes>
-                    {/* Public routes */}
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/register" element={<RegisterPage />} />
-                    <Route path="/reset-password" element={<ResetPasswordPage />} />
-                    <Route path="/confirmation-success" element={<ConfirmationSuccessPage />} />
-                    
-                    {/* Protected routes */}
-                    <Route element={<ProtectedRoute />}>
-                      <Route path="/" element={<Index />} />
-                      <Route path="/clientes" element={<ClientesPage />} />
-                      <Route path="/produtos" element={<ProdutosPage />} />
-                      <Route path="/vendas" element={<VendasPage />} />
-                      <Route path="/financeiro" element={<FinanceiroPage />} />
-                      <Route path="/fornecedores" element={<FornecedoresPage />} />
-                      <Route path="/avaliacoes" element={<AvaliacoesPage />} />
-                      <Route path="/promocoes" element={<PromocoesPage />} />
-                      <Route path="/assinatura" element={<AssinaturaPage />} />
-                      <Route path="/perfil/:id" element={<ProfilePage />} />
-                      
-                      {/* Admin routes */}
-                      <Route path="/admin" element={<AdminPanel />} />
-                      <Route path="/admin/view/:userId" element={<AdminUserView />} />
-                      <Route path="/admin/usuarios" element={<UserManagementPage />} />
-                    </Route>
-                    
-                    {/* Fallback route */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </DataProvider>
-              </SubscriptionProvider>
-            </AuthProvider>
-          </VisitorModeProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+                  <BrowserRouter>
+                    <Routes>
+                      <Route path="/login" element={<LoginPage />} />
+                      <Route path="/register" element={<RegisterPage />} />
+                      <Route path="/reset-password" element={<ResetPasswordPage />} />
+                      <Route path="/confirmation-success" element={<ConfirmationSuccessPage />} />
+                      <Route element={<ProtectedRoute />}>
+                        <Route element={<OptimizedLayout><Outlet /></OptimizedLayout>}>
+                          <Route path="/" element={<Index />} />
+                          <Route path="/clientes" element={<ClientesPage />} />
+                          <Route path="/produtos" element={<ProdutosPage />} />
+                          <Route path="/vendas" element={<VendasPage />} />
+                          <Route path="/financeiro" element={<FinanceiroPage />} />
+                          <Route path="/fornecedores" element={<FornecedoresPage />} />
+                          <Route path="/avaliacoes" element={<AvaliacoesPage />} />
+                          <Route path="/promocoes" element={<PromocoesPage />} />
+                          <Route path="/assinatura" element={<AssinaturaPage />} />
+                          <Route path="/admin" element={<AdminPanel />} />
+                          <Route path="/admin/users" element={<UserManagementPage />} />
+                          <Route path="/admin/user/:userId" element={<AdminUserView />} />
+                          <Route path="/perfil/:userId" element={<ProfilePage />} />
+                        </Route>
+                      </Route>
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </BrowserRouter>
+                </TooltipProvider>
+              </DataProvider>
+            </SubscriptionProvider>
+          </AuthProvider>
+        </VisitorModeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
-};
+}
 
 export default App;

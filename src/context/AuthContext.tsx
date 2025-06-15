@@ -1,9 +1,10 @@
-import React, { createContext, useContext, ReactNode } from "react";
+import React, { createContext, useContext, ReactNode, useCallback } from "react";
 import { AuthContextType } from "@/types/auth";
 import { useAuthState } from "@/hooks/useAuthState";
 import { authService } from "@/services/authService";
 import { UserProfile } from "@/types";
 import { useVisitorMode } from "./VisitorModeContext";
+import { useErrorHandler } from "@/hooks/useErrorHandler";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -72,66 +73,61 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   console.log("AuthContext: Provider rendered, loading:", loading);
 
   // Wrapper functions - remove unnecessary loading state manipulation
-  const signIn = async (email: string, password: string) => {
-    try {
+  const { handleAsyncError } = useErrorHandler();
+
+  const signIn = useCallback(
+    handleAsyncError(async (email: string, password: string) => {
       console.log("AuthContext: Sign in attempt");
       await authService.signIn(email, password);
-    } catch (error: any) {
-      console.error("AuthContext: Sign in error:", error);
-      throw error;
-    }
-  };
+    }, 'signIn'),
+    [handleAsyncError]
+  );
 
   // Adiciona telefone ao signUp
-  const signUp = async (email: string, password: string, nome?: string, telefone?: string) => {
-    try {
+  const signUp = useCallback(
+    handleAsyncError(async (email: string, password: string, nome?: string, telefone?: string) => {
       console.log("AuthContext: Sign up attempt");
       await authService.signUp(email, password, nome, telefone);
-    } catch (error: any) {
-      throw error;
-    }
-  };
+    }, 'signUp'),
+    [handleAsyncError]
+  );
 
-  const signOut = async () => {
-    try {
+  const signOut = useCallback(
+    handleAsyncError(async () => {
       console.log("AuthContext: Sign out attempt");
       await authService.signOut();
       setProfile(null);
       setIsAdmin(false);
-    } catch (error: any) {
-      throw error;
-    }
-  };
+    }, 'signOut'),
+    [setProfile, setIsAdmin, handleAsyncError]
+  );
 
-  const resetPassword = async (email: string) => {
-    try {
+  const resetPassword = useCallback(
+    handleAsyncError(async (email: string) => {
       console.log("AuthContext: Reset password attempt");
       await authService.resetPassword(email);
-    } catch (error: any) {
-      throw error;
-    }
-  };
+    }, 'resetPassword'),
+    [handleAsyncError]
+  );
 
-  const updatePassword = async (password: string) => {
-    try {
+  const updatePassword = useCallback(
+    handleAsyncError(async (password: string) => {
       console.log("AuthContext: Update password attempt");
       await authService.updatePassword(password);
-    } catch (error: any) {
-      throw error;
-    }
-  };
+    }, 'updatePassword'),
+    [handleAsyncError]
+  );
 
-  const updateProfile = async (updates: Partial<UserProfile>) => {
-    if (!user) throw new Error("User not authenticated");
-
-    try {
+  const updateProfile = useCallback(
+    handleAsyncError(async (updates: Partial<UserProfile>) => {
+      if (!user) throw new Error("User not authenticated");
+      
       console.log("AuthContext: Update profile attempt");
       await authService.updateProfile(user.id, updates);
       await loadUserProfile(user);
-    } catch (error: any) {
-      throw error;
-    }
-  };
+    }, 'updateProfile'),
+    [user, loadUserProfile, handleAsyncError]
+  );
 
   const value = {
     session,
