@@ -3,42 +3,26 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="TotalGestor">
+    <meta name="theme-color" content="#9b87f5">
+    
     <title>TotalGestor - Sistema de Gestão para Pequenos Negócios</title>
     <meta name="description" content="TotalGestor - Sistema completo para gestão de clientes, estoque, vendas e finanças para pequenos negócios" />
-    <meta name="author" content="TotalGestor" />
-
-    <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#9b87f5" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="TotalGestor" />
-    <meta name="mobile-web-app-capable" content="yes" />
     
-    <!-- Apple Touch Icons -->
-    <link rel="apple-touch-icon" href="/lovable-uploads/06397695-3081-4591-9816-edb718b6ee10.png" />
-    <link rel="apple-touch-icon" sizes="152x152" href="/lovable-uploads/06397695-3081-4591-9816-edb718b6ee10.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/lovable-uploads/06397695-3081-4591-9816-edb718b6ee10.png" />
-    <link rel="apple-touch-icon" sizes="167x167" href="/lovable-uploads/06397695-3081-4591-9816-edb718b6ee10.png" />
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/icons/icon-192x192.png" type="image/png">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
 
-    <!-- Manifest -->
-    <link rel="manifest" href="/manifest.json" />
-
-    <meta property="og:title" content="TotalGestor - Sistema de Gestão para Pequenos Negócios" />
-    <meta property="og:description" content="TotalGestor - Sistema completo para gestão de clientes, estoque, vendas e finanças para pequenos negócios" />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
-
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@lovable_dev" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
-    <link rel="icon" href="/lovable-uploads/06397695-3081-4591-9816-edb718b6ee10.png" type="image/png">
+    <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
+    <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
   </head>
 
   <body>
     <div id="root"></div>
-    <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
-    <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
