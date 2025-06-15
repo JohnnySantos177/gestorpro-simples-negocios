@@ -161,7 +161,11 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
       console.log("Calling create-checkout function with:", { price, planType });
 
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { price, planType }
+        body: { 
+          price,
+          planType,
+          isMobile: /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+        }
       });
       
       console.log("Create-checkout response:", { data, error });
@@ -200,7 +204,12 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
             toast.info("Redirecionando para página de pagamento...");
             // Add a small delay to show the toast
             setTimeout(() => {
-              window.location.href = data.url;
+              // Para mobile, usar window.location.href em vez de window.open
+              if (window.innerWidth < 768) {
+                window.location.href = data.url;
+              } else {
+                window.open(data.url, '_blank');
+              }
             }, 1000);
           } else {
             throw new Error("Invalid redirect URL");
@@ -214,7 +223,7 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
         toast.error("Erro: Link de pagamento não foi gerado");
       }
     } catch (error) {
-      console.error("Error in initiateCheckout:", error);
+      console.error("Error in mobile checkout:", error);
       toast.error("Erro ao processar pagamento: " + (error.message || "Erro desconhecido"));
     } finally {
       setCheckoutLoading(false);
