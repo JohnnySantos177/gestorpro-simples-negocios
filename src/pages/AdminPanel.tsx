@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { PageHeader } from "@/components/PageHeader";
@@ -229,7 +228,7 @@ const AdminPanel = () => {
   };
 
   return (
-    <Layout>
+    <>
       <PageHeader 
         title="Painel de Administrador"
         description="Gerencie usuários e configure o sistema"
@@ -475,7 +474,7 @@ const AdminPanel = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Layout>
+    </>
   );
 };
 
