@@ -37,7 +37,7 @@ serve(async (req) => {
       console.log("Processando pagamento ID:", paymentId);
 
       // Buscar detalhes do pagamento no Mercado Pago
-      const mercadoPagoToken = Deno.env.get("MERCADO_PAGO_TEST_ACCESS_TOKEN");
+      const mercadoPagoToken = Deno.env.get("MERCADO_PAGO_PRODUCTION_ACCESS_TOKEN");
       
       if (!mercadoPagoToken) {
         console.error("Token do Mercado Pago não configurado");

@@ -36,11 +36,11 @@ serve(async (req) => {
 
     console.log("Checking subscription for user:", user.email);
 
-    // Use TEST token for testing
-    const mercadoPagoToken = Deno.env.get("MERCADO_PAGO_TEST_ACCESS_TOKEN");
+    // Use PRODUCTION token
+    const mercadoPagoToken = Deno.env.get("MERCADO_PAGO_PRODUCTION_ACCESS_TOKEN");
     
     if (!mercadoPagoToken) {
-      console.error("MERCADO_PAGO_TEST_ACCESS_TOKEN not configured");
+      console.error("MERCADO_PAGO_PRODUCTION_ACCESS_TOKEN not configured");
       
       // Log failed action for security monitoring
       await supabaseClient.from('security_audit_logs').insert({
@@ -48,7 +48,7 @@ serve(async (req) => {
         action: 'check_subscription',
         resource_type: 'subscription',
         success: false,
-        error_message: 'Mercado Pago test access token not configured',
+        error_message: 'Mercado Pago production access token not configured',
       });
 
       // Return false subscription status instead of error when key is missing
@@ -63,7 +63,7 @@ serve(async (req) => {
       });
     }
 
-    console.log("Using TEST token");
+    console.log("Using PRODUCTION token");
 
     // Check for active subscription in our database first
     const { data: subscriptionData } = await supabaseClient

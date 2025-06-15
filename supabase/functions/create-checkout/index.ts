@@ -42,17 +42,17 @@ serve(async (req) => {
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
 
-    // Use TEST token for testing
-    const mercadoPagoToken = Deno.env.get("MERCADO_PAGO_TEST_ACCESS_TOKEN");
+    // Use PRODUCTION token
+    const mercadoPagoToken = Deno.env.get("MERCADO_PAGO_PRODUCTION_ACCESS_TOKEN");
     
     if (!mercadoPagoToken) {
-      console.error("MERCADO_PAGO_TEST_ACCESS_TOKEN not configured");
+      console.error("MERCADO_PAGO_PRODUCTION_ACCESS_TOKEN not configured");
       throw new Error("Payment service not configured");
     }
 
     console.log("Creating checkout for user:", user.email);
     console.log("Plan type:", planType, "Price:", price);
-    console.log("Using TEST token");
+    console.log("Using PRODUCTION token");
 
     // Use domínio fixo para URLs de retorno
     const origin = "https://gestorpro-simples-negocios.lovable.app";
@@ -148,17 +148,17 @@ serve(async (req) => {
     const preference = JSON.parse(responseText);
     console.log("Preference created successfully:", {
       id: preference.id,
-      sandbox_init_point: preference.sandbox_init_point
+      init_point: preference.init_point
     });
 
-    if (!preference.sandbox_init_point) {
+    if (!preference.init_point) {
       throw new Error('Failed to create preference - no payment URL returned');
     }
 
-    // Use sandbox URL for test environment
-    const redirectUrl = preference.sandbox_init_point;
+    // Use production URL for live environment
+    const redirectUrl = preference.init_point;
 
-    console.log("Using TEST redirect URL:", redirectUrl);
+    console.log("Using PRODUCTION redirect URL:", redirectUrl);
 
     // Use the service role key to perform writes in Supabase
     const serviceClient = createClient(
