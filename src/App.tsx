@@ -3,7 +3,6 @@ import React from 'react';
 import {
   Routes,
   Route,
-  Outlet,
 } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -57,28 +56,19 @@ function App() {
                     <Route path="/reset-password" element={<ResetPasswordPage />} />
                     <Route path="/confirmation-success" element={<ConfirmationSuccessPage />} />
                     <Route element={<ProtectedRoute />}>
-                      <Route 
-                        path="/*" 
-                        element={
-                          <OptimizedLayout>
-                            <Routes>
-                              <Route path="/" element={<Index />} />
-                              <Route path="/clientes" element={<ClientesPage />} />
-                              <Route path="/produtos" element={<ProdutosPage />} />
-                              <Route path="/vendas" element={<VendasPage />} />
-                              <Route path="/financeiro" element={<FinanceiroPage />} />
-                              <Route path="/fornecedores" element={<FornecedoresPage />} />
-                              <Route path="/avaliacoes" element={<AvaliacoesPage />} />
-                              <Route path="/promocoes" element={<PromocoesPage />} />
-                              <Route path="/assinatura" element={<AssinaturaPage />} />
-                              <Route path="/admin" element={<AdminPanel />} />
-                              <Route path="/admin/users" element={<UserManagementPage />} />
-                              <Route path="/admin/user/:userId" element={<AdminUserView />} />
-                              <Route path="/perfil/:userId" element={<ProfilePage />} />
-                            </Routes>
-                          </OptimizedLayout>
-                        } 
-                      />
+                      <Route path="/" element={<OptimizedLayout><Index /></OptimizedLayout>} />
+                      <Route path="/clientes" element={<OptimizedLayout><ClientesPage /></OptimizedLayout>} />
+                      <Route path="/produtos" element={<OptimizedLayout><ProdutosPage /></OptimizedLayout>} />
+                      <Route path="/vendas" element={<OptimizedLayout><VendasPage /></OptimizedLayout>} />
+                      <Route path="/financeiro" element={<OptimizedLayout><FinanceiroPage /></OptimizedLayout>} />
+                      <Route path="/fornecedores" element={<OptimizedLayout><FornecedoresPage /></OptimizedLayout>} />
+                      <Route path="/avaliacoes" element={<OptimizedLayout><AvaliacoesPage /></OptimizedLayout>} />
+                      <Route path="/promocoes" element={<OptimizedLayout><PromocoesPage /></OptimizedLayout>} />
+                      <Route path="/assinatura" element={<OptimizedLayout><AssinaturaPage /></OptimizedLayout>} />
+                      <Route path="/admin" element={<OptimizedLayout><AdminPanel /></OptimizedLayout>} />
+                      <Route path="/admin/users" element={<OptimizedLayout><UserManagementPage /></OptimizedLayout>} />
+                      <Route path="/admin/user/:userId" element={<OptimizedLayout><AdminUserView /></OptimizedLayout>} />
+                      <Route path="/perfil/:userId" element={<OptimizedLayout><ProfilePage /></OptimizedLayout>} />
                     </Route>
                     <Route path="*" element={<NotFound />} />
                   </Routes>
