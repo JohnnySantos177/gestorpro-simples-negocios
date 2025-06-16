@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { DataTable } from "@/components/ui/data-table";
 import { useData } from "@/context/DataContext";
-import { FilterOptions, Venda } from "@/types";
+import { FilterOptions, Compra } from "@/types";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Edit, Trash2, Eye } from "lucide-react";
 import { useSubscription } from "@/context/SubscriptionContext";
@@ -29,7 +29,7 @@ const vendaSchema = z.object({
 type VendaFormData = z.infer<typeof vendaSchema>;
 
 const VendasPage = () => {
-  const { filterVendas, addVenda, updateVenda, deleteVenda, vendas } = useData();
+  const { filterCompras, addCompra, updateCompra, deleteCompra, compras } = useData();
   const { isSubscribed } = useSubscription();
   
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
@@ -43,7 +43,7 @@ const VendasPage = () => {
   
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<"add" | "edit" | "delete" | "view">("add");
-  const [selectedVenda, setSelectedVenda] = useState<Venda | null>(null);
+  const [selectedVenda, setSelectedVenda] = useState<Compra | null>(null);
 
   const form = useForm<VendaFormData>({
     resolver: zodResolver(vendaSchema),
@@ -55,10 +55,10 @@ const VendasPage = () => {
     },
   });
 
-  const filteredVendas = filterVendas(filterOptions);
+  const filteredVendas = filterCompras(filterOptions);
 
   const openAddDialog = () => {
-    if (!isSubscribed && vendas.length >= 10) {
+    if (!isSubscribed && compras.length >= 10) {
       toast.error("Limite atingido! Você pode cadastrar apenas 10 vendas no plano gratuito. Faça upgrade para adicionar mais.");
       return;
     }
@@ -73,25 +73,25 @@ const VendasPage = () => {
     setDialogOpen(true);
   };
 
-  const openEditDialog = (venda: Venda) => {
+  const openEditDialog = (venda: Compra) => {
     setSelectedVenda(venda);
     form.reset({
       clienteId: venda.clienteId,
       produtos: venda.produtos,
       formaPagamento: venda.formaPagamento,
-      observacoes: venda.observacoes || "",
+      observacoes: "",
     });
     setDialogType("edit");
     setDialogOpen(true);
   };
 
-  const openDeleteDialog = (venda: Venda) => {
+  const openDeleteDialog = (venda: Compra) => {
     setSelectedVenda(venda);
     setDialogType("delete");
     setDialogOpen(true);
   };
 
-  const openViewDialog = (venda: Venda) => {
+  const openViewDialog = (venda: Compra) => {
     setSelectedVenda(venda);
     setDialogType("view");
     setDialogOpen(true);
@@ -99,22 +99,24 @@ const VendasPage = () => {
 
   const handleAddEditSubmit = (data: VendaFormData) => {
     if (dialogType === "add") {
-      const success = addVenda({
+      const success = addCompra({
         clienteId: data.clienteId,
+        clienteNome: "",
+        data: new Date().toISOString(),
         produtos: data.produtos,
+        valorTotal: 0,
         formaPagamento: data.formaPagamento,
-        observacoes: data.observacoes,
+        status: "concluida",
       });
       
       if (!success) {
         return;
       }
     } else if (dialogType === "edit" && selectedVenda) {
-      updateVenda(selectedVenda.id, {
+      updateCompra(selectedVenda.id, {
         clienteId: data.clienteId,
         produtos: data.produtos,
         formaPagamento: data.formaPagamento,
-        observacoes: data.observacoes,
       });
     }
     
@@ -123,7 +125,7 @@ const VendasPage = () => {
 
   const handleDeleteConfirm = () => {
     if (selectedVenda) {
-      deleteVenda(selectedVenda.id);
+      deleteCompra(selectedVenda.id);
     }
     setDialogOpen(false);
   };
@@ -140,7 +142,7 @@ const VendasPage = () => {
     {
       key: "actions",
       header: "Ações",
-      cell: (_: any, row: Venda) => (
+      cell: (_: any, row: Compra) => (
         <div className="flex space-x-2">
           <Button variant="ghost" size="icon" onClick={() => openViewDialog(row)}>
             <Eye className="h-4 w-4" />
@@ -165,9 +167,9 @@ const VendasPage = () => {
         actions={
           <div className="flex gap-2">
             <ExportButtons 
-              data={vendas} 
+              data={compras} 
               type="vendas" 
-              disabled={vendas.length === 0}
+              disabled={compras.length === 0}
             />
             <Button onClick={openAddDialog}>Nova Venda</Button>
           </div>
@@ -211,7 +213,7 @@ const VendasPage = () => {
           columns={columns}
           filterOptions={filterOptions}
           onFilterChange={setFilterOptions}
-          totalItems={vendas.length}
+          totalItems={compras.length}
           page={filterOptions.page}
           itemsPerPage={filterOptions.itemsPerPage}
         />
@@ -226,7 +228,11 @@ const VendasPage = () => {
           onConfirm={form.handleSubmit(handleAddEditSubmit)}
           type={dialogType}
         >
-          <VendaForm form={form} />
+          <VendaForm 
+            compra={selectedVenda} 
+            onClose={() => setDialogOpen(false)}
+            readOnly={false}
+          />
         </CrudDialog>
       ) : dialogType === "view" ? (
         <CrudDialog
@@ -261,11 +267,6 @@ const VendasPage = () => {
                   ))}
                 </ul>
               </div>
-              {selectedVenda.observacoes && (
-                <div>
-                  <strong>Observações:</strong> {selectedVenda.observacoes}
-                </div>
-              )}
             </div>
           )}
         </CrudDialog>

@@ -1,3 +1,4 @@
+
 // Cliente types
 export interface Cliente {
   id: string;
@@ -24,6 +25,9 @@ export interface Compra {
   formaPagamento: string;
   status: string;
 }
+
+// Alias for backwards compatibility
+export type Venda = Compra;
 
 export interface ItemCompra {
   produtoId: string;
