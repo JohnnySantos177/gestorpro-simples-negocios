@@ -57,21 +57,28 @@ function App() {
                     <Route path="/reset-password" element={<ResetPasswordPage />} />
                     <Route path="/confirmation-success" element={<ConfirmationSuccessPage />} />
                     <Route element={<ProtectedRoute />}>
-                      <Route element={<OptimizedLayout><Outlet /></OptimizedLayout>}>
-                        <Route path="/" element={<Index />} />
-                        <Route path="/clientes" element={<ClientesPage />} />
-                        <Route path="/produtos" element={<ProdutosPage />} />
-                        <Route path="/vendas" element={<VendasPage />} />
-                        <Route path="/financeiro" element={<FinanceiroPage />} />
-                        <Route path="/fornecedores" element={<FornecedoresPage />} />
-                        <Route path="/avaliacoes" element={<AvaliacoesPage />} />
-                        <Route path="/promocoes" element={<PromocoesPage />} />
-                        <Route path="/assinatura" element={<AssinaturaPage />} />
-                        <Route path="/admin" element={<AdminPanel />} />
-                        <Route path="/admin/users" element={<UserManagementPage />} />
-                        <Route path="/admin/user/:userId" element={<AdminUserView />} />
-                        <Route path="/perfil/:userId" element={<ProfilePage />} />
-                      </Route>
+                      <Route 
+                        path="/*" 
+                        element={
+                          <OptimizedLayout>
+                            <Routes>
+                              <Route path="/" element={<Index />} />
+                              <Route path="/clientes" element={<ClientesPage />} />
+                              <Route path="/produtos" element={<ProdutosPage />} />
+                              <Route path="/vendas" element={<VendasPage />} />
+                              <Route path="/financeiro" element={<FinanceiroPage />} />
+                              <Route path="/fornecedores" element={<FornecedoresPage />} />
+                              <Route path="/avaliacoes" element={<AvaliacoesPage />} />
+                              <Route path="/promocoes" element={<PromocoesPage />} />
+                              <Route path="/assinatura" element={<AssinaturaPage />} />
+                              <Route path="/admin" element={<AdminPanel />} />
+                              <Route path="/admin/users" element={<UserManagementPage />} />
+                              <Route path="/admin/user/:userId" element={<AdminUserView />} />
+                              <Route path="/perfil/:userId" element={<ProfilePage />} />
+                            </Routes>
+                          </OptimizedLayout>
+                        } 
+                      />
                     </Route>
                     <Route path="*" element={<NotFound />} />
                   </Routes>
@@ -86,4 +93,3 @@ function App() {
 }
 
 export default App;
-
