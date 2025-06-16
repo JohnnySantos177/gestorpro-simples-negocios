@@ -240,7 +240,7 @@ const AvaliacoesPage = () => {
   ];
 
   return (
-    <OptimizedLayout>
+    <>
       <PageHeader 
         title="Avaliações" 
         description="Gerencie as avaliações dos clientes"
@@ -419,7 +419,7 @@ const AvaliacoesPage = () => {
           </div>
         </CrudDialog>
       )}
-    </OptimizedLayout>
+    </>
   );
 };
 

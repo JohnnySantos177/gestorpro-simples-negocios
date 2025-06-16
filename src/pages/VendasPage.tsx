@@ -1,21 +1,36 @@
+
 import React, { useState } from "react";
-import { OptimizedLayout } from "@/components/OptimizedLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { DataTable } from "@/components/ui/data-table";
 import { useData } from "@/context/DataContext";
-import { FilterOptions, Compra } from "@/types";
+import { FilterOptions, Venda } from "@/types";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Plus, Edit, Trash2, Eye } from "lucide-react";
+import { ShoppingCart, Edit, Trash2, Eye } from "lucide-react";
+import { useSubscription } from "@/context/SubscriptionContext";
+import { toast } from "sonner";
+import { ExportButtons } from "@/components/ExportButtons";
 import { CrudDialog } from "@/components/CrudDialog";
 import { VendaForm } from "./Vendas/components/VendaForm";
-import { useVendasLimits } from "@/hooks/useVendasLimits";
-import { VendasLimitBanner } from "@/components/VendasLimitBanner";
-import { ExportButtons } from "@/components/ExportButtons";
-import { toast } from "sonner";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
+const vendaSchema = z.object({
+  clienteId: z.string().min(1, "Cliente é obrigatório"),
+  produtos: z.array(z.object({
+    produtoId: z.string(),
+    quantidade: z.number().min(1),
+    precoUnitario: z.number().min(0)
+  })).min(1, "Pelo menos um produto é obrigatório"),
+  formaPagamento: z.string().min(1, "Forma de pagamento é obrigatória"),
+  observacoes: z.string().optional(),
+});
+
+type VendaFormData = z.infer<typeof vendaSchema>;
 
 const VendasPage = () => {
-  const { filterCompras, deleteCompra, compras } = useData();
-  const { hasReachedLimit } = useVendasLimits();
+  const { filterVendas, addVenda, updateVenda, deleteVenda, vendas } = useData();
+  const { isSubscribed } = useSubscription();
   
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     search: "",
@@ -23,46 +38,92 @@ const VendasPage = () => {
     sortOrder: "desc",
     page: 1,
     itemsPerPage: 10,
+    formaPagamento: ""
   });
   
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogType, setDialogType] = useState<"add" | "edit" | "delete">("add");
-  const [selectedCompra, setSelectedCompra] = useState<Compra | null>(null);
+  const [dialogType, setDialogType] = useState<"add" | "edit" | "delete" | "view">("add");
+  const [selectedVenda, setSelectedVenda] = useState<Venda | null>(null);
 
-  const filteredCompras = filterCompras(filterOptions);
+  const form = useForm<VendaFormData>({
+    resolver: zodResolver(vendaSchema),
+    defaultValues: {
+      clienteId: "",
+      produtos: [],
+      formaPagamento: "",
+      observacoes: "",
+    },
+  });
+
+  const filteredVendas = filterVendas(filterOptions);
 
   const openAddDialog = () => {
-    if (hasReachedLimit) {
-      toast.error("Limite de teste atingido! Assine um plano premium para continuar adicionando vendas.");
+    if (!isSubscribed && vendas.length >= 10) {
+      toast.error("Limite atingido! Você pode cadastrar apenas 10 vendas no plano gratuito. Faça upgrade para adicionar mais.");
       return;
     }
     
+    form.reset({
+      clienteId: "",
+      produtos: [],
+      formaPagamento: "",
+      observacoes: "",
+    });
     setDialogType("add");
-    setSelectedCompra(null);
     setDialogOpen(true);
   };
 
-  const openEditDialog = (compra: Compra) => {
-    setSelectedCompra(compra);
+  const openEditDialog = (venda: Venda) => {
+    setSelectedVenda(venda);
+    form.reset({
+      clienteId: venda.clienteId,
+      produtos: venda.produtos,
+      formaPagamento: venda.formaPagamento,
+      observacoes: venda.observacoes || "",
+    });
     setDialogType("edit");
     setDialogOpen(true);
   };
 
-  const openDeleteDialog = (compra: Compra) => {
-    setSelectedCompra(compra);
+  const openDeleteDialog = (venda: Venda) => {
+    setSelectedVenda(venda);
     setDialogType("delete");
     setDialogOpen(true);
   };
 
-  const openViewDialog = (compra: Compra) => {
-    setSelectedCompra(compra);
-    setDialogType("edit"); // Use "edit" type but with readOnly prop
+  const openViewDialog = (venda: Venda) => {
+    setSelectedVenda(venda);
+    setDialogType("view");
     setDialogOpen(true);
   };
 
+  const handleAddEditSubmit = (data: VendaFormData) => {
+    if (dialogType === "add") {
+      const success = addVenda({
+        clienteId: data.clienteId,
+        produtos: data.produtos,
+        formaPagamento: data.formaPagamento,
+        observacoes: data.observacoes,
+      });
+      
+      if (!success) {
+        return;
+      }
+    } else if (dialogType === "edit" && selectedVenda) {
+      updateVenda(selectedVenda.id, {
+        clienteId: data.clienteId,
+        produtos: data.produtos,
+        formaPagamento: data.formaPagamento,
+        observacoes: data.observacoes,
+      });
+    }
+    
+    setDialogOpen(false);
+  };
+
   const handleDeleteConfirm = () => {
-    if (selectedCompra) {
-      deleteCompra(selectedCompra.id);
+    if (selectedVenda) {
+      deleteVenda(selectedVenda.id);
     }
     setDialogOpen(false);
   };
@@ -76,11 +137,10 @@ const VendasPage = () => {
       cell: (value: number) => `R$ ${value.toFixed(2)}` 
     },
     { key: "formaPagamento", header: "Forma de Pagamento" },
-    { key: "status", header: "Status" },
-    { 
-      key: "actions", 
-      header: "Ações", 
-      cell: (_: any, row: Compra) => (
+    {
+      key: "actions",
+      header: "Ações",
+      cell: (_: any, row: Venda) => (
         <div className="flex space-x-2">
           <Button variant="ghost" size="icon" onClick={() => openViewDialog(row)}>
             <Eye className="h-4 w-4" />
@@ -97,7 +157,7 @@ const VendasPage = () => {
   ];
 
   return (
-    <OptimizedLayout>
+    <>
       <PageHeader 
         title="Vendas" 
         description="Gerencie suas vendas"
@@ -105,71 +165,125 @@ const VendasPage = () => {
         actions={
           <div className="flex gap-2">
             <ExportButtons 
-              data={compras} 
+              data={vendas} 
               type="vendas" 
-              disabled={compras.length === 0}
+              disabled={vendas.length === 0}
             />
-            <Button onClick={openAddDialog}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Venda
-            </Button>
+            <Button onClick={openAddDialog}>Nova Venda</Button>
           </div>
         }
       />
 
-      <VendasLimitBanner />
-
       <div className="mt-6">
+        <div className="flex flex-wrap gap-2 mb-4">
+          <Button
+            variant={filterOptions.formaPagamento === "" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilterOptions({ ...filterOptions, formaPagamento: "", page: 1 })}
+          >
+            Todas
+          </Button>
+          <Button
+            variant={filterOptions.formaPagamento === "Dinheiro" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilterOptions({ ...filterOptions, formaPagamento: "Dinheiro", page: 1 })}
+          >
+            Dinheiro
+          </Button>
+          <Button
+            variant={filterOptions.formaPagamento === "Cartão de Crédito" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilterOptions({ ...filterOptions, formaPagamento: "Cartão de Crédito", page: 1 })}
+          >
+            Cartão de Crédito
+          </Button>
+          <Button
+            variant={filterOptions.formaPagamento === "PIX" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilterOptions({ ...filterOptions, formaPagamento: "PIX", page: 1 })}
+          >
+            PIX
+          </Button>
+        </div>
+        
         <DataTable
-          data={filteredCompras}
+          data={filteredVendas}
           columns={columns}
           filterOptions={filterOptions}
           onFilterChange={setFilterOptions}
-          totalItems={compras.length}
+          totalItems={vendas.length}
           page={filterOptions.page}
           itemsPerPage={filterOptions.itemsPerPage}
         />
       </div>
 
-      {/* Add/Edit/View Dialog */}
-      {dialogType !== "delete" ? (
+      {dialogType !== "delete" && dialogType !== "view" ? (
         <CrudDialog
-          title={
-            dialogType === "add" 
-              ? "Nova Venda" 
-              : "Editar Venda"
-          }
-          description={
-            dialogType === "add" 
-              ? "Registre uma nova venda"
-              : "Edite os detalhes da venda"
-          }
+          title={dialogType === "add" ? "Nova Venda" : "Editar Venda"}
+          description={dialogType === "add" ? "Adicione uma nova venda" : "Edite os detalhes da venda"}
           open={dialogOpen}
           onOpenChange={setDialogOpen}
-          onConfirm={() => {}}
+          onConfirm={form.handleSubmit(handleAddEditSubmit)}
           type={dialogType}
         >
-          <VendaForm 
-            compra={selectedCompra}
-            onClose={() => setDialogOpen(false)}
-            readOnly={false}
-          />
+          <VendaForm form={form} />
+        </CrudDialog>
+      ) : dialogType === "view" ? (
+        <CrudDialog
+          title="Detalhes da Venda"
+          description="Visualize os detalhes da venda"
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          onConfirm={() => setDialogOpen(false)}
+          type="edit"
+        >
+          {selectedVenda && (
+            <div className="space-y-4">
+              <div>
+                <strong>Cliente:</strong> {selectedVenda.clienteNome}
+              </div>
+              <div>
+                <strong>Data:</strong> {new Date(selectedVenda.data).toLocaleDateString()}
+              </div>
+              <div>
+                <strong>Valor Total:</strong> R$ {selectedVenda.valorTotal.toFixed(2)}
+              </div>
+              <div>
+                <strong>Forma de Pagamento:</strong> {selectedVenda.formaPagamento}
+              </div>
+              <div>
+                <strong>Produtos:</strong>
+                <ul className="mt-2 space-y-1">
+                  {selectedVenda.produtos.map((produto, index) => (
+                    <li key={index} className="text-sm bg-gray-50 p-2 rounded">
+                      {produto.produtoNome} - Qtd: {produto.quantidade} - R$ {produto.precoUnitario.toFixed(2)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              {selectedVenda.observacoes && (
+                <div>
+                  <strong>Observações:</strong> {selectedVenda.observacoes}
+                </div>
+              )}
+            </div>
+          )}
         </CrudDialog>
       ) : (
         <CrudDialog
           title="Excluir Venda"
-          description={`Tem certeza que deseja excluir esta venda? Esta ação não pode ser desfeita.`}
+          description="Tem certeza que deseja excluir esta venda? Esta ação não pode ser desfeita."
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           onConfirm={handleDeleteConfirm}
           type="delete"
         >
-          <div className="text-center py-4">
-            <p>Todos os dados relacionados a esta venda serão perdidos.</p>
+          <div className="py-4">
+            <p>Esta venda será removida permanentemente do sistema.</p>
           </div>
         </CrudDialog>
       )}
-    </OptimizedLayout>
+    </>
   );
 };
 

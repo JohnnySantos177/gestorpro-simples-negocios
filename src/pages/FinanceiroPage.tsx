@@ -185,7 +185,7 @@ const FinanceiroPage = () => {
   ];
 
   return (
-    <OptimizedLayout>
+    <>
       <PageHeader 
         title="Financeiro" 
         description="Gerencie suas finanças"
@@ -423,7 +423,7 @@ const FinanceiroPage = () => {
           </div>
         </CrudDialog>
       )}
-    </OptimizedLayout>
+    </>
   );
 };
 

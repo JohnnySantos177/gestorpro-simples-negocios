@@ -116,7 +116,7 @@ const FornecedoresPage = () => {
   ];
 
   return (
-    <OptimizedLayout>
+    <>
       <PageHeader 
         title="Fornecedores" 
         description="Gerencie seus fornecedores"
@@ -154,7 +154,7 @@ const FornecedoresPage = () => {
         onAddEditSubmit={handleAddEditSubmit}
         onDeleteConfirm={handleDeleteConfirm}
       />
-    </OptimizedLayout>
+    </>
   );
 };
 
