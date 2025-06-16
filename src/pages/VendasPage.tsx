@@ -11,22 +11,6 @@ import { toast } from "sonner";
 import { ExportButtons } from "@/components/ExportButtons";
 import { CrudDialog } from "@/components/CrudDialog";
 import { VendaForm } from "./Vendas/components/VendaForm";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-
-const vendaSchema = z.object({
-  clienteId: z.string().min(1, "Cliente é obrigatório"),
-  produtos: z.array(z.object({
-    produtoId: z.string(),
-    quantidade: z.number().min(1),
-    precoUnitario: z.number().min(0)
-  })).min(1, "Pelo menos um produto é obrigatório"),
-  formaPagamento: z.string().min(1, "Forma de pagamento é obrigatória"),
-  observacoes: z.string().optional(),
-});
-
-type VendaFormData = z.infer<typeof vendaSchema>;
 
 const VendasPage = () => {
   const { filterCompras, addCompra, updateCompra, deleteCompra, compras } = useData();
@@ -45,16 +29,6 @@ const VendasPage = () => {
   const [dialogType, setDialogType] = useState<"add" | "edit" | "delete" | "view">("add");
   const [selectedVenda, setSelectedVenda] = useState<Compra | null>(null);
 
-  const form = useForm<VendaFormData>({
-    resolver: zodResolver(vendaSchema),
-    defaultValues: {
-      clienteId: "",
-      produtos: [],
-      formaPagamento: "",
-      observacoes: "",
-    },
-  });
-
   const filteredVendas = filterCompras(filterOptions);
 
   const openAddDialog = () => {
@@ -63,24 +37,13 @@ const VendasPage = () => {
       return;
     }
     
-    form.reset({
-      clienteId: "",
-      produtos: [],
-      formaPagamento: "",
-      observacoes: "",
-    });
+    setSelectedVenda(null);
     setDialogType("add");
     setDialogOpen(true);
   };
 
   const openEditDialog = (venda: Compra) => {
     setSelectedVenda(venda);
-    form.reset({
-      clienteId: venda.clienteId,
-      produtos: venda.produtos,
-      formaPagamento: venda.formaPagamento,
-      observacoes: "",
-    });
     setDialogType("edit");
     setDialogOpen(true);
   };
@@ -95,32 +58,6 @@ const VendasPage = () => {
     setSelectedVenda(venda);
     setDialogType("view");
     setDialogOpen(true);
-  };
-
-  const handleAddEditSubmit = (data: VendaFormData) => {
-    if (dialogType === "add") {
-      const success = addCompra({
-        clienteId: data.clienteId,
-        clienteNome: "",
-        data: new Date().toISOString(),
-        produtos: data.produtos,
-        valorTotal: 0,
-        formaPagamento: data.formaPagamento,
-        status: "concluida",
-      });
-      
-      if (!success) {
-        return;
-      }
-    } else if (dialogType === "edit" && selectedVenda) {
-      updateCompra(selectedVenda.id, {
-        clienteId: data.clienteId,
-        produtos: data.produtos,
-        formaPagamento: data.formaPagamento,
-      });
-    }
-    
-    setDialogOpen(false);
   };
 
   const handleDeleteConfirm = () => {
@@ -225,7 +162,7 @@ const VendasPage = () => {
           description={dialogType === "add" ? "Adicione uma nova venda" : "Edite os detalhes da venda"}
           open={dialogOpen}
           onOpenChange={setDialogOpen}
-          onConfirm={form.handleSubmit(handleAddEditSubmit)}
+          onConfirm={() => {}} // VendaForm handles the submission internally
           type={dialogType}
         >
           <VendaForm 
