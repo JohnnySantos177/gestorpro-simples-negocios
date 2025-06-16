@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -198,6 +197,9 @@ export const LoginFormSection = () => {
             <Lock className="h-4 w-4" />
             <span>Seus dados estão 100% seguros e protegidos</span>
           </div>
+          <p className="text-white/80 text-sm mt-2">
+            Para suporte, entre em contato: <a href="mailto:mktadvisory7@gmail.com" className="underline">mktadvisory7@gmail.com</a>
+          </p>
         </div>
       </div>
     </section>

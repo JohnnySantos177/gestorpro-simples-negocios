@@ -1,7 +1,7 @@
-
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
+import { OptimizedLayout } from "@/components/OptimizedLayout";
 
 export const ProtectedRoute = () => {
   const { user, loading } = useAuth();
@@ -47,5 +47,9 @@ export const ProtectedRoute = () => {
   }
 
   console.log("ProtectedRoute: User authenticated, showing protected content");
-  return <Outlet />;
+  return (
+    <OptimizedLayout>
+      <Outlet />
+    </OptimizedLayout>
+  );
 };
