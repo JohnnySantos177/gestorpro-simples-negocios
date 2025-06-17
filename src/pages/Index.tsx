@@ -1,339 +1,313 @@
-import React, { useEffect } from "react";
+
+import React from "react";
+import { OptimizedLayout } from "@/components/OptimizedLayout";
 import { PageHeader } from "@/components/PageHeader";
+import { StatsCard } from "@/components/ui/stats-card";
+import { useData } from "@/context/DataContext";
+import { useVisitorMode } from "@/context/VisitorModeContext";
+import { VisitorBanner } from "@/components/VisitorBanner";
+import { useAuth } from "@/context/AuthContext";
+import { formatCurrency } from "@/utils/format";
 import { 
   Users, 
   Package, 
   ShoppingCart, 
-  DollarSign, 
+  DollarSign,
   TrendingUp,
   TrendingDown,
-  AlertTriangle
+  Minus
 } from "lucide-react";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { StatsCard } from "@/components/ui/stats-card";
-import { useData } from "@/context/DataContext";
-import { formatCurrency } from "@/utils/format";
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
   LineChart,
   Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   PieChart,
   Pie,
   Cell,
+  ResponsiveContainer,
+  BarChart,
+  Bar
 } from "recharts";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { VisitorBanner } from "@/components/VisitorBanner";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
-const Dashboard = () => {
-  const { dashboardStats, updateDashboardStats, produtos } = useData();
+const Index = () => {
+  const { clientes, produtos, compras, transacoes, loading } = useData();
+  const { isVisitorMode, targetUserId } = useVisitorMode();
+  const { user } = useAuth();
 
-  // Pegar data para saudação
-  const date = new Date();
-  const hours = date.getHours();
-  const greeting = 
-    hours < 12
-      ? "Bom dia"
-      : hours < 18
-      ? "Boa tarde"
-      : "Boa noite";
-
-  // Calcular produtos com estoque baixo (menos de 15% do estoque máximo ou menos de 10 unidades)
-  const produtosEstoqueBaixo = produtos.filter(produto => {
-    const estoqueMaximo = Math.max(...produtos.map(p => p.quantidade), 50); // Assumindo 50 como máximo padrão
-    const limiteBaixo = Math.max(estoqueMaximo * 0.15, 10); // 15% do máximo ou 10 unidades
-    return produto.quantidade <= limiteBaixo;
-  });
-
-  // Calcular produtos com estoque normal (entre o limite baixo e 70% do máximo)
-  const produtosEstoqueNormal = produtos.filter(produto => {
-    const estoqueMaximo = Math.max(...produtos.map(p => p.quantidade), 50);
-    const limiteBaixo = Math.max(estoqueMaximo * 0.15, 10);
-    const limiteAlto = estoqueMaximo * 0.7;
-    return produto.quantidade > limiteBaixo && produto.quantidade <= limiteAlto;
-  });
-
-  // Calcular produtos com estoque alto (acima de 70% do máximo)
-  const produtosEstoqueAlto = produtos.filter(produto => {
-    const estoqueMaximo = Math.max(...produtos.map(p => p.quantidade), 50);
-    const limiteAlto = estoqueMaximo * 0.7;
-    return produto.quantidade > limiteAlto;
-  });
-
-  const temEstoqueBaixo = produtosEstoqueBaixo.length > 0;
-  const totalProdutos = produtos.length;
-
-  // Dados atualizados para o gráfico de status do estoque com percentuais corretos
-  const estoqueData = [
-    { 
-      name: "Estoque Crítico", 
-      value: produtosEstoqueBaixo.length,
-      percent: totalProdutos > 0 ? (produtosEstoqueBaixo.length / totalProdutos * 100).toFixed(1) : 0,
-      color: "#EF4444" // Vermelho para estoque baixo
-    },
-    { 
-      name: "Estoque Normal", 
-      value: produtosEstoqueNormal.length,
-      percent: totalProdutos > 0 ? (produtosEstoqueNormal.length / totalProdutos * 100).toFixed(1) : 0,
-      color: "#7C3AED" // Roxo médio
-    },
-    { 
-      name: "Estoque Alto", 
-      value: produtosEstoqueAlto.length,
-      percent: totalProdutos > 0 ? (produtosEstoqueAlto.length / totalProdutos * 100).toFixed(1) : 0,
-      color: "#A855F7" // Roxo claro
-    },
-  ].filter(item => item.value > 0); // Só mostrar categorias que têm produtos
-
-  // Configuração de cores dos gráficos
-  const chartConfig = {
-    vendas: { color: "#9b87f5" },
-    produtos: { color: "#9b87f5" },
-    estoqueCritico: { color: "#EF4444" },
-    estoqueNormal: { color: "#7C3AED" },
-    estoqueAlto: { color: "#A855F7" },
+  // Get the display name for the current context
+  const getDisplayContext = () => {
+    if (isVisitorMode && targetUserId) {
+      return `painel do usuário ${targetUserId}`;
+    }
+    return "seu painel do TotalGestor";
   };
 
-  return (
-    <>
-      <VisitorBanner />
-      <PageHeader 
-        title={`${greeting}!`}
-        description="Bem-vindo ao seu painel do TotalGestor. Veja os principais indicadores do seu negócio."
-      />
-      
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatsCard
-          title="Total de Clientes"
-          value={dashboardStats.totalClientes}
-          icon={<Users size={20} />}
-        />
-        <StatsCard
-          title="Total de Produtos"
-          value={dashboardStats.totalProdutos}
-          icon={<Package size={20} />}
-        />
-        <StatsCard
-          title="Total de Vendas"
-          value={dashboardStats.totalVendas}
-          icon={<ShoppingCart size={20} />}
-        />
-        <StatsCard
-          title="Faturamento Mensal"
-          value={formatCurrency(dashboardStats.faturamentoMensal)}
-          icon={<DollarSign size={20} />}
-          trend="up"
-          trendValue="12% vs. mês anterior"
-        />
-      </div>
+  // Calculate statistics
+  const totalClientes = clientes.length;
+  const totalProdutos = produtos.length;
+  const totalVendas = compras.length;
+  
+  const faturamentoTotal = compras.reduce((total, compra) => total + Number(compra.valor_total), 0);
+  const faturamentoMesAtual = compras
+    .filter(compra => {
+      const compraDate = new Date(compra.data);
+      const now = new Date();
+      return compraDate.getMonth() === now.getMonth() && compraDate.getFullYear() === now.getFullYear();
+    })
+    .reduce((total, compra) => total + Number(compra.valor_total), 0);
 
-      <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="col-span-1 lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Vendas por Período</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="h-[280px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={dashboardStats.vendasPorPeriodo}
-                  margin={{
-                    top: 10,
-                    right: 10,
-                    left: 10,
-                    bottom: 30,
-                  }}
-                >
-                  <XAxis 
-                    dataKey="periodo" 
-                    tick={{ fontSize: 10 }}
-                    interval={0}
-                    angle={-45}
-                    textAnchor="end"
-                    height={50}
-                  />
-                  <YAxis 
-                    tick={{ fontSize: 10 }}
-                    width={50}
-                  />
-                  <Tooltip
-                    formatter={(value: number) => [formatCurrency(value), "Vendas"]}
-                    labelFormatter={(label) => `Período: ${label}`}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="valor"
-                    stroke="#9b87f5"
-                    strokeWidth={2}
-                    dot={{ r: 3, fill: "#9b87f5" }}
-                    activeDot={{ r: 5, fill: "#9b87f5" }}
-                  />
+  const faturamentoMesAnterior = compras
+    .filter(compra => {
+      const compraDate = new Date(compra.data);
+      const now = new Date();
+      const mesAnterior = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      return compraDate.getMonth() === mesAnterior.getMonth() && compraDate.getFullYear() === mesAnterior.getFullYear();
+    })
+    .reduce((total, compra) => total + Number(compra.valor_total), 0);
+
+  const crescimentoPercentual = faturamentoMesAnterior > 0 
+    ? ((faturamentoMesAtual - faturamentoMesAnterior) / faturamentoMesAnterior) * 100 
+    : faturamentoMesAtual > 0 ? 100 : 0;
+
+  // Prepare chart data
+  const vendasPorPeriodo = React.useMemo(() => {
+    const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const vendasPorMes = new Array(12).fill(0);
+    
+    compras.forEach(compra => {
+      const mes = new Date(compra.data).getMonth();
+      vendasPorMes[mes] += Number(compra.valor_total);
+    });
+
+    return meses.map((mes, index) => ({
+      mes,
+      vendas: vendasPorMes[index]
+    }));
+  }, [compras]);
+
+  const statusEstoque = React.useMemo(() => {
+    const estoqueNormal = produtos.filter(p => p.quantidade > 10).length;
+    const estoqueBaixo = produtos.filter(p => p.quantidade <= 10 && p.quantidade > 0).length;
+    const estoqueZerado = produtos.filter(p => p.quantidade === 0).length;
+
+    return [
+      { name: 'Estoque Normal', value: estoqueNormal, color: '#8b5cf6' },
+      { name: 'Estoque Baixo', value: estoqueBaixo, color: '#f59e0b' },
+      { name: 'Estoque Zerado', value: estoqueZerado, color: '#ef4444' }
+    ].filter(item => item.value > 0);
+  }, [produtos]);
+
+  const produtosMaisVendidos = React.useMemo(() => {
+    const vendasPorProduto = {};
+    
+    compras.forEach(compra => {
+      if (compra.produtos && Array.isArray(compra.produtos)) {
+        compra.produtos.forEach((item: any) => {
+          const produtoId = item.produtoId || item.produto_id;
+          const quantidade = Number(item.quantidade) || 0;
+          
+          if (produtoId) {
+            vendasPorProduto[produtoId] = (vendasPorProduto[produtoId] || 0) + quantidade;
+          }
+        });
+      }
+    });
+
+    return Object.entries(vendasPorProduto)
+      .map(([produtoId, quantidade]) => {
+        const produto = produtos.find(p => p.id === produtoId);
+        return {
+          nome: produto?.nome || 'Produto não encontrado',
+          quantidade: quantidade as number
+        };
+      })
+      .sort((a, b) => b.quantidade - a.quantidade)
+      .slice(0, 5);
+  }, [compras, produtos]);
+
+  const resumoFinanceiro = React.useMemo(() => {
+    const receitas = transacoes.filter(t => t.tipo === 'receita').reduce((sum, t) => sum + Number(t.valor), 0);
+    const despesas = transacoes.filter(t => t.tipo === 'despesa').reduce((sum, t) => sum + Number(t.valor), 0);
+    const lucro = receitas - despesas;
+
+    return { receitas, despesas, lucro };
+  }, [transacoes]);
+
+  if (loading) {
+    return (
+      <OptimizedLayout>
+        <div className="flex justify-center items-center p-12">
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+        </div>
+      </OptimizedLayout>
+    );
+  }
+
+  return (
+    <OptimizedLayout>
+      {isVisitorMode && <VisitorBanner />}
+      <div className={isVisitorMode ? "pt-16" : ""}>
+        <PageHeader
+          title="Bom dia!"
+          description={`Bem-vindo ao ${getDisplayContext()}. Veja os principais indicadores do negócio.`}
+        />
+
+        {/* Cards de Estatísticas */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+          <StatsCard
+            title="Total de Clientes"
+            value={totalClientes}
+            icon={<Users className="h-6 w-6" />}
+          />
+          <StatsCard
+            title="Total de Produtos"
+            value={totalProdutos}
+            icon={<Package className="h-6 w-6" />}
+          />
+          <StatsCard
+            title="Total de Vendas"
+            value={totalVendas}
+            icon={<ShoppingCart className="h-6 w-6" />}
+          />
+          <StatsCard
+            title="Faturamento Mensal"
+            value={formatCurrency(faturamentoMesAtual)}
+            description={`${crescimentoPercentual > 0 ? '+' : ''}${crescimentoPercentual.toFixed(1)}% vs. mês anterior`}
+            icon={<DollarSign className="h-6 w-6" />}
+            trend={crescimentoPercentual > 0 ? "up" : crescimentoPercentual < 0 ? "down" : "neutral"}
+            trendValue={`${Math.abs(crescimentoPercentual).toFixed(1)}%`}
+          />
+        </div>
+
+        {/* Charts */}
+        <div className="grid gap-6 md:grid-cols-2 mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Vendas por Período</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={vendasPorPeriodo}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="mes" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Vendas']} />
+                  <Line type="monotone" dataKey="vendas" stroke="#8b5cf6" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              Status do Estoque
-              {temEstoqueBaixo && (
-                <AlertTriangle className="h-5 w-5 text-red-500" />
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4">
-            {temEstoqueBaixo && (
-              <Alert className="mb-4 border-red-200 bg-red-50">
-                <AlertTriangle className="h-4 w-4 text-red-600" />
-                <AlertDescription className="text-red-800 text-sm">
-                  <strong>{produtosEstoqueBaixo.length} produto(s)</strong> com estoque crítico!
-                </AlertDescription>
-              </Alert>
-            )}
-            {totalProdutos > 0 ? (
-              <>
-                <div className="h-[180px] flex items-center justify-center">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={estoqueData}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={60}
-                        dataKey="value"
-                        label={({name, percent}) => 
-                          `${name}: ${percent}%`
-                        }
-                        labelLine={false}
-                      >
-                        {estoqueData.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={entry.color}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        formatter={(value: number, name: string, props: any) => [
-                          `${value} produtos (${props.payload.percent}%)`, 
-                          name === "Estoque Crítico" ? "⚠️ " + name : name
-                        ]} 
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="text-center mt-3 space-y-1">
-                  {estoqueData.map((item, index) => (
-                    <div key={index} className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: item.color }}
-                        />
-                        <span>{item.name}</span>
-                      </div>
-                      <span className="font-medium">{item.value} ({item.percent}%)</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="h-[180px] flex items-center justify-center text-gray-500">
-                <p>Nenhum produto cadastrado</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card className="col-span-1 lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Produtos Mais Vendidos</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="h-[280px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={dashboardStats.produtosMaisVendidos}
-                  layout="vertical"
-                  margin={{
-                    top: 10,
-                    right: 20,
-                    left: 80,
-                    bottom: 10,
-                  }}
-                >
-                  <XAxis 
-                    type="number" 
-                    tick={{ fontSize: 10 }}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="nome"
-                    width={70}
-                    tick={{ fontSize: 9 }}
-                    interval={0}
-                  />
-                  <Tooltip
-                    formatter={(value: number) => [`${value} unidades`, "Quantidade"]}
-                    labelFormatter={(label) => `Produto: ${label}`}
-                  />
-                  <Bar 
-                    dataKey="quantidade" 
-                    fill="#9b87f5" 
-                    barSize={18}
-                    radius={[0, 3, 3, 0]}
-                  />
-                </BarChart>
+          <Card>
+            <CardHeader>
+              <CardTitle>Status do Estoque</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={statusEstoque}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {statusEstoque.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
               </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+              <div className="mt-4 space-y-2">
+                {statusEstoque.map((item, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: item.color }}
+                      />
+                      <span className="text-sm">{item.name}</span>
+                    </div>
+                    <span className="text-sm font-medium">{item.value} ({((item.value / totalProdutos) * 100).toFixed(0)}%)</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Resumo Financeiro</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Ticket Médio</span>
-                <div className="flex items-center">
-                  <span className="font-semibold">{formatCurrency(dashboardStats.ticketMedio)}</span>
-                  <TrendingUp className="ml-2 h-4 w-4 text-green-500" />
+        {/* Bottom Row */}
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Produtos Mais Vendidos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {produtosMaisVendidos.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={produtosMaisVendidos} layout="horizontal">
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" />
+                    <YAxis dataKey="nome" type="category" width={120} />
+                    <Tooltip />
+                    <Bar dataKey="quantidade" fill="#8b5cf6" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">
+                  Nenhuma venda registrada ainda
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Resumo Financeiro</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-green-600" />
+                  <span className="font-medium">Receitas</span>
                 </div>
+                <span className="font-bold text-green-600">
+                  {formatCurrency(resumoFinanceiro.receitas)}
+                </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Custo Médio por Item</span>
-                <div className="flex items-center">
-                  <span className="font-semibold">{formatCurrency(120.50)}</span>
-                  <TrendingDown className="ml-2 h-4 w-4 text-red-500" />
+
+              <div className="flex justify-between items-center p-4 bg-red-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <TrendingDown className="h-5 w-5 text-red-600" />
+                  <span className="font-medium">Despesas</span>
                 </div>
+                <span className="font-bold text-red-600">
+                  {formatCurrency(resumoFinanceiro.despesas)}
+                </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Margem Média</span>
-                <div className="flex items-center">
-                  <span className="font-semibold">35%</span>
-                  <TrendingUp className="ml-2 h-4 w-4 text-green-500" />
+
+              <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Minus className="h-5 w-5 text-blue-600" />
+                  <span className="font-medium">Lucro</span>
                 </div>
+                <span className={`font-bold ${resumoFinanceiro.lucro >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                  {formatCurrency(resumoFinanceiro.lucro)}
+                </span>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </>
+    </OptimizedLayout>
   );
 };
 
-export default Dashboard;
+export default Index;
