@@ -1,3 +1,4 @@
+
 import React, {
   createContext,
   useContext,
@@ -124,10 +125,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
   // CRUD operations for Clientes
   const getClientes = useCallback(async () => {
-    if (!user?.id) return;
+    if (!effectiveUserId) return;
     try {
       setLoading(true);
-      const clientesData = await supabaseDataService.getClientes(user.id);
+      const clientesData = await supabaseDataService.getClientes(effectiveUserId);
       setClientes(clientesData);
     } catch (error) {
       console.error("Erro ao buscar clientes:", error);
@@ -135,12 +136,12 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [effectiveUserId]);
 
   const createCliente = async (cliente: Omit<Cliente, 'id'>) => {
     try {
       setLoading(true);
-      await supabaseDataService.createCliente({ ...cliente, user_id: user?.id });
+      await supabaseDataService.createCliente({ ...cliente, user_id: effectiveUserId });
       await getClientes();
       toast.success("Cliente criado com sucesso!");
     } catch (error) {
@@ -181,10 +182,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
   // CRUD operations for Produtos
   const getProdutos = useCallback(async () => {
-    if (!user?.id) return;
+    if (!effectiveUserId) return;
     try {
       setLoading(true);
-      const produtosData = await supabaseDataService.getProdutos(user.id);
+      const produtosData = await supabaseDataService.getProdutos(effectiveUserId);
       setProdutos(produtosData);
     } catch (error) {
       console.error("Erro ao buscar produtos:", error);
@@ -192,12 +193,12 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [effectiveUserId]);
 
   const createProduto = async (produto: Omit<Produto, 'id'>) => {
     try {
       setLoading(true);
-      await supabaseDataService.createProduto({ ...produto, user_id: user?.id });
+      await supabaseDataService.createProduto({ ...produto, user_id: effectiveUserId });
       await getProdutos();
       toast.success("Produto criado com sucesso!");
     } catch (error) {
@@ -238,10 +239,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
   // CRUD operations for Compras
   const getCompras = useCallback(async () => {
-    if (!user?.id) return;
+    if (!effectiveUserId) return;
     try {
       setLoading(true);
-      const comprasData = await supabaseDataService.getCompras(user.id);
+      const comprasData = await supabaseDataService.getCompras(effectiveUserId);
       setCompras(comprasData);
     } catch (error) {
       console.error("Erro ao buscar compras:", error);
@@ -249,12 +250,12 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [effectiveUserId]);
 
   const createCompra = async (compra: Omit<Compra, 'id'>) => {
     try {
       setLoading(true);
-      await supabaseDataService.createCompra({ ...compra, user_id: user?.id });
+      await supabaseDataService.createCompra({ ...compra, user_id: effectiveUserId });
       await getCompras();
       toast.success("Compra criada com sucesso!");
     } catch (error) {
@@ -295,10 +296,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
   // CRUD operations for Transacoes
   const getTransacoes = useCallback(async () => {
-    if (!user?.id) return;
+    if (!effectiveUserId) return;
     try {
       setLoading(true);
-      const transacoesData = await supabaseDataService.getTransacoes(user.id);
+      const transacoesData = await supabaseDataService.getTransacoes(effectiveUserId);
       setTransacoes(transacoesData);
     } catch (error) {
       console.error("Erro ao buscar transacoes:", error);
@@ -306,12 +307,12 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [effectiveUserId]);
 
   const createTransacao = async (transacao: Omit<Transacao, 'id'>) => {
     try {
       setLoading(true);
-      await supabaseDataService.createTransacao({ ...transacao, user_id: user?.id });
+      await supabaseDataService.createTransacao({ ...transacao, user_id: effectiveUserId });
       await getTransacoes();
       toast.success("Transacao criada com sucesso!");
     } catch (error) {
@@ -352,10 +353,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
   // CRUD operations for Fornecedores
   const getFornecedores = useCallback(async () => {
-    if (!user?.id) return;
+    if (!effectiveUserId) return;
     try {
       setLoading(true);
-      const fornecedoresData = await supabaseDataService.getFornecedores(user.id);
+      const fornecedoresData = await supabaseDataService.getFornecedores(effectiveUserId);
       setFornecedores(fornecedoresData);
     } catch (error) {
       console.error("Erro ao buscar fornecedores:", error);
@@ -363,12 +364,12 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [effectiveUserId]);
 
   const createFornecedor = async (fornecedor: Omit<Fornecedor, 'id'>) => {
     try {
       setLoading(true);
-      await supabaseDataService.createFornecedor({ ...fornecedor, user_id: user?.id });
+      await supabaseDataService.createFornecedor({ ...fornecedor, user_id: effectiveUserId });
       await getFornecedores();
       toast.success("Fornecedor criado com sucesso!");
     } catch (error) {
@@ -409,10 +410,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
   // CRUD operations for Feedbacks
   const getFeedbacks = useCallback(async () => {
-    if (!user?.id) return;
+    if (!effectiveUserId) return;
     try {
       setLoading(true);
-      const feedbacksData = await supabaseDataService.getFeedbacks(user.id);
+      const feedbacksData = await supabaseDataService.getFeedbacks(effectiveUserId);
       setFeedbacks(feedbacksData);
     } catch (error) {
       console.error("Erro ao buscar feedbacks:", error);
@@ -420,12 +421,12 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [effectiveUserId]);
 
   const createFeedback = async (feedback: Omit<Feedback, 'id'>) => {
     try {
       setLoading(true);
-      await supabaseDataService.createFeedback({ ...feedback, user_id: user?.id });
+      await supabaseDataService.createFeedback({ ...feedback, user_id: effectiveUserId });
       await getFeedbacks();
       toast.success("Feedback criado com sucesso!");
     } catch (error) {
@@ -466,10 +467,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
   // CRUD operations for Promocoes
   const getPromocoes = useCallback(async () => {
-    if (!user?.id) return;
+    if (!effectiveUserId) return;
     try {
       setLoading(true);
-      const promocoesData = await supabaseDataService.getPromocoes(user.id);
+      const promocoesData = await supabaseDataService.getPromocoes(effectiveUserId);
       setPromocoes(promocoesData);
     } catch (error) {
       console.error("Erro ao buscar promocoes:", error);
@@ -477,12 +478,12 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [effectiveUserId]);
 
   const createPromocao = async (promocao: Omit<Promocao, 'id'>) => {
     try {
       setLoading(true);
-      await supabaseDataService.createPromocao({ ...promocao, user_id: user?.id });
+      await supabaseDataService.createPromocao({ ...promocao, user_id: effectiveUserId });
       await getPromocoes();
       toast.success("Promocao criada com sucesso!");
     } catch (error) {
