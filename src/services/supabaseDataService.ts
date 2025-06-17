@@ -9,43 +9,43 @@ import { promocaoService } from "./promocaoService";
 
 export const supabaseDataService = {
   // CLIENTES
-  getClientes: (userId: string) => clienteService.getClientes(userId),
+  getClientes: clienteService.getClientes,
   createCliente: clienteService.createCliente,
   updateCliente: clienteService.updateCliente,
   deleteCliente: clienteService.deleteCliente,
 
   // PRODUTOS
-  getProdutos: (userId: string) => produtoService.getProdutos(userId),
+  getProdutos: produtoService.getProdutos,
   createProduto: produtoService.createProduto,
   updateProduto: produtoService.updateProduto,
   deleteProduto: produtoService.deleteProduto,
 
   // FORNECEDORES
-  getFornecedores: (userId: string) => fornecedorService.getFornecedores(userId),
+  getFornecedores: fornecedorService.getFornecedores,
   createFornecedor: fornecedorService.createFornecedor,
   updateFornecedor: fornecedorService.updateFornecedor,
   deleteFornecedor: fornecedorService.deleteFornecedor,
 
   // COMPRAS (VENDAS)
-  getCompras: (userId: string) => compraService.getCompras(userId),
+  getCompras: compraService.getCompras,
   createCompra: compraService.createCompra,
   updateCompra: compraService.updateCompra,
   deleteCompra: compraService.deleteCompra,
 
   // TRANSACOES
-  getTransacoes: (userId: string) => transacaoService.getTransacoes(userId),
+  getTransacoes: transacaoService.getTransacoes,
   createTransacao: transacaoService.createTransacao,
   updateTransacao: transacaoService.updateTransacao,
   deleteTransacao: transacaoService.deleteTransacao,
 
   // FEEDBACKS
-  getFeedbacks: (userId: string) => feedbackService.getFeedbacks(userId),
+  getFeedbacks: feedbackService.getFeedbacks,
   createFeedback: feedbackService.createFeedback,
   updateFeedback: feedbackService.updateFeedback,
   deleteFeedback: feedbackService.deleteFeedback,
 
   // PROMOCOES
-  getPromocoes: (userId: string) => promocaoService.getPromocoes(userId),
+  getPromocoes: promocaoService.getPromocoes,
   createPromocao: promocaoService.createPromocao,
   updatePromocao: promocaoService.updatePromocao,
   deletePromocao: promocaoService.deletePromocao

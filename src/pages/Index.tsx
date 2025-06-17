@@ -52,14 +52,14 @@ const Index = () => {
   const totalProdutos = produtos.length;
   const totalVendas = compras.length;
   
-  const faturamentoTotal = compras.reduce((total, compra) => total + Number(compra.valorTotal), 0);
+  const faturamentoTotal = compras.reduce((total, compra) => total + Number(compra.valor_total), 0);
   const faturamentoMesAtual = compras
     .filter(compra => {
       const compraDate = new Date(compra.data);
       const now = new Date();
       return compraDate.getMonth() === now.getMonth() && compraDate.getFullYear() === now.getFullYear();
     })
-    .reduce((total, compra) => total + Number(compra.valorTotal), 0);
+    .reduce((total, compra) => total + Number(compra.valor_total), 0);
 
   const faturamentoMesAnterior = compras
     .filter(compra => {
@@ -68,7 +68,7 @@ const Index = () => {
       const mesAnterior = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       return compraDate.getMonth() === mesAnterior.getMonth() && compraDate.getFullYear() === mesAnterior.getFullYear();
     })
-    .reduce((total, compra) => total + Number(compra.valorTotal), 0);
+    .reduce((total, compra) => total + Number(compra.valor_total), 0);
 
   const crescimentoPercentual = faturamentoMesAnterior > 0 
     ? ((faturamentoMesAtual - faturamentoMesAnterior) / faturamentoMesAnterior) * 100 
@@ -81,7 +81,7 @@ const Index = () => {
     
     compras.forEach(compra => {
       const mes = new Date(compra.data).getMonth();
-      vendasPorMes[mes] += Number(compra.valorTotal);
+      vendasPorMes[mes] += Number(compra.valor_total);
     });
 
     return meses.map((mes, index) => ({
@@ -131,8 +131,8 @@ const Index = () => {
   }, [compras, produtos]);
 
   const resumoFinanceiro = React.useMemo(() => {
-    const receitas = transacoes.filter(t => t.tipo === 'entrada').reduce((sum, t) => sum + Number(t.valor), 0);
-    const despesas = transacoes.filter(t => t.tipo === 'saida').reduce((sum, t) => sum + Number(t.valor), 0);
+    const receitas = transacoes.filter(t => t.tipo === 'receita').reduce((sum, t) => sum + Number(t.valor), 0);
+    const despesas = transacoes.filter(t => t.tipo === 'despesa').reduce((sum, t) => sum + Number(t.valor), 0);
     const lucro = receitas - despesas;
 
     return { receitas, despesas, lucro };
