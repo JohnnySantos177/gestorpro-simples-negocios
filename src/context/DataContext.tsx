@@ -139,6 +139,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   }, [effectiveUserId]);
 
   const createCliente = async (cliente: Omit<Cliente, 'id'>) => {
+    if (!effectiveUserId) return;
     try {
       setLoading(true);
       await supabaseDataService.createCliente({ ...cliente, user_id: effectiveUserId });
@@ -196,6 +197,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   }, [effectiveUserId]);
 
   const createProduto = async (produto: Omit<Produto, 'id'>) => {
+    if (!effectiveUserId) return;
     try {
       setLoading(true);
       await supabaseDataService.createProduto({ ...produto, user_id: effectiveUserId });
@@ -253,6 +255,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   }, [effectiveUserId]);
 
   const createCompra = async (compra: Omit<Compra, 'id'>) => {
+    if (!effectiveUserId) return;
     try {
       setLoading(true);
       await supabaseDataService.createCompra({ ...compra, user_id: effectiveUserId });
@@ -310,6 +313,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   }, [effectiveUserId]);
 
   const createTransacao = async (transacao: Omit<Transacao, 'id'>) => {
+    if (!effectiveUserId) return;
     try {
       setLoading(true);
       await supabaseDataService.createTransacao({ ...transacao, user_id: effectiveUserId });
@@ -367,6 +371,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   }, [effectiveUserId]);
 
   const createFornecedor = async (fornecedor: Omit<Fornecedor, 'id'>) => {
+    if (!effectiveUserId) return;
     try {
       setLoading(true);
       await supabaseDataService.createFornecedor({ ...fornecedor, user_id: effectiveUserId });
@@ -424,6 +429,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   }, [effectiveUserId]);
 
   const createFeedback = async (feedback: Omit<Feedback, 'id'>) => {
+    if (!effectiveUserId) return;
     try {
       setLoading(true);
       await supabaseDataService.createFeedback({ ...feedback, user_id: effectiveUserId });
@@ -481,6 +487,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   }, [effectiveUserId]);
 
   const createPromocao = async (promocao: Omit<Promocao, 'id'>) => {
+    if (!effectiveUserId) return;
     try {
       setLoading(true);
       await supabaseDataService.createPromocao({ ...promocao, user_id: effectiveUserId });
