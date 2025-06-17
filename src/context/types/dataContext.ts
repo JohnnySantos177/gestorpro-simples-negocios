@@ -1,0 +1,41 @@
+
+import { Cliente, Produto, Compra, Transacao, Fornecedor, Feedback, Promocao } from "@/types";
+
+export type DataContextType = {
+  clientes: Cliente[];
+  produtos: Produto[];
+  compras: Compra[];
+  transacoes: Transacao[];
+  fornecedores: Fornecedor[];
+  feedbacks: Feedback[];
+  promocoes: Promocao[];
+  loading: boolean;
+  getClientes: () => Promise<void>;
+  createCliente: (cliente: Omit<Cliente, 'id'>) => Promise<void>;
+  updateCliente: (cliente: Cliente) => Promise<void>;
+  deleteCliente: (id: string) => Promise<void>;
+  getProdutos: () => Promise<void>;
+  createProduto: (produto: Omit<Produto, 'id'>) => Promise<void>;
+  updateProduto: (produto: Produto) => Promise<void>;
+  deleteProduto: (id: string) => Promise<void>;
+  getCompras: () => Promise<void>;
+  createCompra: (compra: Omit<Compra, 'id'>) => Promise<void>;
+  updateCompra: (compra: Compra) => Promise<void>;
+  deleteCompra: (id: string) => Promise<void>;
+  getTransacoes: () => Promise<void>;
+  createTransacao: (transacao: Omit<Transacao, 'id'>) => Promise<void>;
+  updateTransacao: (transacao: Transacao) => Promise<void>;
+  deleteTransacao: (id: string) => Promise<void>;
+  getFornecedores: () => Promise<void>;
+  createFornecedor: (fornecedor: Omit<Fornecedor, 'id'>) => Promise<void>;
+  updateFornecedor: (fornecedor: Fornecedor) => Promise<void>;
+  deleteFornecedor: (id: string) => Promise<void>;
+  getFeedbacks: () => Promise<void>;
+  createFeedback: (feedback: Omit<Feedback, 'id'>) => Promise<void>;
+  updateFeedback: (feedback: Feedback) => Promise<void>;
+  deleteFeedback: (id: string) => Promise<void>;
+  getPromocoes: () => Promise<void>;
+  createPromocao: (promocao: Omit<Promocao, 'id'>) => Promise<void>;
+  updatePromocao: (promocao: Promocao) => Promise<void>;
+  deletePromocao: (id: string) => Promise<void>;
+};
