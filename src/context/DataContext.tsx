@@ -1,3 +1,4 @@
+
 import React, {
   createContext,
   useContext,
@@ -8,7 +9,7 @@ import React, {
 } from "react";
 import { toast } from "sonner";
 
-import { Cliente, Produto, Compra, Transacao, Fornecedor, Feedback, Promocao } from "@/types";
+import { Cliente, Produto, Compra, Transacao, Fornecedor, Feedback, Promocao, FilterOptions } from "@/types";
 import { supabaseDataService } from "@/services/supabaseDataService";
 import { useAuth } from "@/context/AuthContext";
 import { useVisitorMode } from "@/context/VisitorModeContext";
@@ -22,35 +23,48 @@ type DataContextType = {
   feedbacks: Feedback[];
   promocoes: Promocao[];
   loading: boolean;
-  getClientes: () => Promise<void>;
-  createCliente: (cliente: Omit<Cliente, 'id'>) => Promise<void>;
-  updateCliente: (cliente: Cliente) => Promise<void>;
-  deleteCliente: (id: string) => Promise<void>;
-  getProdutos: () => Promise<void>;
-  createProduto: (produto: Omit<Produto, 'id'>) => Promise<void>;
-  updateProduto: (produto: Produto) => Promise<void>;
+  refreshData: () => Promise<void>;
+  
+  // Filter functions
+  filterClientes: (options: FilterOptions) => Cliente[];
+  filterProdutos: (options: FilterOptions) => Produto[];
+  filterCompras: (options: FilterOptions) => Compra[];
+  filterTransacoes: (options: FilterOptions) => Transacao[];
+  filterFornecedores: (options: FilterOptions) => Fornecedor[];
+  
+  // CRUD operations for Clientes
+  addCliente: (cliente: Omit<Cliente, 'id' | 'dataCadastro'>) => boolean;
+  updateCliente: (id: string, cliente: Partial<Cliente>) => void;
+  deleteCliente: (id: string) => void;
+  
+  // CRUD operations for Produtos
+  addProduto: (produto: Omit<Produto, 'id'>) => Promise<boolean>;
+  updateProduto: (id: string, produto: Partial<Produto>) => Promise<void>;
   deleteProduto: (id: string) => Promise<void>;
-  getCompras: () => Promise<void>;
-  createCompra: (compra: Omit<Compra, 'id'>) => Promise<void>;
-  updateCompra: (compra: Compra) => Promise<void>;
-  deleteCompra: (id: string) => Promise<void>;
-  getTransacoes: () => Promise<void>;
-  createTransacao: (transacao: Omit<Transacao, 'id'>) => Promise<void>;
-  updateTransacao: (transacao: Transacao) => Promise<void>;
-  deleteTransacao: (id: string) => Promise<void>;
-  getFornecedores: () => Promise<void>;
-  createFornecedor: (fornecedor: Omit<Fornecedor, 'id'>) => Promise<void>;
-  updateFornecedor: (fornecedor: Fornecedor) => Promise<void>;
-  deleteFornecedor: (id: string) => Promise<void>;
-    
-  getFeedbacks: () => Promise<void>;
-  createFeedback: (feedback: Omit<Feedback, 'id'>) => Promise<void>;
-  updateFeedback: (feedback: Feedback) => Promise<void>;
-  deleteFeedback: (id: string) => Promise<void>;
-
-  getPromocoes: () => Promise<void>;
-  createPromocao: (promocao: Omit<Promocao, 'id'>) => Promise<void>;
-  updatePromocao: (promocao: Promocao) => Promise<void>;
+  
+  // CRUD operations for Compras
+  addCompra: (compra: Omit<Compra, 'id'>) => boolean;
+  updateCompra: (id: string, compra: Partial<Compra>) => void;
+  deleteCompra: (id: string) => void;
+  
+  // CRUD operations for Transacoes
+  addTransacao: (transacao: Omit<Transacao, 'id'>) => boolean;
+  updateTransacao: (id: string, transacao: Partial<Transacao>) => void;
+  deleteTransacao: (id: string) => void;
+  
+  // CRUD operations for Fornecedores
+  addFornecedor: (fornecedor: Omit<Fornecedor, 'id' | 'dataCadastro'>) => boolean;
+  updateFornecedor: (id: string, fornecedor: Partial<Fornecedor>) => void;
+  deleteFornecedor: (id: string) => void;
+  
+  // CRUD operations for Feedbacks
+  addFeedback: (feedback: Omit<Feedback, 'id'>) => void;
+  updateFeedback: (id: string, feedback: Partial<Feedback>) => void;
+  deleteFeedback: (id: string) => void;
+  
+  // CRUD operations for Promocoes
+  addPromocao: (promocao: Omit<Promocao, 'id'>) => Promise<void>;
+  updatePromocao: (id: string, promocao: Partial<Promocao>) => Promise<void>;
   deletePromocao: (id: string) => Promise<void>;
 };
 
@@ -114,6 +128,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [effectiveUserId]);
 
+  const refreshData = useCallback(async () => {
+    await fetchData();
+  }, [fetchData]);
+
   // Refresh data when user changes or visitor mode changes
   useEffect(() => {
     console.log("DataContext: Effect triggered - effectiveUserId:", effectiveUserId, "isVisitorMode:", isVisitorMode);
@@ -122,404 +140,441 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [fetchData, effectiveUserId, isVisitorMode]);
 
+  // Filter functions
+  const filterClientes = useCallback((options: FilterOptions): Cliente[] => {
+    let result = [...clientes];
+    
+    if (options.search) {
+      const searchLower = options.search.toLowerCase();
+      result = result.filter(cliente => 
+        cliente.nome.toLowerCase().includes(searchLower) ||
+        cliente.email.toLowerCase().includes(searchLower) ||
+        cliente.telefone.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    if (options.grupo && options.grupo !== "Todos") {
+      result = result.filter(cliente => cliente.grupo === options.grupo);
+    }
+    
+    // Apply sorting
+    result.sort((a, b) => {
+      const aValue = a[options.sortBy as keyof Cliente];
+      const bValue = b[options.sortBy as keyof Cliente];
+      if (options.sortOrder === 'asc') {
+        return String(aValue).localeCompare(String(bValue));
+      } else {
+        return String(bValue).localeCompare(String(aValue));
+      }
+    });
+    
+    // Apply pagination
+    const startIndex = (options.page - 1) * options.itemsPerPage;
+    return result.slice(startIndex, startIndex + options.itemsPerPage);
+  }, [clientes]);
+
+  const filterProdutos = useCallback((options: FilterOptions): Produto[] => {
+    let result = [...produtos];
+    
+    if (options.search) {
+      const searchLower = options.search.toLowerCase();
+      result = result.filter(produto => 
+        produto.nome.toLowerCase().includes(searchLower) ||
+        (produto.descricao && produto.descricao.toLowerCase().includes(searchLower))
+      );
+    }
+    
+    if (options.categoria && options.categoria !== "Todas") {
+      result = result.filter(produto => produto.categoria === options.categoria);
+    }
+    
+    // Apply sorting
+    result.sort((a, b) => {
+      const aValue = a[options.sortBy as keyof Produto];
+      const bValue = b[options.sortBy as keyof Produto];
+      if (options.sortOrder === 'asc') {
+        return String(aValue).localeCompare(String(bValue));
+      } else {
+        return String(bValue).localeCompare(String(aValue));
+      }
+    });
+    
+    return result;
+  }, [produtos]);
+
+  const filterCompras = useCallback((options: FilterOptions): Compra[] => {
+    let result = [...compras];
+    
+    if (options.search) {
+      const searchLower = options.search.toLowerCase();
+      result = result.filter(compra => 
+        compra.clienteNome.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    // Apply sorting
+    result.sort((a, b) => {
+      if (options.sortBy === 'data') {
+        return options.sortOrder === 'asc'
+          ? new Date(a.data).getTime() - new Date(b.data).getTime()
+          : new Date(b.data).getTime() - new Date(a.data).getTime();
+      }
+      const aValue = a[options.sortBy as keyof Compra];
+      const bValue = b[options.sortBy as keyof Compra];
+      if (options.sortOrder === 'asc') {
+        return String(aValue).localeCompare(String(bValue));
+      } else {
+        return String(bValue).localeCompare(String(aValue));
+      }
+    });
+    
+    return result;
+  }, [compras]);
+
+  const filterTransacoes = useCallback((options: FilterOptions): Transacao[] => {
+    let result = [...transacoes];
+    
+    if (options.search) {
+      const searchLower = options.search.toLowerCase();
+      result = result.filter(transacao => 
+        transacao.descricao.toLowerCase().includes(searchLower) ||
+        transacao.categoria.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    if (options.tipo && options.tipo !== "") {
+      result = result.filter(transacao => transacao.tipo === options.tipo);
+    }
+    
+    if (options.categoria && options.categoria !== "") {
+      result = result.filter(transacao => transacao.categoria === options.categoria);
+    }
+    
+    // Apply sorting
+    result.sort((a, b) => {
+      if (options.sortBy === 'data') {
+        return options.sortOrder === 'asc'
+          ? new Date(a.data).getTime() - new Date(b.data).getTime()
+          : new Date(b.data).getTime() - new Date(a.data).getTime();
+      }
+      const aValue = a[options.sortBy as keyof Transacao];
+      const bValue = b[options.sortBy as keyof Transacao];
+      if (options.sortOrder === 'asc') {
+        return String(aValue).localeCompare(String(bValue));
+      } else {
+        return String(bValue).localeCompare(String(aValue));
+      }
+    });
+    
+    // Apply pagination
+    const startIndex = (options.page - 1) * options.itemsPerPage;
+    return result.slice(startIndex, startIndex + options.itemsPerPage);
+  }, [transacoes]);
+
+  const filterFornecedores = useCallback((options: FilterOptions): Fornecedor[] => {
+    let result = [...fornecedores];
+    
+    if (options.search) {
+      const searchLower = options.search.toLowerCase();
+      result = result.filter(fornecedor => 
+        fornecedor.nome.toLowerCase().includes(searchLower) ||
+        (fornecedor.contato && fornecedor.contato.toLowerCase().includes(searchLower))
+      );
+    }
+    
+    // Apply sorting
+    result.sort((a, b) => {
+      const aValue = a[options.sortBy as keyof Fornecedor];
+      const bValue = b[options.sortBy as keyof Fornecedor];
+      if (options.sortOrder === 'asc') {
+        return String(aValue).localeCompare(String(bValue));
+      } else {
+        return String(bValue).localeCompare(String(aValue));
+      }
+    });
+    
+    // Apply pagination
+    const startIndex = (options.page - 1) * options.itemsPerPage;
+    return result.slice(startIndex, startIndex + options.itemsPerPage);
+  }, [fornecedores]);
+
   // CRUD operations for Clientes
-  const getClientes = useCallback(async () => {
-    if (!user?.id) return;
+  const addCliente = useCallback((clienteData: Omit<Cliente, 'id' | 'dataCadastro'>): boolean => {
     try {
-      setLoading(true);
-      const clientesData = await supabaseDataService.getClientes(user.id);
-      setClientes(clientesData);
+      if (!user?.id) return false;
+      
+      const newCliente: Cliente = {
+        ...clienteData,
+        id: crypto.randomUUID(),
+        dataCadastro: new Date().toISOString()
+      };
+      
+      supabaseDataService.createCliente({ ...clienteData, user_id: user.id });
+      setClientes(prev => [...prev, newCliente]);
+      toast.success("Cliente adicionado com sucesso!");
+      return true;
     } catch (error) {
-      console.error("Erro ao buscar clientes:", error);
-      toast.error("Erro ao carregar clientes");
-    } finally {
-      setLoading(false);
+      console.error("Erro ao adicionar cliente:", error);
+      toast.error("Erro ao adicionar cliente");
+      return false;
     }
   }, [user?.id]);
 
-  const createCliente = async (cliente: Omit<Cliente, 'id'>) => {
+  const updateCliente = useCallback(async (id: string, clienteData: Partial<Cliente>) => {
     try {
-      setLoading(true);
-      await supabaseDataService.createCliente({ ...cliente, user_id: user?.id });
-      await getClientes();
-      toast.success("Cliente criado com sucesso!");
-    } catch (error) {
-      console.error("Erro ao criar cliente:", error);
-      toast.error("Erro ao criar cliente");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateCliente = async (cliente: Cliente) => {
-    try {
-      setLoading(true);
-      await supabaseDataService.updateCliente(cliente);
-      await getClientes();
+      const cliente = clientes.find(c => c.id === id);
+      if (!cliente) return;
+      
+      const updatedCliente = { ...cliente, ...clienteData };
+      await supabaseDataService.updateCliente(updatedCliente);
+      setClientes(prev => prev.map(c => c.id === id ? updatedCliente : c));
       toast.success("Cliente atualizado com sucesso!");
     } catch (error) {
       console.error("Erro ao atualizar cliente:", error);
       toast.error("Erro ao atualizar cliente");
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [clientes]);
 
-  const deleteCliente = async (id: string) => {
+  const deleteCliente = useCallback(async (id: string) => {
     try {
-      setLoading(true);
       await supabaseDataService.deleteCliente(id);
-      await getClientes();
+      setClientes(prev => prev.filter(c => c.id !== id));
       toast.success("Cliente removido com sucesso!");
     } catch (error) {
       console.error("Erro ao remover cliente:", error);
       toast.error("Erro ao remover cliente");
-    } finally {
-      setLoading(false);
     }
-  };
+  }, []);
 
   // CRUD operations for Produtos
-  const getProdutos = useCallback(async () => {
-    if (!user?.id) return;
+  const addProduto = useCallback(async (produtoData: Omit<Produto, 'id'>): Promise<boolean> => {
     try {
-      setLoading(true);
-      const produtosData = await supabaseDataService.getProdutos(user.id);
-      setProdutos(produtosData);
+      if (!user?.id) return false;
+      
+      await supabaseDataService.createProduto({ ...produtoData, user_id: user.id });
+      await refreshData();
+      return true;
     } catch (error) {
-      console.error("Erro ao buscar produtos:", error);
-      toast.error("Erro ao carregar produtos");
-    } finally {
-      setLoading(false);
+      console.error("Erro ao adicionar produto:", error);
+      toast.error("Erro ao adicionar produto");
+      return false;
     }
-  }, [user?.id]);
+  }, [user?.id, refreshData]);
 
-  const createProduto = async (produto: Omit<Produto, 'id'>) => {
+  const updateProduto = useCallback(async (id: string, produtoData: Partial<Produto>) => {
     try {
-      setLoading(true);
-      await supabaseDataService.createProduto({ ...produto, user_id: user?.id });
-      await getProdutos();
-      toast.success("Produto criado com sucesso!");
-    } catch (error) {
-      console.error("Erro ao criar produto:", error);
-      toast.error("Erro ao criar produto");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateProduto = async (produto: Produto) => {
-    try {
-      setLoading(true);
-      await supabaseDataService.updateProduto(produto);
-      await getProdutos();
-      toast.success("Produto atualizado com sucesso!");
+      const produto = produtos.find(p => p.id === id);
+      if (!produto) return;
+      
+      const updatedProduto = { ...produto, ...produtoData };
+      await supabaseDataService.updateProduto(updatedProduto);
+      await refreshData();
     } catch (error) {
       console.error("Erro ao atualizar produto:", error);
       toast.error("Erro ao atualizar produto");
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [produtos, refreshData]);
 
-  const deleteProduto = async (id: string) => {
+  const deleteProduto = useCallback(async (id: string) => {
     try {
-      setLoading(true);
       await supabaseDataService.deleteProduto(id);
-      await getProdutos();
-      toast.success("Produto removido com sucesso!");
+      await refreshData();
     } catch (error) {
       console.error("Erro ao remover produto:", error);
       toast.error("Erro ao remover produto");
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [refreshData]);
 
   // CRUD operations for Compras
-  const getCompras = useCallback(async () => {
-    if (!user?.id) return;
+  const addCompra = useCallback((compraData: Omit<Compra, 'id'>): boolean => {
     try {
-      setLoading(true);
-      const comprasData = await supabaseDataService.getCompras(user.id);
-      setCompras(comprasData);
+      if (!user?.id) return false;
+      
+      supabaseDataService.createCompra({ ...compraData, user_id: user.id });
+      refreshData();
+      return true;
     } catch (error) {
-      console.error("Erro ao buscar compras:", error);
-      toast.error("Erro ao carregar compras");
-    } finally {
-      setLoading(false);
+      console.error("Erro ao adicionar compra:", error);
+      toast.error("Erro ao adicionar compra");
+      return false;
     }
-  }, [user?.id]);
+  }, [user?.id, refreshData]);
 
-  const createCompra = async (compra: Omit<Compra, 'id'>) => {
+  const updateCompra = useCallback(async (id: string, compraData: Partial<Compra>) => {
     try {
-      setLoading(true);
-      await supabaseDataService.createCompra({ ...compra, user_id: user?.id });
-      await getCompras();
-      toast.success("Compra criada com sucesso!");
-    } catch (error) {
-      console.error("Erro ao criar compra:", error);
-      toast.error("Erro ao criar compra");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateCompra = async (compra: Compra) => {
-    try {
-      setLoading(true);
-      await supabaseDataService.updateCompra(compra);
-      await getCompras();
-      toast.success("Compra atualizada com sucesso!");
+      const compra = compras.find(c => c.id === id);
+      if (!compra) return;
+      
+      const updatedCompra = { ...compra, ...compraData };
+      await supabaseDataService.updateCompra(updatedCompra);
+      await refreshData();
     } catch (error) {
       console.error("Erro ao atualizar compra:", error);
       toast.error("Erro ao atualizar compra");
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [compras, refreshData]);
 
-  const deleteCompra = async (id: string) => {
+  const deleteCompra = useCallback(async (id: string) => {
     try {
-      setLoading(true);
       await supabaseDataService.deleteCompra(id);
-      await getCompras();
-      toast.success("Compra removida com sucesso!");
+      await refreshData();
     } catch (error) {
       console.error("Erro ao remover compra:", error);
       toast.error("Erro ao remover compra");
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [refreshData]);
 
   // CRUD operations for Transacoes
-  const getTransacoes = useCallback(async () => {
-    if (!user?.id) return;
+  const addTransacao = useCallback((transacaoData: Omit<Transacao, 'id'>): boolean => {
     try {
-      setLoading(true);
-      const transacoesData = await supabaseDataService.getTransacoes(user.id);
-      setTransacoes(transacoesData);
+      if (!user?.id) return false;
+      
+      supabaseDataService.createTransacao({ ...transacaoData, user_id: user.id });
+      refreshData();
+      return true;
     } catch (error) {
-      console.error("Erro ao buscar transacoes:", error);
-      toast.error("Erro ao carregar transacoes");
-    } finally {
-      setLoading(false);
+      console.error("Erro ao adicionar transação:", error);
+      toast.error("Erro ao adicionar transação");
+      return false;
     }
-  }, [user?.id]);
+  }, [user?.id, refreshData]);
 
-  const createTransacao = async (transacao: Omit<Transacao, 'id'>) => {
+  const updateTransacao = useCallback(async (id: string, transacaoData: Partial<Transacao>) => {
     try {
-      setLoading(true);
-      await supabaseDataService.createTransacao({ ...transacao, user_id: user?.id });
-      await getTransacoes();
-      toast.success("Transacao criada com sucesso!");
+      const transacao = transacoes.find(t => t.id === id);
+      if (!transacao) return;
+      
+      const updatedTransacao = { ...transacao, ...transacaoData };
+      await supabaseDataService.updateTransacao(updatedTransacao);
+      await refreshData();
     } catch (error) {
-      console.error("Erro ao criar transacao:", error);
-      toast.error("Erro ao criar transacao");
-    } finally {
-      setLoading(false);
+      console.error("Erro ao atualizar transação:", error);
+      toast.error("Erro ao atualizar transação");
     }
-  };
+  }, [transacoes, refreshData]);
 
-  const updateTransacao = async (transacao: Transacao) => {
+  const deleteTransacao = useCallback(async (id: string) => {
     try {
-      setLoading(true);
-      await supabaseDataService.updateTransacao(transacao);
-      await getTransacoes();
-      toast.success("Transacao atualizada com sucesso!");
-    } catch (error) {
-      console.error("Erro ao atualizar transacao:", error);
-      toast.error("Erro ao atualizar transacao");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deleteTransacao = async (id: string) => {
-    try {
-      setLoading(true);
       await supabaseDataService.deleteTransacao(id);
-      await getTransacoes();
-      toast.success("Transacao removida com sucesso!");
+      await refreshData();
     } catch (error) {
-      console.error("Erro ao remover transacao:", error);
-      toast.error("Erro ao remover transacao");
-    } finally {
-      setLoading(false);
+      console.error("Erro ao remover transação:", error);
+      toast.error("Erro ao remover transação");
     }
-  };
+  }, [refreshData]);
 
   // CRUD operations for Fornecedores
-  const getFornecedores = useCallback(async () => {
-    if (!user?.id) return;
+  const addFornecedor = useCallback((fornecedorData: Omit<Fornecedor, 'id' | 'dataCadastro'>): boolean => {
     try {
-      setLoading(true);
-      const fornecedoresData = await supabaseDataService.getFornecedores(user.id);
-      setFornecedores(fornecedoresData);
+      if (!user?.id) return false;
+      
+      supabaseDataService.createFornecedor({ ...fornecedorData, user_id: user.id });
+      refreshData();
+      return true;
     } catch (error) {
-      console.error("Erro ao buscar fornecedores:", error);
-      toast.error("Erro ao carregar fornecedores");
-    } finally {
-      setLoading(false);
+      console.error("Erro ao adicionar fornecedor:", error);
+      toast.error("Erro ao adicionar fornecedor");
+      return false;
     }
-  }, [user?.id]);
+  }, [user?.id, refreshData]);
 
-  const createFornecedor = async (fornecedor: Omit<Fornecedor, 'id'>) => {
+  const updateFornecedor = useCallback(async (id: string, fornecedorData: Partial<Fornecedor>) => {
     try {
-      setLoading(true);
-      await supabaseDataService.createFornecedor({ ...fornecedor, user_id: user?.id });
-      await getFornecedores();
-      toast.success("Fornecedor criado com sucesso!");
-    } catch (error) {
-      console.error("Erro ao criar fornecedor:", error);
-      toast.error("Erro ao criar fornecedor");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateFornecedor = async (fornecedor: Fornecedor) => {
-    try {
-      setLoading(true);
-      await supabaseDataService.updateFornecedor(fornecedor);
-      await getFornecedores();
-      toast.success("Fornecedor atualizado com sucesso!");
+      const fornecedor = fornecedores.find(f => f.id === id);
+      if (!fornecedor) return;
+      
+      const updatedFornecedor = { ...fornecedor, ...fornecedorData };
+      await supabaseDataService.updateFornecedor(updatedFornecedor);
+      await refreshData();
     } catch (error) {
       console.error("Erro ao atualizar fornecedor:", error);
       toast.error("Erro ao atualizar fornecedor");
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [fornecedores, refreshData]);
 
-  const deleteFornecedor = async (id: string) => {
+  const deleteFornecedor = useCallback(async (id: string) => {
     try {
-      setLoading(true);
       await supabaseDataService.deleteFornecedor(id);
-      await getFornecedores();
-      toast.success("Fornecedor removido com sucesso!");
+      await refreshData();
     } catch (error) {
       console.error("Erro ao remover fornecedor:", error);
       toast.error("Erro ao remover fornecedor");
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [refreshData]);
 
   // CRUD operations for Feedbacks
-  const getFeedbacks = useCallback(async () => {
-    if (!user?.id) return;
+  const addFeedback = useCallback((feedbackData: Omit<Feedback, 'id'>) => {
     try {
-      setLoading(true);
-      const feedbacksData = await supabaseDataService.getFeedbacks(user.id);
-      setFeedbacks(feedbacksData);
+      if (!user?.id) return;
+      
+      supabaseDataService.createFeedback({ ...feedbackData, user_id: user.id });
+      refreshData();
     } catch (error) {
-      console.error("Erro ao buscar feedbacks:", error);
-      toast.error("Erro ao carregar feedbacks");
-    } finally {
-      setLoading(false);
+      console.error("Erro ao adicionar feedback:", error);
+      toast.error("Erro ao adicionar feedback");
     }
-  }, [user?.id]);
+  }, [user?.id, refreshData]);
 
-  const createFeedback = async (feedback: Omit<Feedback, 'id'>) => {
+  const updateFeedback = useCallback(async (id: string, feedbackData: Partial<Feedback>) => {
     try {
-      setLoading(true);
-      await supabaseDataService.createFeedback({ ...feedback, user_id: user?.id });
-      await getFeedbacks();
-      toast.success("Feedback criado com sucesso!");
-    } catch (error) {
-      console.error("Erro ao criar feedback:", error);
-      toast.error("Erro ao criar feedback");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateFeedback = async (feedback: Feedback) => {
-    try {
-      setLoading(true);
-      await supabaseDataService.updateFeedback(feedback);
-      await getFeedbacks();
-      toast.success("Feedback atualizado com sucesso!");
+      const feedback = feedbacks.find(f => f.id === id);
+      if (!feedback) return;
+      
+      const updatedFeedback = { ...feedback, ...feedbackData };
+      await supabaseDataService.updateFeedback(updatedFeedback);
+      await refreshData();
     } catch (error) {
       console.error("Erro ao atualizar feedback:", error);
       toast.error("Erro ao atualizar feedback");
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [feedbacks, refreshData]);
 
-  const deleteFeedback = async (id: string) => {
+  const deleteFeedback = useCallback(async (id: string) => {
     try {
-      setLoading(true);
       await supabaseDataService.deleteFeedback(id);
-      await getFeedbacks();
-      toast.success("Feedback removido com sucesso!");
+      await refreshData();
     } catch (error) {
       console.error("Erro ao remover feedback:", error);
       toast.error("Erro ao remover feedback");
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [refreshData]);
 
   // CRUD operations for Promocoes
-  const getPromocoes = useCallback(async () => {
-    if (!user?.id) return;
+  const addPromocao = useCallback(async (promocaoData: Omit<Promocao, 'id'>) => {
     try {
-      setLoading(true);
-      const promocoesData = await supabaseDataService.getPromocoes(user.id);
-      setPromocoes(promocoesData);
+      if (!user?.id) return;
+      
+      await supabaseDataService.createPromocao({ ...promocaoData, user_id: user.id });
+      await refreshData();
     } catch (error) {
-      console.error("Erro ao buscar promocoes:", error);
-      toast.error("Erro ao carregar promocoes");
-    } finally {
-      setLoading(false);
+      console.error("Erro ao adicionar promoção:", error);
+      toast.error("Erro ao adicionar promoção");
     }
-  }, [user?.id]);
+  }, [user?.id, refreshData]);
 
-  const createPromocao = async (promocao: Omit<Promocao, 'id'>) => {
+  const updatePromocao = useCallback(async (id: string, promocaoData: Partial<Promocao>) => {
     try {
-      setLoading(true);
-      await supabaseDataService.createPromocao({ ...promocao, user_id: user?.id });
-      await getPromocoes();
-      toast.success("Promocao criada com sucesso!");
+      const promocao = promocoes.find(p => p.id === id);
+      if (!promocao) return;
+      
+      const updatedPromocao = { ...promocao, ...promocaoData };
+      await supabaseDataService.updatePromocao(updatedPromocao);
+      await refreshData();
     } catch (error) {
-      console.error("Erro ao criar promocao:", error);
-      toast.error("Erro ao criar promocao");
-    } finally {
-      setLoading(false);
+      console.error("Erro ao atualizar promoção:", error);
+      toast.error("Erro ao atualizar promoção");
     }
-  };
+  }, [promocoes, refreshData]);
 
-  const updatePromocao = async (promocao: Promocao) => {
+  const deletePromocao = useCallback(async (id: string) => {
     try {
-      setLoading(true);
-      await supabaseDataService.updatePromocao(promocao);
-      await getPromocoes();
-      toast.success("Promocao atualizada com sucesso!");
-    } catch (error) {
-      console.error("Erro ao atualizar promocao:", error);
-      toast.error("Erro ao atualizar promocao");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deletePromocao = async (id: string) => {
-    try {
-      setLoading(true);
       await supabaseDataService.deletePromocao(id);
-      await getPromocoes();
-      toast.success("Promocao removida com sucesso!");
+      await refreshData();
     } catch (error) {
-      console.error("Erro ao remover promocao:", error);
-      toast.error("Erro ao remover promocao");
-    } finally {
-      setLoading(false);
+      console.error("Erro ao remover promoção:", error);
+      toast.error("Erro ao remover promoção");
     }
-  };
+  }, [refreshData]);
 
   const value = {
     clientes,
@@ -530,32 +585,31 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     feedbacks,
     promocoes,
     loading,
-    getClientes,
-    createCliente,
+    refreshData,
+    filterClientes,
+    filterProdutos,
+    filterCompras,
+    filterTransacoes,
+    filterFornecedores,
+    addCliente,
     updateCliente,
     deleteCliente,
-    getProdutos,
-    createProduto,
+    addProduto,
     updateProduto,
     deleteProduto,
-    getCompras,
-    createCompra,
+    addCompra,
     updateCompra,
     deleteCompra,
-    getTransacoes,
-    createTransacao,
+    addTransacao,
     updateTransacao,
     deleteTransacao,
-    getFornecedores,
-    createFornecedor,
+    addFornecedor,
     updateFornecedor,
     deleteFornecedor,
-    getFeedbacks,
-    createFeedback,
+    addFeedback,
     updateFeedback,
     deleteFeedback,
-    getPromocoes,
-    createPromocao,
+    addPromocao,
     updatePromocao,
     deletePromocao,
   };
