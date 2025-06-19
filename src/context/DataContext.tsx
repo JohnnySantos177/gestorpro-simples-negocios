@@ -288,18 +288,11 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   }, [fornecedores]);
 
   // CRUD operations for Clientes
-  const addCliente = useCallback((clienteData: Omit<Cliente, 'id' | 'dataCadastro'>): boolean => {
+  const addCliente = useCallback(async (clienteData: Omit<Cliente, 'id' | 'dataCadastro'>): Promise<boolean> => {
     try {
       if (!user?.id) return false;
-      
-      const newCliente: Cliente = {
-        ...clienteData,
-        id: crypto.randomUUID(),
-        dataCadastro: new Date().toISOString()
-      };
-      
-      supabaseDataService.createCliente({ ...clienteData, user_id: user.id });
-      setClientes(prev => [...prev, newCliente]);
+      await supabaseDataService.createCliente({ ...clienteData, user_id: user.id });
+      await refreshData();
       toast.success("Cliente adicionado com sucesso!");
       return true;
     } catch (error) {
@@ -307,7 +300,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       toast.error("Erro ao adicionar cliente");
       return false;
     }
-  }, [user?.id]);
+  }, [user?.id, refreshData]);
 
   const updateCliente = useCallback(async (id: string, clienteData: Partial<Cliente>) => {
     try {
@@ -375,22 +368,20 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   }, [refreshData]);
 
   // CRUD operations for Compras
-  const addCompra = useCallback((compraData: Omit<Compra, 'id'>): boolean => {
+  const addCompra = useCallback(async (compraData: Omit<Compra, 'id'>): Promise<boolean> => {
     try {
       if (!user?.id) return false;
-      
-      supabaseDataService.createCompra({ ...compraData, user_id: user.id });
-
+      await supabaseDataService.createCompra({ ...compraData, user_id: user.id });
       // Atualizar o estoque de cada produto vendido
-      compraData.produtos.forEach(item => {
+      for (const item of compraData.produtos) {
         const produto = produtos.find(p => p.id === item.produtoId);
         if (produto) {
           const novaQuantidade = produto.quantidade - item.quantidade;
-          updateProduto(produto.id, { quantidade: novaQuantidade });
+          await updateProduto(produto.id, { quantidade: novaQuantidade });
         }
-      });
-
-      refreshData();
+      }
+      await refreshData();
+      toast.success("Venda registrada com sucesso!");
       return true;
     } catch (error) {
       console.error("Erro ao adicionar compra:", error);
