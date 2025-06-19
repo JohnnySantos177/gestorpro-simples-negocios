@@ -63,6 +63,13 @@ export function CrudDialog({
         <div className="py-4">
           {children}
         </div>
+        {(type === 'add' || type === 'edit') && (
+          <DialogFooter>
+            <Button type="button" onClick={handleConfirm} disabled={isLoading}>
+              {type === 'add' ? 'Adicionar' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );

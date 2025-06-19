@@ -34,7 +34,7 @@ import {
 const transacaoSchema = z.object({
   tipo: z.enum(['entrada', 'saida']),
   categoria: z.string().min(1, "Categoria é obrigatória"),
-  descricao: z.string().min(1, "Descrição é obrigatória"),
+  descricao: z.string().optional(),
   valor: z.coerce.number().positive("Valor deve ser maior que 0"),
   formaPagamento: z.string().min(1, "Forma de pagamento é obrigatória"),
   data: z.string().min(1, "Data é obrigatória"),
@@ -43,7 +43,7 @@ const transacaoSchema = z.object({
 type TransacaoFormData = z.infer<typeof transacaoSchema>;
 
 const FinanceiroPage = () => {
-  const { filterTransacoes, addTransacao, updateTransacao, deleteTransacao, transacoes } = useData();
+  const { filterTransacoes, addTransacao, updateTransacao, deleteTransacao, transacoes, compras } = useData();
   const { isSubscribed } = useSubscription();
   
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
@@ -73,7 +73,35 @@ const FinanceiroPage = () => {
     },
   });
 
-  const filteredTransacoes = filterTransacoes(filterOptions);
+  // Mesclar vendas (compras) como entradas
+  const vendasComoEntradas = compras.map((compra) => ({
+    id: `venda-${compra.id}`,
+    tipo: 'entrada',
+    categoria: 'Vendas',
+    descricao: `Venda para ${compra.clienteNome}`,
+    valor: compra.valorTotal,
+    data: compra.data,
+    formaPagamento: compra.formaPagamento,
+    compraId: compra.id,
+    clienteId: compra.clienteId,
+  }));
+
+  // Filtrar e mesclar transações e vendas
+  const todasEntradas = [
+    ...transacoes.filter(t => t.tipo === 'entrada'),
+    ...vendasComoEntradas
+  ];
+
+  // Aplicar filtros existentes
+  const filteredEntradas = todasEntradas
+    .filter(t =>
+      (!filterOptions.categoria || t.categoria === filterOptions.categoria || filterOptions.categoria === "Vendas") &&
+      (!filterOptions.search || t.descricao.toLowerCase().includes(filterOptions.search.toLowerCase()))
+    )
+    .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+
+  // ... substituir filteredTransacoes por filteredEntradas quando filtro for 'entrada'
+  const filteredTransacoes = filterOptions.tipo === 'entrada' ? filteredEntradas : filterTransacoes(filterOptions);
 
   const openAddDialog = (tipo: 'entrada' | 'saida') => {
     // Verificar limite de registros para usuários gratuitos
@@ -115,9 +143,9 @@ const FinanceiroPage = () => {
     setDialogOpen(true);
   };
 
-  const handleAddEditSubmit = (data: TransacaoFormData) => {
+  const handleAddEditSubmit = async (data: TransacaoFormData) => {
     if (dialogType === "add") {
-      const success = addTransacao({
+      const success = await addTransacao({
         tipo: data.tipo,
         categoria: data.categoria,
         descricao: data.descricao,
@@ -125,7 +153,6 @@ const FinanceiroPage = () => {
         formaPagamento: data.formaPagamento,
         data: data.data
       });
-      
       if (!success) {
         return; // Don't close the dialog if adding failed
       }
@@ -227,6 +254,15 @@ const FinanceiroPage = () => {
             Saídas
           </Button>
         </div>
+
+        {/* Botão de registrar entrada/saída visível conforme filtro */}
+        {(filterOptions.tipo === 'entrada' || filterOptions.tipo === 'saida') && (
+          <div className="mb-4">
+            <Button onClick={() => openAddDialog(filterOptions.tipo === 'entrada' ? 'entrada' : 'saida')}>
+              {filterOptions.tipo === 'entrada' ? 'Registrar Entrada' : 'Registrar Saída'}
+            </Button>
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-2 mb-4">
           <Button
@@ -343,7 +379,7 @@ const FinanceiroPage = () => {
                   <FormItem>
                     <FormLabel>Descrição</FormLabel>
                     <FormControl>
-                      <Input placeholder="Descreva a transação" {...field} />
+                      <Input placeholder="Descreva a transação (opcional)" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

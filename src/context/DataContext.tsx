@@ -46,7 +46,7 @@ type DataContextType = {
   deleteCompra: (id: string) => void;
   
   // CRUD operations for Transacoes
-  addTransacao: (transacao: Omit<Transacao, 'id'>) => boolean;
+  addTransacao: (transacao: Omit<Transacao, 'id'>) => Promise<boolean>;
   updateTransacao: (id: string, transacao: Partial<Transacao>) => void;
   deleteTransacao: (id: string) => void;
   
@@ -427,12 +427,11 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   }, [compras, produtos, updateProduto, refreshData]);
 
   // CRUD operations for Transacoes
-  const addTransacao = useCallback((transacaoData: Omit<Transacao, 'id'>): boolean => {
+  const addTransacao = useCallback(async (transacaoData: Omit<Transacao, 'id'>): Promise<boolean> => {
     try {
       if (!user?.id) return false;
-      
-      supabaseDataService.createTransacao({ ...transacaoData, user_id: user.id });
-      refreshData();
+      await supabaseDataService.createTransacao({ ...transacaoData, user_id: user.id });
+      await refreshData();
       return true;
     } catch (error) {
       console.error("Erro ao adicionar transação:", error);
