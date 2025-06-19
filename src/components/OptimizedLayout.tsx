@@ -159,7 +159,6 @@ export const OptimizedLayout: React.FC<OptimizedLayoutProps> = memo(({ children 
       { path: "/vendas", label: "Vendas", icon: ShoppingCart },
       { path: "/financeiro", label: "Financeiro", icon: DollarSign },
       { path: "/fornecedores", label: "Fornecedores", icon: Truck },
-      { path: "/avaliacoes", label: "Avaliações", icon: MessageSquare },
       { path: "/promocoes", label: "Promoções", icon: BadgePercent },
       ...(profile?.tipo_plano !== 'premium' ? [{ path: "/assinatura", label: "Assinatura", icon: DollarSign }] : [])
     ];

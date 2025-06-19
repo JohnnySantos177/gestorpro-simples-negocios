@@ -18,7 +18,6 @@ import ProdutosPage from "@/pages/ProdutosPage";
 import VendasPage from "@/pages/VendasPage";
 import FinanceiroPage from "@/pages/FinanceiroPage";
 import FornecedoresPage from "@/pages/FornecedoresPage";
-import AvaliacoesPage from "@/pages/AvaliacoesPage";
 import PromocoesPage from "@/pages/PromocoesPage";
 import AssinaturaPage from "@/pages/AssinaturaPage";
 import AdminPanel from "@/pages/AdminPanel";
@@ -62,7 +61,6 @@ function App() {
                         <Route path="/vendas" element={<VendasPage />} />
                         <Route path="/financeiro" element={<FinanceiroPage />} />
                         <Route path="/fornecedores" element={<FornecedoresPage />} />
-                        <Route path="/avaliacoes" element={<AvaliacoesPage />} />
                         <Route path="/promocoes" element={<PromocoesPage />} />
                         <Route path="/assinatura" element={<AssinaturaPage />} />
                         <Route path="/admin" element={<AdminPanel />} />

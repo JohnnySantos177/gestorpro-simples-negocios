@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import { toast } from "sonner";
 
-import { Cliente, Produto, Compra, Transacao, Fornecedor, Feedback, Promocao, FilterOptions } from "@/types";
+import { Cliente, Produto, Compra, Transacao, Fornecedor, Promocao, FilterOptions } from "@/types";
 import { supabaseDataService } from "@/services/supabaseDataService";
 import { useAuth } from "@/context/AuthContext";
 import { useVisitorMode } from "@/context/VisitorModeContext";
@@ -19,7 +19,6 @@ type DataContextType = {
   compras: Compra[];
   transacoes: Transacao[];
   fornecedores: Fornecedor[];
-  feedbacks: Feedback[];
   promocoes: Promocao[];
   loading: boolean;
   refreshData: () => Promise<void>;
@@ -56,11 +55,6 @@ type DataContextType = {
   updateFornecedor: (id: string, fornecedor: Partial<Fornecedor>) => void;
   deleteFornecedor: (id: string) => void;
   
-  // CRUD operations for Feedbacks
-  addFeedback: (feedback: Omit<Feedback, 'id'>) => void;
-  updateFeedback: (id: string, feedback: Partial<Feedback>) => void;
-  deleteFeedback: (id: string) => void;
-  
   // CRUD operations for Promocoes
   addPromocao: (promocao: Omit<Promocao, 'id'>) => Promise<void>;
   updatePromocao: (id: string, promocao: Partial<Promocao>) => Promise<void>;
@@ -75,7 +69,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const [compras, setCompras] = useState<Compra[]>([]);
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
-  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [promocoes, setPromocoes] = useState<Promocao[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -98,7 +91,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         comprasData,
         transacoesData,
         fornecedoresData,
-        feedbacksData,
         promocoesData
       ] = await Promise.all([
         supabaseDataService.getClientes(effectiveUserId),
@@ -106,7 +98,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         supabaseDataService.getCompras(effectiveUserId),
         supabaseDataService.getTransacoes(effectiveUserId),
         supabaseDataService.getFornecedores(effectiveUserId),
-        supabaseDataService.getFeedbacks(effectiveUserId),
         supabaseDataService.getPromocoes(effectiveUserId)
       ]);
 
@@ -115,7 +106,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       setCompras(comprasData);
       setTransacoes(transacoesData);
       setFornecedores(fornecedoresData);
-      setFeedbacks(feedbacksData);
       setPromocoes(promocoesData);
 
       console.log("DataContext: Data loaded successfully for user:", effectiveUserId);
@@ -523,43 +513,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [refreshData]);
 
-  // CRUD operations for Feedbacks
-  const addFeedback = useCallback((feedbackData: Omit<Feedback, 'id'>) => {
-    try {
-      if (!user?.id) return;
-      
-      supabaseDataService.createFeedback({ ...feedbackData, user_id: user.id });
-      refreshData();
-    } catch (error) {
-      console.error("Erro ao adicionar feedback:", error);
-      toast.error("Erro ao adicionar feedback");
-    }
-  }, [user?.id, refreshData]);
-
-  const updateFeedback = useCallback(async (id: string, feedbackData: Partial<Feedback>) => {
-    try {
-      const feedback = feedbacks.find(f => f.id === id);
-      if (!feedback) return;
-      
-      const updatedFeedback = { ...feedback, ...feedbackData };
-      await supabaseDataService.updateFeedback(updatedFeedback);
-      await refreshData();
-    } catch (error) {
-      console.error("Erro ao atualizar feedback:", error);
-      toast.error("Erro ao atualizar feedback");
-    }
-  }, [feedbacks, refreshData]);
-
-  const deleteFeedback = useCallback(async (id: string) => {
-    try {
-      await supabaseDataService.deleteFeedback(id);
-      await refreshData();
-    } catch (error) {
-      console.error("Erro ao remover feedback:", error);
-      toast.error("Erro ao remover feedback");
-    }
-  }, [refreshData]);
-
   // CRUD operations for Promocoes
   const addPromocao = useCallback(async (promocaoData: Omit<Promocao, 'id'>) => {
     try {
@@ -603,7 +556,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     compras,
     transacoes,
     fornecedores,
-    feedbacks,
     promocoes,
     loading,
     refreshData,
@@ -627,9 +579,6 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     addFornecedor,
     updateFornecedor,
     deleteFornecedor,
-    addFeedback,
-    updateFeedback,
-    deleteFeedback,
     addPromocao,
     updatePromocao,
     deletePromocao,

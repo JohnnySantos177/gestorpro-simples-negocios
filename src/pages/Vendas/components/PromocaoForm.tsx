@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -57,8 +56,8 @@ export function PromocaoForm({ promocao, onSubmit, onCancel }: PromocaoFormProps
       descricao: "",
       tipoDesconto: "percentual",
       valorDesconto: 0,
-      produtoId: "",
-      categoriaId: "",
+      produtoId: "all",
+      categoriaId: "all",
       dataInicio: "",
       dataFim: "",
       ativo: true,
@@ -72,8 +71,8 @@ export function PromocaoForm({ promocao, onSubmit, onCancel }: PromocaoFormProps
         descricao: promocao.descricao || "",
         tipoDesconto: promocao.tipoDesconto,
         valorDesconto: promocao.valorDesconto,
-        produtoId: promocao.produtoId || "",
-        categoriaId: promocao.categoriaId || "",
+        produtoId: promocao.produtoId || "all",
+        categoriaId: promocao.categoriaId || "all",
         dataInicio: promocao.dataInicio.split('T')[0],
         dataFim: promocao.dataFim.split('T')[0],
         ativo: promocao.ativo,
@@ -91,8 +90,8 @@ export function PromocaoForm({ promocao, onSubmit, onCancel }: PromocaoFormProps
         descricao: data.descricao || "",
         tipoDesconto: data.tipoDesconto,
         valorDesconto: data.valorDesconto,
-        produtoId: data.produtoId || undefined,
-        categoriaId: data.categoriaId || undefined,
+        produtoId: data.produtoId === "all" ? undefined : data.produtoId,
+        categoriaId: data.categoriaId === "all" ? undefined : data.categoriaId,
         dataInicio: data.dataInicio,
         dataFim: data.dataFim,
         ativo: data.ativo,
@@ -199,7 +198,7 @@ export function PromocaoForm({ promocao, onSubmit, onCancel }: PromocaoFormProps
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="">Todos os produtos</SelectItem>
+                    <SelectItem value="all">Todos os produtos</SelectItem>
                     {produtos.map((produto) => (
                       <SelectItem key={produto.id} value={produto.id}>
                         {produto.nome}
@@ -225,7 +224,7 @@ export function PromocaoForm({ promocao, onSubmit, onCancel }: PromocaoFormProps
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="">Todas as categorias</SelectItem>
+                    <SelectItem value="all">Todas as categorias</SelectItem>
                     {categorias.map((categoria) => (
                       <SelectItem key={categoria} value={categoria}>
                         {categoria}

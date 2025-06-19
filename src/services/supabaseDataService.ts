@@ -1,10 +1,8 @@
-
 import { clienteService } from "./clienteService";
 import { produtoService } from "./produtoService";
 import { fornecedorService } from "./fornecedorService";
 import { compraService } from "./compraService";
 import { transacaoService } from "./transacaoService";
-import { feedbackService } from "./feedbackService";
 import { promocaoService } from "./promocaoService";
 
 export const supabaseDataService = {
@@ -37,12 +35,6 @@ export const supabaseDataService = {
   createTransacao: transacaoService.createTransacao,
   updateTransacao: transacaoService.updateTransacao,
   deleteTransacao: transacaoService.deleteTransacao,
-
-  // FEEDBACKS
-  getFeedbacks: feedbackService.getFeedbacks,
-  createFeedback: feedbackService.createFeedback,
-  updateFeedback: feedbackService.updateFeedback,
-  deleteFeedback: feedbackService.deleteFeedback,
 
   // PROMOCOES
   getPromocoes: promocaoService.getPromocoes,

@@ -1,4 +1,3 @@
-
 // Cliente types
 export interface Cliente {
   id: string;
@@ -83,18 +82,6 @@ export interface Transacao {
   compraId?: string;
   fornecedorId?: string;
   clienteId?: string;
-}
-
-// Feedback types
-export interface Feedback {
-  id: string;
-  clienteId: string;
-  clienteNome: string;
-  data: string;
-  avaliacao: number;
-  comentario: string;
-  respondido: boolean;
-  resposta?: string;
 }
 
 // Promocao types
