@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Feedback } from "@/types";
 
 export const feedbackService = {
-  async getFeedbacks(): Promise<Feedback[]> {
+  async getFeedbacks(userId: string): Promise<Feedback[]> {
     const { data, error } = await supabase
       .from('feedbacks')
       .select('*')
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
     
     if (error) throw error;
@@ -23,10 +24,7 @@ export const feedbackService = {
     }));
   },
 
-  async createFeedback(feedback: Omit<Feedback, "id">): Promise<Feedback> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("User not authenticated");
-
+  async createFeedback(feedback: Omit<Feedback, "id"> & { user_id: string }): Promise<Feedback> {
     const { data, error } = await supabase
       .from('feedbacks')
       .insert({
@@ -37,7 +35,7 @@ export const feedbackService = {
         comentario: feedback.comentario,
         respondido: feedback.respondido,
         resposta: feedback.resposta,
-        user_id: user.id
+        user_id: feedback.user_id
       })
       .select()
       .single();
@@ -56,21 +54,21 @@ export const feedbackService = {
     };
   },
 
-  async updateFeedback(id: string, updates: Partial<Feedback>): Promise<void> {
+  async updateFeedback(feedback: Feedback): Promise<void> {
     const dbUpdates: any = {};
     
-    if (updates.clienteId !== undefined) dbUpdates.cliente_id = updates.clienteId;
-    if (updates.clienteNome !== undefined) dbUpdates.cliente_nome = updates.clienteNome;
-    if (updates.data !== undefined) dbUpdates.data = updates.data;
-    if (updates.avaliacao !== undefined) dbUpdates.avaliacao = updates.avaliacao;
-    if (updates.comentario !== undefined) dbUpdates.comentario = updates.comentario;
-    if (updates.respondido !== undefined) dbUpdates.respondido = updates.respondido;
-    if (updates.resposta !== undefined) dbUpdates.resposta = updates.resposta;
+    if (feedback.clienteId !== undefined) dbUpdates.cliente_id = feedback.clienteId;
+    if (feedback.clienteNome !== undefined) dbUpdates.cliente_nome = feedback.clienteNome;
+    if (feedback.data !== undefined) dbUpdates.data = feedback.data;
+    if (feedback.avaliacao !== undefined) dbUpdates.avaliacao = feedback.avaliacao;
+    if (feedback.comentario !== undefined) dbUpdates.comentario = feedback.comentario;
+    if (feedback.respondido !== undefined) dbUpdates.respondido = feedback.respondido;
+    if (feedback.resposta !== undefined) dbUpdates.resposta = feedback.resposta;
 
     const { error } = await supabase
       .from('feedbacks')
       .update(dbUpdates)
-      .eq('id', id);
+      .eq('id', feedback.id);
 
     if (error) throw error;
   },

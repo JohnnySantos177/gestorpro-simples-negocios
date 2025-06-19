@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Fornecedor } from "@/types";
 
 export const fornecedorService = {
-  async getFornecedores(): Promise<Fornecedor[]> {
+  async getFornecedores(userId: string): Promise<Fornecedor[]> {
     const { data, error } = await supabase
       .from('fornecedores')
       .select('*')
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
     
     if (error) throw error;
@@ -28,10 +29,7 @@ export const fornecedorService = {
     }));
   },
 
-  async createFornecedor(fornecedor: Omit<Fornecedor, "id" | "dataCadastro">): Promise<Fornecedor> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("User not authenticated");
-
+  async createFornecedor(fornecedor: Omit<Fornecedor, "id" | "dataCadastro"> & { user_id: string }): Promise<Fornecedor> {
     const { data, error } = await supabase
       .from('fornecedores')
       .insert({
@@ -46,7 +44,7 @@ export const fornecedorService = {
         cnpj: fornecedor.cnpj,
         prazo_entrega: fornecedor.prazoEntrega,
         observacoes: fornecedor.observacoes,
-        user_id: user.id,
+        user_id: fornecedor.user_id,
         data_cadastro: new Date().toISOString()
       })
       .select()
@@ -71,25 +69,25 @@ export const fornecedorService = {
     };
   },
 
-  async updateFornecedor(id: string, updates: Partial<Fornecedor>): Promise<void> {
+  async updateFornecedor(fornecedor: Fornecedor): Promise<void> {
     const dbUpdates: any = {};
     
-    if (updates.nome !== undefined) dbUpdates.nome = updates.nome;
-    if (updates.contato !== undefined) dbUpdates.contato = updates.contato;
-    if (updates.telefone !== undefined) dbUpdates.telefone = updates.telefone;
-    if (updates.email !== undefined) dbUpdates.email = updates.email;
-    if (updates.endereco !== undefined) dbUpdates.endereco = updates.endereco;
-    if (updates.cidade !== undefined) dbUpdates.cidade = updates.cidade;
-    if (updates.estado !== undefined) dbUpdates.estado = updates.estado;
-    if (updates.cep !== undefined) dbUpdates.cep = updates.cep;
-    if (updates.cnpj !== undefined) dbUpdates.cnpj = updates.cnpj;
-    if (updates.prazoEntrega !== undefined) dbUpdates.prazo_entrega = updates.prazoEntrega;
-    if (updates.observacoes !== undefined) dbUpdates.observacoes = updates.observacoes;
+    if (fornecedor.nome !== undefined) dbUpdates.nome = fornecedor.nome;
+    if (fornecedor.contato !== undefined) dbUpdates.contato = fornecedor.contato;
+    if (fornecedor.telefone !== undefined) dbUpdates.telefone = fornecedor.telefone;
+    if (fornecedor.email !== undefined) dbUpdates.email = fornecedor.email;
+    if (fornecedor.endereco !== undefined) dbUpdates.endereco = fornecedor.endereco;
+    if (fornecedor.cidade !== undefined) dbUpdates.cidade = fornecedor.cidade;
+    if (fornecedor.estado !== undefined) dbUpdates.estado = fornecedor.estado;
+    if (fornecedor.cep !== undefined) dbUpdates.cep = fornecedor.cep;
+    if (fornecedor.cnpj !== undefined) dbUpdates.cnpj = fornecedor.cnpj;
+    if (fornecedor.prazoEntrega !== undefined) dbUpdates.prazo_entrega = fornecedor.prazoEntrega;
+    if (fornecedor.observacoes !== undefined) dbUpdates.observacoes = fornecedor.observacoes;
 
     const { error } = await supabase
       .from('fornecedores')
       .update(dbUpdates)
-      .eq('id', id);
+      .eq('id', fornecedor.id);
 
     if (error) throw error;
   },

@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Produto } from "@/types";
 
 export const produtoService = {
-  async getProdutos(): Promise<Produto[]> {
+  async getProdutos(userId: string): Promise<Produto[]> {
     const { data, error } = await supabase
       .from('produtos')
       .select('*')
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
     
     if (error) throw error;
@@ -28,10 +29,7 @@ export const produtoService = {
     }));
   },
 
-  async createProduto(produto: Omit<Produto, "id" | "dataCadastro">): Promise<Produto> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("User not authenticated");
-
+  async createProduto(produto: Omit<Produto, "id" | "dataCadastro"> & { user_id: string }): Promise<Produto> {
     // Corrigir fornecedorId para usar null se vier "" ou undefined
     const fornecedorIdFinal = produto.fornecedorId && produto.fornecedorId !== "" ? produto.fornecedorId : null;
     const fornecedorNomeFinal = produto.fornecedorNome ?? "";
@@ -50,7 +48,7 @@ export const produtoService = {
         data_validade: produto.dataValidade,
         codigo_barra: produto.codigoBarra,
         localizacao: produto.localizacao,
-        user_id: user.id,
+        user_id: produto.user_id,
         data_cadastro: new Date().toISOString()
       })
       .select()
@@ -75,27 +73,27 @@ export const produtoService = {
     };
   },
 
-  async updateProduto(id: string, updates: Partial<Produto>): Promise<void> {
-    // Corrigir fornecedor_id caso updates.fornecedorId seja "", transformar em null
+  async updateProduto(produto: Produto): Promise<void> {
+    // Corrigir fornecedor_id caso produto.fornecedorId seja "", transformar em null
     const dbUpdates: any = {};
     
-    if (updates.nome !== undefined) dbUpdates.nome = updates.nome;
-    if (updates.descricao !== undefined) dbUpdates.descricao = updates.descricao;
-    if (updates.categoria !== undefined) dbUpdates.categoria = updates.categoria;
-    if (updates.precoCompra !== undefined) dbUpdates.preco_compra = updates.precoCompra;
-    if (updates.precoVenda !== undefined) dbUpdates.preco_venda = updates.precoVenda;
-    if (updates.quantidade !== undefined) dbUpdates.quantidade = updates.quantidade;
-    if (updates.fornecedorId !== undefined)
-      dbUpdates.fornecedor_id = updates.fornecedorId !== "" ? updates.fornecedorId : null;
-    if (updates.fornecedorNome !== undefined) dbUpdates.fornecedor_nome = updates.fornecedorNome;
-    if (updates.dataValidade !== undefined) dbUpdates.data_validade = updates.dataValidade;
-    if (updates.codigoBarra !== undefined) dbUpdates.codigo_barra = updates.codigoBarra;
-    if (updates.localizacao !== undefined) dbUpdates.localizacao = updates.localizacao;
+    if (produto.nome !== undefined) dbUpdates.nome = produto.nome;
+    if (produto.descricao !== undefined) dbUpdates.descricao = produto.descricao;
+    if (produto.categoria !== undefined) dbUpdates.categoria = produto.categoria;
+    if (produto.precoCompra !== undefined) dbUpdates.preco_compra = produto.precoCompra;
+    if (produto.precoVenda !== undefined) dbUpdates.preco_venda = produto.precoVenda;
+    if (produto.quantidade !== undefined) dbUpdates.quantidade = produto.quantidade;
+    if (produto.fornecedorId !== undefined)
+      dbUpdates.fornecedor_id = produto.fornecedorId !== "" ? produto.fornecedorId : null;
+    if (produto.fornecedorNome !== undefined) dbUpdates.fornecedor_nome = produto.fornecedorNome;
+    if (produto.dataValidade !== undefined) dbUpdates.data_validade = produto.dataValidade;
+    if (produto.codigoBarra !== undefined) dbUpdates.codigo_barra = produto.codigoBarra;
+    if (produto.localizacao !== undefined) dbUpdates.localizacao = produto.localizacao;
 
     const { error } = await supabase
       .from('produtos')
       .update(dbUpdates)
-      .eq('id', id);
+      .eq('id', produto.id);
 
     if (error) throw error;
   },
@@ -109,4 +107,3 @@ export const produtoService = {
     if (error) throw error;
   }
 };
-

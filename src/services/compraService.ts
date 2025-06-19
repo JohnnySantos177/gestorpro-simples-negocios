@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Compra, ItemCompra } from "@/types";
 
 export const compraService = {
-  async getCompras(): Promise<Compra[]> {
+  async getCompras(userId: string): Promise<Compra[]> {
     const { data, error } = await supabase
       .from('compras')
       .select('*')
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
     
     if (error) throw error;
@@ -25,10 +26,7 @@ export const compraService = {
     return compras;
   },
 
-  async createCompra(compraData: Omit<Compra, "id">): Promise<Compra> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("User not authenticated");
-
+  async createCompra(compraData: Omit<Compra, "id"> & { user_id: string }): Promise<Compra> {
     const { data, error } = await supabase
       .from('compras')
       .insert({
@@ -39,7 +37,7 @@ export const compraService = {
         valor_total: compraData.valorTotal,
         forma_pagamento: compraData.formaPagamento,
         status: compraData.status,
-        user_id: user.id
+        user_id: compraData.user_id
       })
       .select()
       .single();
@@ -60,21 +58,21 @@ export const compraService = {
     return newCompra;
   },
 
-  async updateCompra(id: string, updates: Partial<Compra>): Promise<void> {
+  async updateCompra(compra: Compra): Promise<void> {
     const dbUpdates: any = {};
     
-    if (updates.clienteId !== undefined) dbUpdates.cliente_id = updates.clienteId;
-    if (updates.clienteNome !== undefined) dbUpdates.cliente_nome = updates.clienteNome;
-    if (updates.data !== undefined) dbUpdates.data = updates.data;
-    if (updates.produtos !== undefined) dbUpdates.produtos = updates.produtos;
-    if (updates.valorTotal !== undefined) dbUpdates.valor_total = updates.valorTotal;
-    if (updates.formaPagamento !== undefined) dbUpdates.forma_pagamento = updates.formaPagamento;
-    if (updates.status !== undefined) dbUpdates.status = updates.status;
+    if (compra.clienteId !== undefined) dbUpdates.cliente_id = compra.clienteId;
+    if (compra.clienteNome !== undefined) dbUpdates.cliente_nome = compra.clienteNome;
+    if (compra.data !== undefined) dbUpdates.data = compra.data;
+    if (compra.produtos !== undefined) dbUpdates.produtos = compra.produtos;
+    if (compra.valorTotal !== undefined) dbUpdates.valor_total = compra.valorTotal;
+    if (compra.formaPagamento !== undefined) dbUpdates.forma_pagamento = compra.formaPagamento;
+    if (compra.status !== undefined) dbUpdates.status = compra.status;
 
     const { error } = await supabase
       .from('compras')
       .update(dbUpdates)
-      .eq('id', id);
+      .eq('id', compra.id);
 
     if (error) throw error;
   },

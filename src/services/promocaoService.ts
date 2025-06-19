@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Promocao } from "@/types";
 
 export const promocaoService = {
-  async getPromocoes(): Promise<Promocao[]> {
+  async getPromocoes(userId: string): Promise<Promocao[]> {
     const { data, error } = await supabase
       .from('promocoes')
       .select('*')
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
     
     if (error) throw error;
@@ -25,10 +26,7 @@ export const promocaoService = {
     }));
   },
 
-  async createPromocao(promocao: Omit<Promocao, "id">): Promise<Promocao> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("User not authenticated");
-
+  async createPromocao(promocao: Omit<Promocao, "id"> & { user_id: string }): Promise<Promocao> {
     const { data, error } = await supabase
       .from('promocoes')
       .insert({
@@ -41,7 +39,7 @@ export const promocaoService = {
         data_inicio: promocao.dataInicio,
         data_fim: promocao.dataFim,
         ativo: promocao.ativo,
-        user_id: user.id
+        user_id: promocao.user_id
       })
       .select()
       .single();
@@ -62,23 +60,23 @@ export const promocaoService = {
     };
   },
 
-  async updatePromocao(id: string, updates: Partial<Promocao>): Promise<void> {
+  async updatePromocao(promocao: Promocao): Promise<void> {
     const dbUpdates: any = {};
     
-    if (updates.nome !== undefined) dbUpdates.nome = updates.nome;
-    if (updates.descricao !== undefined) dbUpdates.descricao = updates.descricao;
-    if (updates.tipoDesconto !== undefined) dbUpdates.tipo_desconto = updates.tipoDesconto;
-    if (updates.valorDesconto !== undefined) dbUpdates.valor_desconto = updates.valorDesconto;
-    if (updates.produtoId !== undefined) dbUpdates.produto_id = updates.produtoId;
-    if (updates.categoriaId !== undefined) dbUpdates.categoria_id = updates.categoriaId;
-    if (updates.dataInicio !== undefined) dbUpdates.data_inicio = updates.dataInicio;
-    if (updates.dataFim !== undefined) dbUpdates.data_fim = updates.dataFim;
-    if (updates.ativo !== undefined) dbUpdates.ativo = updates.ativo;
+    if (promocao.nome !== undefined) dbUpdates.nome = promocao.nome;
+    if (promocao.descricao !== undefined) dbUpdates.descricao = promocao.descricao;
+    if (promocao.tipoDesconto !== undefined) dbUpdates.tipo_desconto = promocao.tipoDesconto;
+    if (promocao.valorDesconto !== undefined) dbUpdates.valor_desconto = promocao.valorDesconto;
+    if (promocao.produtoId !== undefined) dbUpdates.produto_id = promocao.produtoId;
+    if (promocao.categoriaId !== undefined) dbUpdates.categoria_id = promocao.categoriaId;
+    if (promocao.dataInicio !== undefined) dbUpdates.data_inicio = promocao.dataInicio;
+    if (promocao.dataFim !== undefined) dbUpdates.data_fim = promocao.dataFim;
+    if (promocao.ativo !== undefined) dbUpdates.ativo = promocao.ativo;
 
     const { error } = await supabase
       .from('promocoes')
       .update(dbUpdates)
-      .eq('id', id);
+      .eq('id', promocao.id);
 
     if (error) throw error;
   },

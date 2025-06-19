@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Cliente } from "@/types";
 
 export const clienteService = {
-  async getClientes(): Promise<Cliente[]> {
+  async getClientes(userId: string): Promise<Cliente[]> {
     const { data, error } = await supabase
       .from('clientes')
       .select('*')
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
     
     if (error) throw error;
@@ -26,10 +27,7 @@ export const clienteService = {
     }));
   },
 
-  async createCliente(cliente: Omit<Cliente, "id" | "dataCadastro">): Promise<Cliente> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("User not authenticated");
-
+  async createCliente(cliente: Omit<Cliente, "id" | "dataCadastro"> & { user_id: string }): Promise<Cliente> {
     const { data, error } = await supabase
       .from('clientes')
       .insert({
@@ -42,7 +40,7 @@ export const clienteService = {
         cep: cliente.cep,
         grupo: cliente.grupo,
         observacoes: cliente.observacoes,
-        user_id: user.id,
+        user_id: cliente.user_id,
         data_cadastro: new Date().toISOString()
       })
       .select()
@@ -65,23 +63,23 @@ export const clienteService = {
     };
   },
 
-  async updateCliente(id: string, updates: Partial<Cliente>): Promise<void> {
+  async updateCliente(cliente: Cliente): Promise<void> {
     const dbUpdates: any = {};
     
-    if (updates.nome !== undefined) dbUpdates.nome = updates.nome;
-    if (updates.email !== undefined) dbUpdates.email = updates.email;
-    if (updates.telefone !== undefined) dbUpdates.telefone = updates.telefone;
-    if (updates.endereco !== undefined) dbUpdates.endereco = updates.endereco;
-    if (updates.cidade !== undefined) dbUpdates.cidade = updates.cidade;
-    if (updates.estado !== undefined) dbUpdates.estado = updates.estado;
-    if (updates.cep !== undefined) dbUpdates.cep = updates.cep;
-    if (updates.grupo !== undefined) dbUpdates.grupo = updates.grupo;
-    if (updates.observacoes !== undefined) dbUpdates.observacoes = updates.observacoes;
+    if (cliente.nome !== undefined) dbUpdates.nome = cliente.nome;
+    if (cliente.email !== undefined) dbUpdates.email = cliente.email;
+    if (cliente.telefone !== undefined) dbUpdates.telefone = cliente.telefone;
+    if (cliente.endereco !== undefined) dbUpdates.endereco = cliente.endereco;
+    if (cliente.cidade !== undefined) dbUpdates.cidade = cliente.cidade;
+    if (cliente.estado !== undefined) dbUpdates.estado = cliente.estado;
+    if (cliente.cep !== undefined) dbUpdates.cep = cliente.cep;
+    if (cliente.grupo !== undefined) dbUpdates.grupo = cliente.grupo;
+    if (cliente.observacoes !== undefined) dbUpdates.observacoes = cliente.observacoes;
 
     const { error } = await supabase
       .from('clientes')
       .update(dbUpdates)
-      .eq('id', id);
+      .eq('id', cliente.id);
 
     if (error) throw error;
   },

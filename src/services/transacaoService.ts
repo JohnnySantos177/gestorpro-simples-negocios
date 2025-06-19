@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Transacao } from "@/types";
 
 export const transacaoService = {
-  async getTransacoes(): Promise<Transacao[]> {
+  async getTransacoes(userId: string): Promise<Transacao[]> {
     const { data, error } = await supabase
       .from('transacoes')
       .select('*')
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
     
     if (error) throw error;
@@ -25,10 +26,7 @@ export const transacaoService = {
     }));
   },
 
-  async createTransacao(transacao: Omit<Transacao, "id">): Promise<Transacao> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("User not authenticated");
-
+  async createTransacao(transacao: Omit<Transacao, "id"> & { user_id: string }): Promise<Transacao> {
     const { data, error } = await supabase
       .from('transacoes')
       .insert({
@@ -41,7 +39,7 @@ export const transacaoService = {
         compra_id: transacao.compraId,
         fornecedor_id: transacao.fornecedorId,
         cliente_id: transacao.clienteId,
-        user_id: user.id
+        user_id: transacao.user_id
       })
       .select()
       .single();
@@ -62,23 +60,23 @@ export const transacaoService = {
     };
   },
 
-  async updateTransacao(id: string, updates: Partial<Transacao>): Promise<void> {
+  async updateTransacao(transacao: Transacao): Promise<void> {
     const dbUpdates: any = {};
     
-    if (updates.tipo !== undefined) dbUpdates.tipo = updates.tipo;
-    if (updates.categoria !== undefined) dbUpdates.categoria = updates.categoria;
-    if (updates.descricao !== undefined) dbUpdates.descricao = updates.descricao;
-    if (updates.valor !== undefined) dbUpdates.valor = updates.valor;
-    if (updates.data !== undefined) dbUpdates.data = updates.data;
-    if (updates.formaPagamento !== undefined) dbUpdates.forma_pagamento = updates.formaPagamento;
-    if (updates.compraId !== undefined) dbUpdates.compra_id = updates.compraId;
-    if (updates.fornecedorId !== undefined) dbUpdates.fornecedor_id = updates.fornecedorId;
-    if (updates.clienteId !== undefined) dbUpdates.cliente_id = updates.clienteId;
+    if (transacao.tipo !== undefined) dbUpdates.tipo = transacao.tipo;
+    if (transacao.categoria !== undefined) dbUpdates.categoria = transacao.categoria;
+    if (transacao.descricao !== undefined) dbUpdates.descricao = transacao.descricao;
+    if (transacao.valor !== undefined) dbUpdates.valor = transacao.valor;
+    if (transacao.data !== undefined) dbUpdates.data = transacao.data;
+    if (transacao.formaPagamento !== undefined) dbUpdates.forma_pagamento = transacao.formaPagamento;
+    if (transacao.compraId !== undefined) dbUpdates.compra_id = transacao.compraId;
+    if (transacao.fornecedorId !== undefined) dbUpdates.fornecedor_id = transacao.fornecedorId;
+    if (transacao.clienteId !== undefined) dbUpdates.cliente_id = transacao.clienteId;
 
     const { error } = await supabase
       .from('transacoes')
       .update(dbUpdates)
-      .eq('id', id);
+      .eq('id', transacao.id);
 
     if (error) throw error;
   },
