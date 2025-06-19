@@ -1,4 +1,3 @@
-
 import React, {
   createContext,
   useContext,
@@ -391,6 +390,16 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       if (!user?.id) return false;
       
       supabaseDataService.createCompra({ ...compraData, user_id: user.id });
+
+      // Atualizar o estoque de cada produto vendido
+      compraData.produtos.forEach(item => {
+        const produto = produtos.find(p => p.id === item.produtoId);
+        if (produto) {
+          const novaQuantidade = produto.quantidade - item.quantidade;
+          updateProduto(produto.id, { quantidade: novaQuantidade });
+        }
+      });
+
       refreshData();
       return true;
     } catch (error) {
@@ -398,7 +407,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       toast.error("Erro ao adicionar compra");
       return false;
     }
-  }, [user?.id, refreshData]);
+  }, [user?.id, produtos, updateProduto, refreshData]);
 
   const updateCompra = useCallback(async (id: string, compraData: Partial<Compra>) => {
     try {
@@ -416,13 +425,25 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
   const deleteCompra = useCallback(async (id: string) => {
     try {
+      // Encontrar a compra a ser excluída
+      const compra = compras.find(c => c.id === id);
+      if (compra) {
+        // Para cada produto vendido, devolver a quantidade ao estoque
+        for (const item of compra.produtos) {
+          const produto = produtos.find(p => p.id === item.produtoId);
+          if (produto) {
+            const novaQuantidade = produto.quantidade + item.quantidade;
+            await updateProduto(produto.id, { quantidade: novaQuantidade });
+          }
+        }
+      }
       await supabaseDataService.deleteCompra(id);
       await refreshData();
     } catch (error) {
       console.error("Erro ao remover compra:", error);
       toast.error("Erro ao remover compra");
     }
-  }, [refreshData]);
+  }, [compras, produtos, updateProduto, refreshData]);
 
   // CRUD operations for Transacoes
   const addTransacao = useCallback((transacaoData: Omit<Transacao, 'id'>): boolean => {

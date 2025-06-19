@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -292,7 +291,6 @@ export function VendaForm({ compra, onClose, readOnly = false }: VendaFormProps)
                     />
                   </div>
                 </div>
-                
                 <div className="flex justify-end space-x-2">
                   <Button 
                     type="button" 

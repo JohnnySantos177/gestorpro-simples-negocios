@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -64,22 +63,6 @@ export function CrudDialog({
         <div className="py-4">
           {children}
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button 
-            onClick={handleConfirm} 
-            disabled={isLoading}
-            variant={type === "delete" ? "destructive" : "default"}
-          >
-            {isLoading ? "Processando..." : 
-              type === "add" ? "Adicionar" : 
-              type === "edit" ? "Salvar" : 
-              type === "respond" ? "Responder" :
-              "Excluir"}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

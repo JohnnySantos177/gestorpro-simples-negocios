@@ -1,4 +1,3 @@
-
 import React from "react";
 import { CrudDialog } from "@/components/CrudDialog";
 
@@ -20,6 +19,22 @@ export function VendaDeleteDialog({ open, onOpenChange, onConfirm }: VendaDelete
     >
       <div className="py-4">
         <p>Esta venda será removida permanentemente do sistema.</p>
+      </div>
+      <div className="flex justify-end gap-2 px-6 pb-4">
+        <button
+          type="button"
+          className="px-4 py-2 rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-100"
+          onClick={() => onOpenChange(false)}
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+          onClick={onConfirm}
+        >
+          Excluir
+        </button>
       </div>
     </CrudDialog>
   );

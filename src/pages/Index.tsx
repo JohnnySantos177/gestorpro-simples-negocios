@@ -97,7 +97,7 @@ const Index = () => {
 
     return [
       { name: 'Estoque Normal', value: estoqueNormal, color: '#8b5cf6' },
-      { name: 'Estoque Baixo', value: estoqueBaixo, color: '#f59e0b' },
+      { name: 'Estoque Baixo', value: estoqueBaixo, color: '#ef4444' },
       { name: 'Estoque Zerado', value: estoqueZerado, color: '#ef4444' }
     ].filter(item => item.value > 0);
   }, [produtos]);
