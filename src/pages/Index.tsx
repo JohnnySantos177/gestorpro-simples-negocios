@@ -13,7 +13,10 @@ import {
   DollarSign,
   TrendingUp,
   TrendingDown,
-  Minus
+  Minus,
+  ArrowDown,
+  ArrowUp,
+  PieChart as PieIcon
 } from "lucide-react";
 import {
   LineChart,
@@ -327,6 +330,73 @@ const Index = () => {
             trend={crescimentoPercentual > 0 ? "up" : crescimentoPercentual < 0 ? "down" : "neutral"}
             trendValue={`${Math.abs(crescimentoPercentual).toFixed(1)}%`}
           />
+        </div>
+
+        {/* Resumo Financeiro */}
+        <div className="mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Resumo Financeiro</CardTitle>
+              <PieIcon className="h-6 w-6 text-blue-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
+                {/* Blocos visuais */}
+                <div className="flex-1 flex flex-col items-center bg-green-50 rounded-lg p-4 shadow-sm">
+                  <DollarSign className="h-7 w-7 text-green-600 mb-1" />
+                  <span className="text-muted-foreground text-sm mb-1">Receitas</span>
+                  <span className="text-2xl font-bold text-green-600">{formatCurrency(resumoFinanceiro.receitas)}</span>
+                </div>
+                <div className="flex-1 flex flex-col items-center bg-red-50 rounded-lg p-4 shadow-sm">
+                  <ArrowDown className="h-7 w-7 text-red-600 mb-1" />
+                  <span className="text-muted-foreground text-sm mb-1">Despesas</span>
+                  <span className="text-2xl font-bold text-red-600">{formatCurrency(resumoFinanceiro.despesas)}</span>
+                </div>
+                <div className={`flex-1 flex flex-col items-center ${resumoFinanceiro.lucro >= 0 ? 'bg-blue-50' : 'bg-red-100'} rounded-lg p-4 shadow-sm`}>
+                  <ArrowUp className={`h-7 w-7 mb-1 ${resumoFinanceiro.lucro >= 0 ? 'text-blue-600' : 'text-red-600'}`} />
+                  <span className="text-muted-foreground text-sm mb-1">Lucro</span>
+                  <span className={`text-2xl font-bold ${resumoFinanceiro.lucro >= 0 ? 'text-blue-600' : 'text-red-600'}`}>{formatCurrency(resumoFinanceiro.lucro)}</span>
+                </div>
+                {/* Gráfico de pizza */}
+                <div className="flex-1 flex flex-col items-center">
+                  <span className="text-muted-foreground text-xs mb-2">Proporção</span>
+                  <div className="w-28 h-28">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Receitas', value: resumoFinanceiro.receitas, color: '#22c55e' },
+                            { name: 'Despesas', value: resumoFinanceiro.despesas, color: '#ef4444' },
+                            { name: 'Lucro', value: Math.max(resumoFinanceiro.lucro, 0), color: '#3b82f6' },
+                          ]}
+                          dataKey="value"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={48}
+                          innerRadius={28}
+                          paddingAngle={2}
+                        >
+                          {[
+                            '#22c55e',
+                            '#ef4444',
+                            '#3b82f6',
+                          ].map((color, idx) => (
+                            <Cell key={color} fill={color} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={v => formatCurrency(Number(v))} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex gap-2 mt-2 text-xs">
+                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-green-500 inline-block" />Receitas</span>
+                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-500 inline-block" />Despesas</span>
+                    <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-blue-500 inline-block" />Lucro</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Filtro de ano para os gráficos financeiros */}
