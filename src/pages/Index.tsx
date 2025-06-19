@@ -1,6 +1,4 @@
-
 import React from "react";
-import { OptimizedLayout } from "@/components/OptimizedLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { StatsCard } from "@/components/ui/stats-card";
 import { useData } from "@/context/DataContext";
@@ -38,6 +36,8 @@ const Index = () => {
   const { clientes, produtos, compras, transacoes, loading } = useData();
   const { isVisitorMode, targetUserId } = useVisitorMode();
   const { user } = useAuth();
+
+  console.log("Index renderizou", { isVisitorMode, targetUserId });
 
   // Get the display name for the current context
   const getDisplayContext = () => {
@@ -138,18 +138,20 @@ const Index = () => {
     return { receitas, despesas, lucro };
   }, [transacoes]);
 
+  if (isVisitorMode && !targetUserId) {
+    return null;
+  }
+
   if (loading) {
     return (
-      <OptimizedLayout>
-        <div className="flex justify-center items-center p-12">
-          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-        </div>
-      </OptimizedLayout>
+      <div className="flex justify-center items-center p-12">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+      </div>
     );
   }
 
   return (
-    <OptimizedLayout>
+    <>
       {isVisitorMode && <VisitorBanner />}
       <div className={isVisitorMode ? "pt-16" : ""}>
         <PageHeader
@@ -306,7 +308,7 @@ const Index = () => {
           </Card>
         </div>
       </div>
-    </OptimizedLayout>
+    </>
   );
 };
 

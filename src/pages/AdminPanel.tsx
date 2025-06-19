@@ -190,9 +190,9 @@ const AdminPanel = () => {
   const viewUserDashboard = async (userId: string) => {
     try {
       setSelectedUserId(userId);
-      enterVisitorMode(userId);
       toast.success("Entrando como visitante nessa conta do usuário...");
-      navigate("/");
+      navigate("/", { replace: true });
+      setTimeout(() => enterVisitorMode(userId), 100);
     } catch (error: any) {
       toast.error(`Erro ao visualizar usuário: ${error.message}`);
     }

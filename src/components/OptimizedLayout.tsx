@@ -1,4 +1,3 @@
-
 import React, { memo, useMemo, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
@@ -49,6 +48,8 @@ import { useErrorHandler } from "@/hooks/useErrorHandler";
 interface OptimizedLayoutProps {
   children: React.ReactNode;
 }
+
+console.log("OptimizedLayout renderizou");
 
 const MenuItems = memo(({ items, currentPath }: { 
   items: Array<{ path: string; label: string; icon: any; special?: boolean }>;
