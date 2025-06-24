@@ -184,9 +184,9 @@ export const OptimizedLayout: React.FC<OptimizedLayoutProps> = memo(({ children 
             <div className="flex items-center gap-2 px-4 py-2">
               <Link to="/" className="flex items-center gap-2">
                 <img 
-                  src="/lovable-uploads/e07ab7a0-dbbd-4bb6-ab59-43f4c9fec7d4.png" 
-                  alt="TotalGestor Logo" 
-                  className="h-8 w-8"
+                  src="/lovable-uploads/tg-gold-logo.png"
+                  alt="Logo TotalGestor TG Gold"
+                  className="h-10 w-10"
                 />
                 <span className="font-semibold text-lg text-black group-data-[collapsible=icon]:hidden">
                   TotalGestor
@@ -244,7 +244,7 @@ export const OptimizedLayout: React.FC<OptimizedLayoutProps> = memo(({ children 
                 <div className="hidden md:block">
                   <Button asChild variant="default" size="sm">
                     <Link to="/assinatura">
-                      <span className="mr-1">⭐</span> Assinar TotalGestor por R$59,99
+                      <span className="mr-1">⭐</span> Assinar TotalGestor
                     </Link>
                   </Button>
                 </div>
