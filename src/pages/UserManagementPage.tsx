@@ -30,6 +30,7 @@ const editUserSchema = z.object({
   nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
   tipo_plano: z.enum(['padrao', 'premium']),
   telefone: z.string().optional(),
+  nome_loja: z.string().optional(),
 });
 
 type UserFormValues = z.infer<typeof userSchema>;
@@ -84,6 +85,7 @@ const UserManagementPage = () => {
       nome: "",
       tipo_plano: "padrao",
       telefone: "",
+      nome_loja: "",
     },
   });
 
@@ -189,6 +191,7 @@ const UserManagementPage = () => {
           nome: data.nome,
           tipo_plano: data.tipo_plano,
           telefone: data.telefone,
+          nome_loja: data.nome_loja,
         })
         .eq('id', selectedUser.id);
 
@@ -228,6 +231,7 @@ const UserManagementPage = () => {
     editUserForm.setValue('nome', userProfile.nome || '');
     editUserForm.setValue('tipo_plano', userProfile.tipo_plano);
     editUserForm.setValue('telefone', userProfile.telefone || '');
+    editUserForm.setValue('nome_loja', userProfile.nome_loja || '');
     setIsEditDialogOpen(true);
   };
 
@@ -383,22 +387,24 @@ const UserManagementPage = () => {
                 <div className="text-sm text-muted-foreground">
                   Criado em: {new Date(userProfile.created_at).toLocaleDateString('pt-BR')}
                 </div>
-                {userProfile.tipo_usuario !== 'admin_mestre' && (
+                {(user?.tipo_usuario === 'admin_mestre' || userProfile.tipo_usuario !== 'admin_mestre') && (
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => openEditDialog(userProfile)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button 
-                      variant="destructive" 
-                      size="sm" 
-                      onClick={() => {
-                        if (confirm('Tem certeza que deseja excluir este usuário?')) {
-                          onDeleteUser(userProfile.id);
-                        }
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {userProfile.tipo_usuario !== 'admin_mestre' && (
+                      <Button 
+                        variant="destructive" 
+                        size="sm" 
+                        onClick={() => {
+                          if (confirm('Tem certeza que deseja excluir este usuário?')) {
+                            onDeleteUser(userProfile.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
@@ -460,6 +466,19 @@ const UserManagementPage = () => {
                     <FormLabel>Telefone</FormLabel>
                     <FormControl>
                       <Input placeholder="(99) 99999-9999" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editUserForm.control}
+                name="nome_loja"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome da loja (slug)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="ex: minha-loja" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

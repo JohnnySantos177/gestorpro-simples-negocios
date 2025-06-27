@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,6 +44,7 @@ export const useUserProfile = () => {
           profileData = {
             id: updatedProfile?.id || existingProfile.id,
             nome: updatedProfile?.nome || existingProfile.nome,
+            nome_loja: updatedProfile?.nome_loja || existingProfile.nome_loja,
             tipo_plano: (updatedProfile?.tipo_plano as 'padrao' | 'premium') || 'premium',
             tipo_usuario: (updatedProfile?.tipo_usuario as 'usuario' | 'admin_mestre') || 'admin_mestre',
             created_at: updatedProfile?.created_at || existingProfile.created_at,
@@ -55,6 +55,7 @@ export const useUserProfile = () => {
           profileData = {
             id: existingProfile.id,
             nome: existingProfile.nome,
+            nome_loja: existingProfile.nome_loja,
             tipo_plano: (existingProfile.tipo_plano as 'padrao' | 'premium') || 'padrao',
             tipo_usuario: (existingProfile.tipo_usuario as 'usuario' | 'admin_mestre') || 'usuario',
             created_at: existingProfile.created_at,
@@ -80,6 +81,7 @@ export const useUserProfile = () => {
           profileData = {
             id: newProfile.id,
             nome: newProfile.nome,
+            nome_loja: newProfile.nome_loja,
             tipo_plano: (newProfile.tipo_plano as 'padrao' | 'premium') || 'padrao',
             tipo_usuario: (newProfile.tipo_usuario as 'usuario' | 'admin_mestre') || 'usuario',
             created_at: newProfile.created_at,
@@ -90,6 +92,7 @@ export const useUserProfile = () => {
           profileData = {
             id: currentUser.id,
             nome: currentUser.user_metadata?.full_name || currentUser.user_metadata?.nome || '',
+            nome_loja: '',
             tipo_plano: isMasterAdmin ? "premium" : "padrao",
             tipo_usuario: isMasterAdmin ? "admin_mestre" : "usuario",
             created_at: currentUser.created_at,
@@ -126,6 +129,7 @@ export const useUserProfile = () => {
       const fallbackProfile = {
         id: currentUser.id,
         nome: currentUser.user_metadata?.full_name || currentUser.user_metadata?.nome || '',
+        nome_loja: '',
         tipo_plano: isMasterAdmin ? "premium" : "padrao" as 'padrao' | 'premium',
         tipo_usuario: isMasterAdmin ? "admin_mestre" : "usuario" as 'usuario' | 'admin_mestre',
         created_at: currentUser.created_at,

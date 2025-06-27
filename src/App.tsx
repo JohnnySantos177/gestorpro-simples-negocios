@@ -33,6 +33,7 @@ import { VisitorModeProvider } from "@/context/VisitorModeContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { MobileOptimizations } from "@/components/MobileOptimizations";
 import { AppContentGuard } from "@/AppContentGuard";
+import CatalogoPage from "@/pages/CatalogoPage";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +55,7 @@ function App() {
                       <Route path="/register" element={<RegisterPage />} />
                       <Route path="/reset-password" element={<ResetPasswordPage />} />
                       <Route path="/confirmation-success" element={<ConfirmationSuccessPage />} />
+                      <Route path="/catalogo/:nome_loja" element={<CatalogoPage />} />
                       <Route element={<ProtectedRoute />}>
                         <Route path="/" element={<Index />} />
                         <Route path="/clientes" element={<ClientesPage />} />

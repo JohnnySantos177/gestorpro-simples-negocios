@@ -61,6 +61,8 @@ const ProdutosPage = () => {
       precoVenda: produto.precoVenda,
       quantidade: produto.quantidade,
       fornecedorId: produto.fornecedorId || "",
+      foto_url: produto.foto_url || undefined,
+      publicar_no_catalogo: produto.publicar_no_catalogo ?? false,
     });
     setDialogOpen(true);
   };
@@ -80,7 +82,7 @@ const ProdutosPage = () => {
       : "";
 
     // Prepare the complete product data with all required fields
-    const produtoData = {
+    const produtoData: Partial<Produto> = {
       nome: data.nome,
       descricao: data.descricao,
       categoria: data.categoria,
@@ -88,11 +90,13 @@ const ProdutosPage = () => {
       precoVenda: data.precoVenda,
       quantidade: data.quantidade,
       fornecedorId: data.fornecedorId === "sem-fornecedor" ? "" : data.fornecedorId,
-      fornecedorNome
+      fornecedorNome,
+      foto_url: data.foto_url,
+      publicar_no_catalogo: data.publicar_no_catalogo,
     };
 
     if (dialogType === 'add') {
-      const success = await addProduto(produtoData);
+      const success = await addProduto(produtoData as any);
       if (success) {
         setDialogOpen(false);
       }

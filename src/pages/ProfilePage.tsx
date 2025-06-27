@@ -19,6 +19,10 @@ import { Badge } from "@/components/ui/badge";
 
 const profileSchema = z.object({
   nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+  nome_loja: z.string()
+    .min(3, "Nome da loja deve ter pelo menos 3 caracteres")
+    .max(32, "Nome da loja deve ter no máximo 32 caracteres")
+    .regex(/^[a-z0-9-]+$/, "Use apenas letras minúsculas, números e hífens"),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -32,6 +36,7 @@ const ProfilePage = () => {
     resolver: zodResolver(profileSchema),
     defaultValues: {
       nome: profile?.nome || "",
+      nome_loja: profile?.nome_loja || "",
     },
   });
 
@@ -39,6 +44,7 @@ const ProfilePage = () => {
   React.useEffect(() => {
     if (profile) {
       form.setValue('nome', profile.nome);
+      form.setValue('nome_loja', profile.nome_loja || "");
     }
   }, [profile, form]);
 
@@ -94,6 +100,25 @@ const ProfilePage = () => {
                       <Input placeholder="Seu nome completo" {...field} />
                     </FormControl>
                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="nome_loja"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome da loja (link público)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="ex: minha-loja" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    {field.value && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Link do catálogo: <span className="font-mono">{window.location.origin}/catalogo/{field.value}</span>
+                      </div>
+                    )}
                   </FormItem>
                 )}
               />

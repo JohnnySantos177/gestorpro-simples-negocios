@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Produto } from "@/types";
 
@@ -25,7 +24,9 @@ export const produtoService = {
       dataValidade: item.data_validade || undefined,
       codigoBarra: item.codigo_barra || undefined,
       localizacao: item.localizacao || undefined,
-      dataCadastro: item.data_cadastro
+      dataCadastro: item.data_cadastro,
+      foto_url: item.foto_url || item.fotoUrl || '',
+      publicar_no_catalogo: item.publicar_no_catalogo ?? item.publicarNoCatalogo ?? false,
     }));
   },
 
@@ -49,7 +50,9 @@ export const produtoService = {
         codigo_barra: produto.codigoBarra,
         localizacao: produto.localizacao,
         user_id: produto.user_id,
-        data_cadastro: new Date().toISOString()
+        data_cadastro: new Date().toISOString(),
+        foto_url: produto.foto_url,
+        publicar_no_catalogo: produto.publicar_no_catalogo
       })
       .select()
       .single();
@@ -89,6 +92,8 @@ export const produtoService = {
     if (produto.dataValidade !== undefined) dbUpdates.data_validade = produto.dataValidade;
     if (produto.codigoBarra !== undefined) dbUpdates.codigo_barra = produto.codigoBarra;
     if (produto.localizacao !== undefined) dbUpdates.localizacao = produto.localizacao;
+    if (produto.foto_url !== undefined) dbUpdates.foto_url = produto.foto_url;
+    if (produto.publicar_no_catalogo !== undefined) dbUpdates.publicar_no_catalogo = produto.publicar_no_catalogo;
 
     const { error } = await supabase
       .from('produtos')

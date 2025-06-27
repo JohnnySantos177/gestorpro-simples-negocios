@@ -21,7 +21,7 @@ import {
   CardDescription 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Eye, RefreshCw, Crown, Settings } from "lucide-react";
+import { Eye, RefreshCw, Crown, Settings, Pencil, Trash2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,6 +42,17 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { useVisitorMode } from "@/context/VisitorModeContext";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { 
+  Form, 
+  FormControl, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormMessage 
+} from "@/components/ui/form";
 
 type UserOverview = {
   id: string;
@@ -61,7 +72,17 @@ type UserOverview = {
   cargo: string | null;
   cidade: string | null;
   estado: string | null;
+  nome_loja?: string | null;
 };
+
+const editUserSchema = z.object({
+  nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+  tipo_plano: z.enum(["padrao", "premium"]),
+  telefone: z.string().optional(),
+  nome_loja: z.string().optional(),
+});
+
+type EditUserFormValues = z.infer<typeof editUserSchema>;
 
 const AdminPanel = () => {
   const { isAdmin } = useAuth();
@@ -74,6 +95,17 @@ const AdminPanel = () => {
   const [isChangePlanDialogOpen, setIsChangePlanDialogOpen] = useState(false);
   const [selectedUserForPlan, setSelectedUserForPlan] = useState<UserOverview | null>(null);
   const [newPlan, setNewPlan] = useState<string>("");
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserOverview | null>(null);
+  const editUserForm = useForm<EditUserFormValues>({
+    resolver: zodResolver(editUserSchema),
+    defaultValues: {
+      nome: "",
+      tipo_plano: "padrao",
+      telefone: "",
+      nome_loja: "",
+    },
+  });
 
   // Verificar se o usuário é administrador, caso contrário, redirecionar
   useEffect(() => {
@@ -168,6 +200,7 @@ const AdminPanel = () => {
         total_clientes: Number(user.total_clientes) || 0,
         total_produtos: Number(user.total_produtos) || 0,
         total_vendas: Number(user.total_vendas) || 0,
+        nome_loja: user.nome_loja || null,
       }));
 
       setUsers(parsedUsers);
@@ -223,6 +256,60 @@ const AdminPanel = () => {
       loadUsers(); // Recarregar a lista
     } catch (error: any) {
       toast.error(`Erro ao alterar plano: ${error.message}`);
+    }
+  };
+
+  const openEditDialog = (user: UserOverview) => {
+    setSelectedUser(user);
+    editUserForm.setValue("nome", user.nome || "");
+    editUserForm.setValue("tipo_plano", (user.tipo_plano as "padrao" | "premium") || "padrao");
+    editUserForm.setValue("telefone", user.telefone || "");
+    editUserForm.setValue("nome_loja", user.nome_loja || "");
+    setIsEditDialogOpen(true);
+  };
+
+  const onEditUser = async (data: EditUserFormValues) => {
+    if (!selectedUser) return;
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          nome: data.nome,
+          tipo_plano: data.tipo_plano,
+          telefone: data.telefone,
+          nome_loja: data.nome_loja,
+        })
+        .eq("id", selectedUser.id);
+      if (error) throw error;
+      toast.success("Usuário atualizado com sucesso!");
+      setIsEditDialogOpen(false);
+      setSelectedUser(null);
+      editUserForm.reset();
+      loadUsers();
+    } catch (error: any) {
+      toast.error(`Erro ao atualizar usuário: ${error.message}`);
+    }
+  };
+
+  const onDeleteUser = async (userId: string) => {
+    if (userId === (useAuth().user?.id)) {
+      toast.error("Você não pode excluir sua própria conta!");
+      return;
+    }
+    try {
+      // Exclui do Auth
+      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+      if (authError) throw authError;
+      // Exclui do profiles
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+      if (profileError) throw profileError;
+      toast.success("Usuário excluído com sucesso!");
+      loadUsers();
+    } catch (error: any) {
+      toast.error(`Erro ao excluir usuário: ${error.message}`);
     }
   };
 
@@ -363,6 +450,27 @@ const AdminPanel = () => {
                                   <Settings className="h-4 w-4 mr-2" />
                                   Alterar Plano
                                 </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => openEditDialog(user)}
+                                >
+                                  <Pencil className="h-4 w-4 mr-2" />
+                                  Editar
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => {
+                                    if (window.confirm('Tem certeza que deseja excluir este usuário?')) {
+                                      onDeleteUser(user.id);
+                                    }
+                                  }}
+                                  disabled={user.id === (useAuth().user?.id)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Excluir
+                                </Button>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -471,6 +579,84 @@ const AdminPanel = () => {
               Alterar Plano
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Usuário</DialogTitle>
+            <DialogDescription>
+              Edite as informações do usuário
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...editUserForm}>
+            <form onSubmit={editUserForm.handleSubmit(onEditUser)} className="space-y-4">
+              <FormField
+                control={editUserForm.control}
+                name="nome"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nome completo" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editUserForm.control}
+                name="tipo_plano"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo de Plano</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o plano" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="padrao">Padrão</SelectItem>
+                        <SelectItem value="premium">Premium</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editUserForm.control}
+                name="telefone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Telefone</FormLabel>
+                    <FormControl>
+                      <Input placeholder="(99) 99999-9999" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editUserForm.control}
+                name="nome_loja"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome da loja (slug)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="ex: minha-loja" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="submit">Salvar Alterações</Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </>

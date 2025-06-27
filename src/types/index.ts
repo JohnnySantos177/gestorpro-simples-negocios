@@ -51,6 +51,8 @@ export interface Produto {
   codigoBarra?: string;
   localizacao?: string;
   dataCadastro: string;
+  foto_url?: string;
+  publicar_no_catalogo?: boolean;
 }
 
 // Fornecedor types
@@ -135,6 +137,7 @@ export interface DashboardStats {
 export interface UserProfile {
   id: string;
   nome: string | null;
+  nome_loja?: string | null;
   tipo_plano: 'padrao' | 'premium';
   tipo_usuario: 'usuario' | 'admin_mestre';
   created_at: string;
