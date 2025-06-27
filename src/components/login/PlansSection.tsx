@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,8 +38,7 @@ export const PlansSection = () => {
         'Relatórios avançados',
         'Backup automático',
         'Suporte prioritário',
-        'Exportação de dados',
-        '2 meses grátis'
+        'Exportação de dados'
       ],
       popular: true,
       color: 'from-primary to-secondary',
