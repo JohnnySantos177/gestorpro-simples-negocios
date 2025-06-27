@@ -140,9 +140,9 @@ const Index = () => {
   // Novo cálculo: receitas = vendas + transações de entrada
   const receitasVendas = compras.reduce((sum, c) => sum + Number(c.valorTotal), 0);
   const receitasTransacoes = transacoes.filter(t => t.tipo === 'entrada').reduce((sum, t) => sum + Number(t.valor), 0);
-  const despesas = transacoes.filter(t => t.tipo === 'saida').reduce((sum, t) => sum + Number(t.valor), 0);
+    const despesas = transacoes.filter(t => t.tipo === 'saida').reduce((sum, t) => sum + Number(t.valor), 0);
   const receitas = receitasVendas + receitasTransacoes;
-  const lucro = receitas - despesas;
+    const lucro = receitas - despesas;
 
   const resumoFinanceiro = React.useMemo(() => ({ receitas, despesas, lucro }), [receitas, despesas, lucro]);
 
@@ -290,9 +290,9 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center p-12">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-      </div>
+        <div className="flex justify-center items-center p-12">
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+        </div>
     );
   }
 
@@ -418,15 +418,15 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <div id="grafico-vendas-periodo" className="w-full h-[300px]">
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={vendasPorPeriodo}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="mes" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Vendas']} />
-                    <Line type="monotone" dataKey="vendas" stroke="#8b5cf6" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={vendasPorPeriodo}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="mes" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Vendas']} />
+                  <Line type="monotone" dataKey="vendas" stroke="#8b5cf6" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>
@@ -438,26 +438,26 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <div id="grafico-status-estoque" className="w-full h-[300px]">
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={statusEstoque}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      dataKey="value"
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {statusEstoque.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="mt-4 space-y-2">
-                  {statusEstoque.map((item, index) => (
-                    <div key={index} className="flex items-center justify-between">
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={statusEstoque}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {statusEstoque.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="mt-4 space-y-2">
+                {statusEstoque.map((item, index) => (
+                  <div key={index} className="flex items-center justify-between">
                       <div 
                         className="w-3 h-3 rounded-full" 
                         style={{ backgroundColor: item.color }}
@@ -466,7 +466,7 @@ const Index = () => {
                       <span className="text-sm font-medium">{item.value} ({((item.value / totalProdutos) * 100).toFixed(0)}%)</span>
                     </div>
                   ))}
-                </div>
+                  </div>
               </div>
             </CardContent>
           </Card>
@@ -481,21 +481,21 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <div id="grafico-produtos-mais-vendidos" className="w-full h-[250px]">
-                {produtosMaisVendidos.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={produtosMaisVendidos} layout="horizontal">
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" />
-                      <YAxis dataKey="nome" type="category" width={120} />
-                      <Tooltip />
-                      <Bar dataKey="quantidade" fill="#8b5cf6" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="text-center text-muted-foreground py-8">
-                    Nenhuma venda registrada ainda
-                  </p>
-                )}
+              {produtosMaisVendidos.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={produtosMaisVendidos} layout="horizontal">
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" />
+                    <YAxis dataKey="nome" type="category" width={120} />
+                    <Tooltip />
+                    <Bar dataKey="quantidade" fill="#8b5cf6" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">
+                  Nenhuma venda registrada ainda
+                </p>
+              )}
               </div>
             </CardContent>
           </Card>
@@ -523,7 +523,7 @@ const Index = () => {
               </div>
             </CardContent>
           </Card>
-        </div>
+                </div>
 
         {/* Nova linha: Clientes Mais Lucrativos */}
         <div className="grid gap-6 md:grid-cols-2 mt-6">

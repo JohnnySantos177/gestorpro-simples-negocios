@@ -62,7 +62,7 @@ const RegisterPage = () => {
 
       setLoading(true);
       await signUp(sanitizedValues.email, sanitizedValues.password, sanitizedValues.nome, sanitizedValues.telefone);
-      toast.success("Conta criada! Verifique seu e-mail para ativar o cadastro.");
+      toast.success("Conta criada com sucesso! Faça login para começar a usar o sistema.");
       navigate("/login");
     } catch (error: any) {
       toast.error(`Erro ao criar conta: ${error.message}`);

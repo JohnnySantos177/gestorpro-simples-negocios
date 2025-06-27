@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,7 +55,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({
           className="w-full bg-totalgestor-500 hover:bg-totalgestor-600"
           variant={selectedPlan === plan.id ? "default" : "outline"}
         >
-          {checkoutLoading ? "Processando..." : isSubscribed ? "Plano Ativo" : "Assinar"}
+          {checkoutLoading ? "Processando..." : isSubscribed ? "Plano Ativo" : "Assinar TotalGestor"}
         </Button>
       </CardContent>
     </Card>

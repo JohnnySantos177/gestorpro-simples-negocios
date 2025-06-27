@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -30,7 +29,7 @@ export const VendasLimitBanner = () => {
             className="bg-orange-600 hover:bg-orange-700 ml-4"
           >
             <Crown className="h-4 w-4 mr-2" />
-            Assinar Premium
+            Assinar TotalGestor
           </Button>
         </AlertDescription>
       </Alert>
@@ -62,7 +61,7 @@ export const VendasLimitBanner = () => {
             className="border-yellow-600 text-yellow-700 hover:bg-yellow-100 ml-4"
           >
             <Crown className="h-4 w-4 mr-2" />
-            Ver Planos
+            Assinar TotalGestor
           </Button>
         </AlertDescription>
       </Alert>

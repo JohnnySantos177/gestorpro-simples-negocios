@@ -177,7 +177,7 @@ const ProfilePage = () => {
                 </p>
               </div>
               <Button asChild>
-                <a href="/assinatura">Assinar Agora</a>
+                <a href="/assinatura">Assinar TotalGestor</a>
               </Button>
             </div>
           )}
