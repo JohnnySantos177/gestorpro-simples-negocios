@@ -19,7 +19,7 @@ export const HeroSection = () => {
         <div className="flex items-center justify-center gap-3 mb-8 animate-fade-in">
           <div className="relative">
             <img 
-              src="/lovable-uploads/e07ab7a0-dbbd-4bb6-ab59-43f4c9fec7d4.png" 
+              src="/lovable-uploads/tg-gold-logo.png" 
               alt="TotalGestor Logo" 
               className="h-16 w-16 rounded-xl shadow-2xl"
             />
