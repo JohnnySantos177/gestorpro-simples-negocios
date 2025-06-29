@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/format";
+import { supabase } from "@/lib/supabase"; // Ajuste o caminho conforme sua estrutura
 
 interface Produto {
   id: string;
@@ -15,16 +16,8 @@ interface Produto {
 interface Perfil {
   nome: string;
   nome_loja: string;
+  user_id: string;
 }
-
-const getFunctionsBaseUrl = () => {
-  // Em produção, use a URL do Supabase Cloud
-  if (import.meta.env.PROD) {
-    return 'https://<SEU-PROJETO>.functions.supabase.co'; // Substitua <SEU-PROJETO> pelo seu subdomínio do Supabase
-  }
-  // Em dev, use o proxy local
-  return '/functions/v1';
-};
 
 const CatalogoPage: React.FC = () => {
   const { nome_loja } = useParams<{ nome_loja: string }>();
@@ -37,32 +30,76 @@ const CatalogoPage: React.FC = () => {
     const fetchCatalogo = async () => {
       setLoading(true);
       setNotFound(false);
+      
       try {
-        const baseUrl = getFunctionsBaseUrl();
+        console.log('Buscando catálogo para:', nome_loja);
+
         // Buscar perfil pelo nome_loja
-        const perfilRes = await fetch(`${baseUrl}/functions/v1/public-catalogo-perfil/${nome_loja}`);
-        if (!perfilRes.ok) throw new Error("Perfil não encontrado");
-        const perfilData = await perfilRes.json();
+        const { data: perfilData, error: perfilError } = await supabase
+          .from('profiles')
+          .select('nome, nome_loja, user_id')
+          .eq('nome_loja', nome_loja)
+          .single();
+
+        if (perfilError || !perfilData) {
+          console.error('Erro ao buscar perfil:', perfilError);
+          throw new Error("Perfil não encontrado");
+        }
+
+        console.log('Perfil encontrado:', perfilData);
         setPerfil(perfilData);
-        // Buscar produtos publicados
-       const produtosRes = await fetch(`${baseUrl}/functions/v1/public-catalogo-produtos/${nome_loja}`);
-        if (!produtosRes.ok) throw new Error("Produtos não encontrados");
-        const produtosData = await produtosRes.json();
-        setProdutos(produtosData);
+
+        // Buscar produtos publicados do usuário
+        const { data: produtosData, error: produtosError } = await supabase
+          .from('produtos')
+          .select('id, nome, descricao, precoVenda, foto_url')
+          .eq('user_id', perfilData.user_id)
+          .eq('publicar_no_catalogo', true)
+          .eq('ativo', true);
+
+        if (produtosError) {
+          console.error('Erro ao buscar produtos:', produtosError);
+          // Não lance erro aqui, apenas deixe produtos vazio
+        }
+
+        console.log('Produtos encontrados:', produtosData?.length || 0);
+        setProdutos(produtosData || []);
+
       } catch (err) {
+        console.error('Erro ao buscar catálogo:', err);
         setNotFound(true);
       } finally {
         setLoading(false);
       }
     };
-    if (nome_loja) fetchCatalogo();
+
+    if (nome_loja) {
+      fetchCatalogo();
+    }
   }, [nome_loja]);
 
   if (loading) {
-    return <div className="flex justify-center items-center min-h-[60vh]">Carregando catálogo...</div>;
+    return (
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          Carregando catálogo...
+        </div>
+      </div>
+    );
   }
+
   if (notFound || !perfil) {
-    return <div className="flex justify-center items-center min-h-[60vh] text-red-500">Catálogo não encontrado.</div>;
+    return (
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="text-red-500 text-xl mb-2">Catálogo não encontrado</div>
+          <p className="text-muted-foreground">
+            O catálogo "{nome_loja}" não existe ou não está disponível.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -70,24 +107,51 @@ const CatalogoPage: React.FC = () => {
       <div className="max-w-5xl mx-auto">
         <Card className="mb-8 text-center">
           <CardHeader>
-            <CardTitle className="text-3xl font-bold">Catálogo de {perfil.nome}</CardTitle>
+            <CardTitle className="text-3xl font-bold">
+              Catálogo de {perfil.nome}
+            </CardTitle>
             <Badge className="mt-2">{perfil.nome_loja}</Badge>
           </CardHeader>
         </Card>
+
         <div className="grid gap-8 md:grid-cols-3 sm:grid-cols-2">
           {produtos.length === 0 ? (
-            <div className="col-span-full text-center text-muted-foreground">Nenhum produto publicado no catálogo.</div>
+            <div className="col-span-full text-center">
+              <div className="text-muted-foreground text-lg mb-2">
+                Nenhum produto publicado no catálogo
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Os produtos aparecerão aqui quando forem marcados para publicação no catálogo.
+              </p>
+            </div>
           ) : (
             produtos.map((produto) => (
-              <Card key={produto.id} className="hover:shadow-xl transition-shadow duration-200">
+              <Card 
+                key={produto.id} 
+                className="hover:shadow-xl transition-shadow duration-200 overflow-hidden"
+              >
                 {produto.foto_url && (
-                  <img src={produto.foto_url} alt={produto.nome} className="w-full h-48 object-cover rounded-t" />
+                  <div className="aspect-square overflow-hidden">
+                    <img 
+                      src={produto.foto_url} 
+                      alt={produto.nome} 
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-200" 
+                    />
+                  </div>
                 )}
                 <CardContent className="p-4">
                   <div className="flex flex-col gap-2">
-                    <span className="font-bold text-lg">{produto.nome}</span>
-                    <span className="text-muted-foreground text-sm">{produto.descricao}</span>
-                    <span className="text-primary font-semibold text-xl">{formatCurrency(produto.precoVenda)}</span>
+                    <h3 className="font-bold text-lg line-clamp-2">
+                      {produto.nome}
+                    </h3>
+                    {produto.descricao && (
+                      <p className="text-muted-foreground text-sm line-clamp-3">
+                        {produto.descricao}
+                      </p>
+                    )}
+                    <div className="text-primary font-semibold text-xl mt-2">
+                      {formatCurrency(produto.precoVenda)}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -99,4 +163,4 @@ const CatalogoPage: React.FC = () => {
   );
 };
 
-export default CatalogoPage; 
+export default CatalogoPage;
