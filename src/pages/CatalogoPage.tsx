@@ -3,20 +3,20 @@ import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/format";
-import { supabase } from "@/lib/supabase"; // Ajuste o caminho conforme sua estrutura
+import { supabase } from "@/lib/supabase";
 
 interface Produto {
   id: string;
   nome: string;
   descricao: string;
-  precoVenda: number;
+  preco_venda: number; // Corrigido: era precoVenda
   foto_url?: string;
 }
 
 interface Perfil {
   nome: string;
   nome_loja: string;
-  user_id: string;
+  id: string; // Corrigido: era user_id, mas o campo correto é id
 }
 
 const CatalogoPage: React.FC = () => {
@@ -37,7 +37,7 @@ const CatalogoPage: React.FC = () => {
         // Buscar perfil pelo nome_loja
         const { data: perfilData, error: perfilError } = await supabase
           .from('profiles')
-          .select('nome, nome_loja, user_id')
+          .select('nome, nome_loja, id') // Corrigido: usar 'id' em vez de 'user_id'
           .eq('nome_loja', nome_loja)
           .single();
 
@@ -52,10 +52,10 @@ const CatalogoPage: React.FC = () => {
         // Buscar produtos publicados do usuário
         const { data: produtosData, error: produtosError } = await supabase
           .from('produtos')
-          .select('id, nome, descricao, precoVenda, foto_url')
-          .eq('user_id', perfilData.user_id)
-          .eq('publicar_no_catalogo', true)
-          .eq('ativo', true);
+          .select('id, nome, descricao, preco_venda, foto_url') // Corrigido: preco_venda
+          .eq('user_id', perfilData.id) // user_id referencia o id do profiles
+          .eq('publicar_no_catalogo', true);
+          // Removido: .eq('ativo', true) - coluna não existe
 
         if (produtosError) {
           console.error('Erro ao buscar produtos:', produtosError);
@@ -63,6 +63,7 @@ const CatalogoPage: React.FC = () => {
         }
 
         console.log('Produtos encontrados:', produtosData?.length || 0);
+        console.log('Dados dos produtos:', produtosData);
         setProdutos(produtosData || []);
 
       } catch (err) {
@@ -150,7 +151,7 @@ const CatalogoPage: React.FC = () => {
                       </p>
                     )}
                     <div className="text-primary font-semibold text-xl mt-2">
-                      {formatCurrency(produto.precoVenda)}
+                      {formatCurrency(produto.preco_venda)}
                     </div>
                   </div>
                 </CardContent>
