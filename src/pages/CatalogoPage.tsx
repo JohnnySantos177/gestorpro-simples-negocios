@@ -40,12 +40,12 @@ const CatalogoPage: React.FC = () => {
       try {
         const baseUrl = getFunctionsBaseUrl();
         // Buscar perfil pelo nome_loja
-        const perfilRes = await fetch(`${baseUrl}/public-catalogo-perfil/${nome_loja}`);
+        const perfilRes = await fetch(`${baseUrl}/functions/v1/public-catalogo-perfil/${nome_loja}`);
         if (!perfilRes.ok) throw new Error("Perfil não encontrado");
         const perfilData = await perfilRes.json();
         setPerfil(perfilData);
         // Buscar produtos publicados
-        const produtosRes = await fetch(`${baseUrl}/public-catalogo-produtos/${nome_loja}`);
+       const produtosRes = await fetch(`${baseUrl}/functions/v1/public-catalogo-produtos/${nome_loja}`);
         if (!produtosRes.ok) throw new Error("Produtos não encontrados");
         const produtosData = await produtosRes.json();
         setProdutos(produtosData);
